@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Adlab Solutions{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h2>📅 Mark Attendance</h2>
+        <p>Select a date and mark attendance for all employees</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('mark_attendance') }}" class="attendance-form">
+        <div class="date-selector">
+            <label for="attendance_date">📆 Select Date:</label>
+            <input type="date" id="attendance_date" name="attendance_date" class="date-input" value="{{ today }}"
+                required>
+        </div>
+
+        <div class="table-container">
+            <table class="attendance-table">
+                <thead>
+                    <tr>
+                        <th>Emp ID</th>
+                        <th>Employee Name</th>
+                        <th>Team</th>
+                        <th>Total Leaves</th>
+                        <th>Remaining Leaves</th>
+                        <th>Attendance Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for employee in employees %}
+                    <tr>
+                        <td>{{ employee.emp_id }}</td>
+                        <td class="emp-name">{{ employee.emp_name }}</td>
+                        <td>{{ employee.emp_team }}</td>
+                        <td>{{ employee.Total_leaves }}</td>
+                        <td class="remaining-leaves">{{ employee.Remaining_Leaves }}</td>
+                        <td>
+                            <select name="attendance_{{ employee.emp_id }}" class="attendance-select">
+                                <option value="">-- Select --</option>
+                                <option value="Present">✅ Present</option>
+                                <option value="Leave">❌ Leave</option>
+                                <option value="Half Day">⏰ Half Day</option>
+                            </select>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-large">
+                💾 Save Attendance
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

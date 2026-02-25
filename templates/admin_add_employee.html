@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Employee - Admin Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <nav class="navbar">
+            <div class="nav-brand">Admin Portal</div>
+            <div class="nav-user">
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-sm">← Back to Dashboard</a>
+            </div>
+        </nav>
+
+        <div class="dashboard-content">
+            <div class="card" style="max-width: 600px; margin: 0 auto;">
+                <h2>Add New Employee</h2>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+
+                <form method="POST" action="{{ url_for('add_employee_route') }}">
+                    <div class="form-group">
+                        <label>Employee Name</label>
+                        <input type="text" name="emp_name" required placeholder="Full Name">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Team / Department</label>
+                        <input type="text" name="emp_team" required placeholder="e.g. Engineering">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select name="role" class="form-control">
+                            <option value="employee">Employee</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Contract Type</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="contract_type" value="Contract" onchange="toggleDuration()"
+                                    checked>
+                                <span>Contract</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="contract_type" value="Internship" onchange="toggleDuration()">
+                                <span>Internship</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Contract Start Date</label>
+                        <input type="date" name="contract_start_date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Contract End Date</label>
+                        <input type="date" name="contract_end_date" required>
+                    </div>
+
+                    <div class="form-group" id="total-leaves-group">
+                        <label>Total Leaves Allowed</label>
+                        <input type="number" name="total_leaves" required placeholder="e.g. 14 or 20" min="0">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Add Employee</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleDuration() {
+            // Get all radio buttons with name 'contract_type'
+            const radios = document.getElementsByName('contract_type');
+            let type = 'Contract'; // default
+
+            for (let i = 0; i < radios.length; i++) {
+                if (radios[i].checked) {
+                    type = radios[i].value;
+                    break;
+                }
+            }
+
+            const totalLeavesGroup = document.getElementById('total-leaves-group');
+            const totalLeavesInput = document.querySelector('input[name="total_leaves"]');
+
+            if (type === 'Internship') {
+                // Hide leaves option completely
+                if (totalLeavesGroup) totalLeavesGroup.style.display = 'none';
+                if (totalLeavesInput) {
+                    totalLeavesInput.value = 0;
+                    totalLeavesInput.required = false;
+                }
+            } else {
+                // Show leaves option
+                if (totalLeavesGroup) totalLeavesGroup.style.display = 'block';
+                if (totalLeavesInput) {
+                    totalLeavesInput.required = true;
+                    if (totalLeavesInput.value == 0) {
+                        totalLeavesInput.value = '';
+                    }
+                }
+            }
+        }
+
+        // Run on page load
+        document.addEventListener('DOMContentLoaded', toggleDuration);
+    </script>
+</body>
+
+</html>

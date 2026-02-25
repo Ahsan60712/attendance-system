@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Report - Admin Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <nav class="navbar">
+            <div class="nav-brand">Admin Portal</div>
+            <div class="nav-user">
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-sm">← Back to Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-sm">Logout</a>
+            </div>
+        </nav>
+
+        <div class="dashboard-content">
+            <div class="card">
+                <h2>🏆 Employee Performance Report</h2>
+                <p class="text-muted mb-4">Overview of WFH and Leave statistics for all employees to help identifying
+                    top performers.</p>
+
+                <div class="table-responsive">
+                    <table class="table performance-table">
+                        <thead>
+                            <tr>
+                                <th>Employee Name</th>
+                                <th>Team</th>
+                                <th class="text-center">WFH Days</th>
+                                <th class="text-center">Leaves Taken</th>
+                                <th class="text-center">Leaves Remaining</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for emp in employees %}
+                            <tr>
+                                <td class="font-weight-bold">{{ emp.emp_name }}</td>
+                                <td><span class="badge badge-team">{{ emp.emp_team }}</span></td>
+                                <td class="text-center">
+                                    <span class="stat-value-small">{{ emp.WFH_count|default(0) }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="stat-value-small {{ 'text-danger' if emp.Leaves > 5 else '' }}">{{
+                                        emp.Leaves|default(0) }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span
+                                        class="stat-value-small {{ 'text-success' if emp.Remaining_Leaves > 10 else '' }}">{{
+                                        emp.Remaining_Leaves|default(0) }}</span>
+                                </td>
+                                <td class="text-center">
+                                    {% if emp.Remaining_Leaves|default(0) > 10 and emp.Leaves|default(0) < 2 %} <span
+                                        class="badge badge-success">Excellent</span>
+                                        {% elif emp.Remaining_Leaves|default(0) > 5 %}
+                                        <span class="badge badge-warning">Good</span>
+                                        {% else %}
+                                        <span class="badge badge-danger">Needs Improvement</span>
+                                        {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .performance-table th {
+            background-color: #f8fafc;
+            border-bottom: 2px solid #e2e8f0;
+            color: #4a5568;
+            font-weight: 600;
+        }
+
+        .performance-table td {
+            vertical-align: middle;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .font-weight-bold {
+            font-weight: 600;
+        }
+
+        .badge-team {
+            background-color: #edf2f7;
+            color: #4a5568;
+        }
+
+        .stat-value-small {
+            font-weight: 700;
+            font-size: 1.1em;
+            color: #2d3748;
+        }
+
+        .text-danger {
+            color: #e53e3e;
+        }
+
+        .text-success {
+            color: #38a169;
+        }
+
+        .mb-4 {
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</body>
+
+</html>

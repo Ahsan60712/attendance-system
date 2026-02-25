@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adlab Solutions</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="landing-container">
+        <div class="landing-card">
+            <h1>Adlab Solutions</h1>
+            <p>Choose your portal to continue</p>
+
+            <div class="portal-buttons">
+                <a href="{{ url_for('employee_login') }}" class="portal-btn employee-btn">
+                    <span class="icon">👤</span>
+                    <span class="label">Employee Portal</span>
+                </a>
+
+                <a href="{{ url_for('admin_login') }}" class="portal-btn admin-btn">
+                    <span class="icon">⚙️</span>
+                    <span class="label">Admin Portal</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

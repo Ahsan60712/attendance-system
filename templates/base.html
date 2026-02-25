@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Adlab Solutions{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        {% if session.get('logged_in') %}
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">📋 Adlab Solutions</h1>
+                <div class="user-info">
+                    <span class="username">👤 {{ session.get('username') }}</span>
+                    <a href="{{ url_for('logout') }}" class="btn btn-logout">Logout</a>
+                </div>
+            </div>
+        </header>
+        {% endif %}
+
+        <main class="main-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2026 Adlab Solutions</p>
+        </footer>
+    </div>
+</body>
+
+</html>

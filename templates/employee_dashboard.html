@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <nav class="navbar">
+            <div class="nav-brand">Employee Portal</div>
+            <div class="nav-user">
+                <span>Welcome, {{ emp_name }}</span>
+                <a href="{{ url_for('change_password') }}" class="btn btn-sm">Change Password</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-sm">Logout</a>
+            </div>
+        </nav>
+
+        <div class="dashboard-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{{ emp_data.WFH_count|default(0) }}</div>
+                    <div class="stat-label">Total WFH</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ emp_data.Half_Day|default(0) }}</div>
+                    <div class="stat-label">Half Days</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ emp_data.Leaves|default(0) }}</div>
+                    <div class="stat-label">Total Leaves Taken</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ emp_data.Remaining_Leaves|default(0) }}</div>
+                    <div class="stat-label">Remaining Leaves</div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <h2>Submit Request</h2>
+                <form method="POST" action="{{ url_for('mark_request') }}" class="request-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>From Date</label>
+                            <input type="date" name="date" value="{{ today }}" min="{{ today }}" required>
+                            <small class="text-muted">Start Date</small>
+                        </div>
+                        <div class="form-group" id="end-date-group" style="display: none;">
+                            <label>To Date (Optional)</label>
+                            <input type="date" name="end_date" min="{{ today }}">
+                            <small class="text-muted">End Date (For multi-day leave)</small>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Request Type</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="request_type" value="WFH" onchange="toggleEndDate()" required>
+                                <span>Work From Home</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="request_type" value="Half Day" onchange="toggleEndDate()"
+                                    required>
+                                <span>Half Day</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="request_type" value="Leave" onchange="toggleEndDate()"
+                                    required>
+                                <span>Leave</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reason">Reason (Required)</label>
+                        <textarea id="reason" name="reason" rows="4" required
+                            placeholder="Please provide a detailed reason for your request..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Submit Request</button>
+                </form>
+            </div>
+
+            <div class="card mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2>My Request History</h2>
+                    <div class="filter-controls">
+                        <button class="btn btn-sm btn-outline" onclick="toggleFilters()">📅 Filter History</button>
+                    </div>
+                </div>
+
+                <div id="filter-panel" class="mb-4"
+                    style="display: none; background: #f8fafc; padding: 15px; border-radius: 8px;">
+                    <form method="GET" class="filter-form">
+                        <div class="filter-tabs mb-3">
+                            <label class="radio-inline mr-3">
+                                <input type="radio" name="filter_type" value="custom" onchange="this.form.submit()" {%
+                                    if filter_type=='custom' %}checked{% endif %}> Custom
+                            </label>
+                            <label class="radio-inline mr-3">
+                                <input type="radio" name="filter_type" value="monthly" onchange="this.form.submit()" {%
+                                    if filter_type=='monthly' %}checked{% endif %}> Monthly
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" name="filter_type" value="yearly" onchange="this.form.submit()" {%
+                                    if filter_type=='yearly' %}checked{% endif %}> Yearly
+                            </label>
+                        </div>
+
+                        {% if filter_type == 'monthly' %}
+                        <div class="form-row align-items-end">
+                            <div class="form-group mb-0">
+                                <label>Month</label>
+                                <select name="month" class="form-control-sm">
+                                    {% for m in range(1, 13) %}
+                                    <option value="{{ m }}" {% if request.args.get('month')|int==m %}selected{% endif
+                                        %}>{{ m }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group mb-0 ml-2">
+                                <label>Year</label>
+                                <input type="number" name="year" value="{{ request.args.get('year', 2026) }}"
+                                    class="form-control-sm" style="width: 80px;">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm ml-2">Go</button>
+                        </div>
+                        {% elif filter_type == 'yearly' %}
+                        <div class="form-row align-items-end">
+                            <div class="form-group mb-0">
+                                <label>Year</label>
+                                <input type="number" name="year" value="{{ request.args.get('year', 2026) }}"
+                                    class="form-control-sm">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm ml-2">Go</button>
+                        </div>
+                        {% else %}
+                        <div class="form-row align-items-end">
+                            <div class="form-group mb-0">
+                                <label>From</label>
+                                <input type="date" name="start_date" value="{{ filter_start }}" class="form-control-sm">
+                            </div>
+                            <div class="form-group mb-0 ml-2">
+                                <label>To</label>
+                                <input type="date" name="end_date" value="{{ filter_end }}" class="form-control-sm">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm ml-2">Filter</button>
+                        </div>
+                        {% endif %}
+                    </form>
+                </div>
+
+                {% if records %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Reason</th>
+                            <th>Submitted At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr>
+                            <td>{{ record.date }}</td>
+                            <td>
+                                <span class="badge badge-{{ record.type.lower().replace(' ', '-') }}">{{ record.type
+                                    }}</span>
+                            </td>
+                            <td>{{ record.reason }}</td>
+                            <td>{{ record.timestamp }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted">No records found for this period.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleEndDate() {
+            const requestType = document.querySelector('input[name="request_type"]:checked').value;
+            const endDateGroup = document.getElementById('end-date-group');
+            if (requestType === 'Leave') {
+                endDateGroup.style.display = 'block';
+            } else {
+                endDateGroup.style.display = 'none';
+                // Clear value if hidden
+                document.querySelector('input[name="end_date"]').value = '';
+            }
+        }
+
+        function toggleFilters() {
+            const panel = document.getElementById('filter-panel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+    </script>
+
+</body>
+
+</html>

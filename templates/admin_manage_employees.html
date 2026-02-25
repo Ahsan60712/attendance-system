@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Employees - Admin Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <nav class="navbar">
+            <div class="nav-brand">Admin Portal</div>
+            <div class="nav-user">
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-sm">← Back to Dashboard</a>
+            </div>
+        </nav>
+
+        <div class="dashboard-content">
+            <div class="card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2>Employees List</h2>
+                    <a href="{{ url_for('add_employee_route') }}" class="btn btn-secondary">➕ Add New Employee</a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Team</th>
+                                <th>Role</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for emp in employees %}
+                            <tr>
+                                <td>{{ emp.emp_id }}</td>
+                                <td><strong>{{ emp.emp_name }}</strong></td>
+                                <td>{{ emp.emp_team }}</td>
+                                <td>{{ 'Admin' if emp.is_admin else 'Employee' }}</td>
+                                <td>
+                                    <form method="POST"
+                                        action="{{ url_for('delete_employee_route', emp_id=emp.emp_id) }}"
+                                        style="display:inline;"
+                                        onsubmit="return confirm('Are you sure you want to remove {{ emp.emp_name }}? This action cannot be undone.');">
+                                        <button type="submit" class="btn btn-sm btn-danger">🗑️ Remove</button>
+                                    </form>
+                                    <a href="{{ url_for('admin_view_employee', emp_id=emp.emp_id) }}"
+                                        class="btn btn-sm btn-primary">👁️ View</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
