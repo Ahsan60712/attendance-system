@@ -7,7 +7,9 @@ from openpyxl.styles import PatternFill, Font, Alignment
 class WFHLeaveManager:
     def __init__(self, base_path):
         self.base_path = base_path
-        self.emp_data_file = os.path.join(base_path, 'Emp_data.xlsx')
+        # Use environment variable for the file path if available, otherwise default to local 'Emp_data.xlsx'
+        excel_filename = os.environ.get('EXCEL_PATH', 'Emp_data.xlsx')
+        self.emp_data_file = os.path.join(base_path, excel_filename)
     
     def authenticate_user(self, emp_name, password=None, role='employee'):
         """
