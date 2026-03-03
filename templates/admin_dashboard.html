@@ -59,6 +59,16 @@
                         <div class="notif-header">
                             <span class="badge badge-{{ notif.type.lower() }}">{{ notif.type }}</span>
                             <span class="notif-date">{{ notif.date }}</span>
+                            {% if notif.status == 'Approved' %}
+                            <span style="margin-left:8px; color:#38a169; font-weight:600; font-size:0.8rem;">&#10004;
+                                Approved</span>
+                            {% elif notif.status == 'Rejected' %}
+                            <span style="margin-left:8px; color:#e53e3e; font-weight:600; font-size:0.8rem;">&#10006;
+                                Rejected</span>
+                            {% else %}
+                            <span style="margin-left:8px; color:#d97706; font-weight:600; font-size:0.8rem;">&#8987;
+                                Pending</span>
+                            {% endif %}
                         </div>
                         <div class="notif-body">
                             <strong>{{ notif.emp_name }}</strong> ({{ notif.team }})
@@ -70,6 +80,54 @@
                 </div>
                 {% else %}
                 <p class="text-muted">No recent notifications.</p>
+                {% endif %}
+            </div>
+
+            <!-- ===== APPROVALS LOG (Approved only) ===== -->
+            <div class="card mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2>&#9989; Approved Requests</h2>
+                    <span class="text-muted small">Requests approved by Managers</span>
+                </div>
+
+                {% set approved_only = approval_log | selectattr('status', 'equalto', 'Approved') | list %}
+                {% if approved_only %}
+                <div class="table-responsive">
+                    <table class="table" style="font-size:0.92rem;">
+                        <thead>
+                            <tr>
+                                <th>Actioned At</th>
+                                <th>Employee</th>
+                                <th>Type</th>
+                                <th>For Date</th>
+                                <th>Manager</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in approved_only %}
+                            <tr style="background:#f0fff4;">
+                                <td class="text-muted small">{{ entry.actioned_at }}</td>
+                                <td><strong>{{ entry.emp_name }}</strong></td>
+                                <td>
+                                    <span class="badge badge-{{ entry.request_type.lower() }}">{{ entry.request_type
+                                        }}</span>
+                                </td>
+                                <td>{{ entry.request_date }}</td>
+                                <td>{{ entry.manager_name }}</td>
+                                <td class="text-center">
+                                    <span style="color:#38a169; font-weight:700;">&#10004; Approved</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div style="text-align:center; padding:2rem; color:#718096;">
+                    <p style="font-size:1.5rem;">&#128203;</p>
+                    <p>No manager actions yet. Approved or rejected requests will appear here.</p>
+                </div>
                 {% endif %}
             </div>
 

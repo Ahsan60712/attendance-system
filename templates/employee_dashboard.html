@@ -170,6 +170,7 @@
                             <th>Type</th>
                             <th>Reason</th>
                             <th>Submitted At</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -182,6 +183,17 @@
                             </td>
                             <td>{{ record.reason }}</td>
                             <td>{{ record.timestamp }}</td>
+                            <td>
+                                {% if record.status == 'Pending' %}
+                                <span class="badge" style="background-color: #f6ad55; color: white;">Pending</span>
+                                {% elif record.status == 'Approved' %}
+                                <span class="badge badge-success">Approved</span>
+                                {% elif record.status == 'Rejected' %}
+                                <span class="badge badge-danger">Rejected</span>
+                                {% else %}
+                                <span class="badge badge-success">{{ record.status|default('Approved') }}</span>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>

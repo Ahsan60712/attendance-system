@@ -1,4 +1,5 @@
 import os
+import json
 import pandas as pd
 from datetime import datetime, date
 from openpyxl import Workbook, load_workbook
@@ -7,7 +8,6 @@ from openpyxl.styles import PatternFill, Font, Alignment
 class WFHLeaveManager:
     def __init__(self, base_path):
         self.base_path = base_path
-        # Use environment variable for the file path if available, otherwise default to local 'Emp_data.xlsx'
         excel_filename = os.environ.get('EXCEL_PATH', 'Emp_data.xlsx')
         self.emp_data_file = os.path.join(base_path, excel_filename)
     
@@ -36,10 +36,12 @@ class WFHLeaveManager:
                 if str(emp_data['password']) != str(password):
                     return None
             
-            # Check if admin access is required
-            if role == 'admin':
-                if not emp_data.get('is_admin', 0):
-                    return None
+            # Check role requirements
+            if role == 'admin' and not emp_data.get('is_admin', 0):
+                return None
+            if role == 'manager' and not emp_data.get('is_manager', 0) and not emp_data.get('is_admin', 0):
+                # Admins can also act as managers
+                return None
             
             # Return full employee data including counts
             return emp_data
@@ -98,41 +100,52 @@ class WFHLeaveManager:
         workbook_path = self.get_daily_filepath(date, create_dir=True)
         
         # Delete existing file if it exists (to ensure fresh data)
-        if os.path.exists(workbook_path):
-            try:
-                os.remove(workbook_path)
-            except Exception as e:
-                # Try to get just the filename for the error message
-                fname = os.path.basename(workbook_path)
-                raise Exception(f"Could not delete existing file {fname}. Please close it in Excel first. Error: {str(e)}")
+        # REMOVED: This was deleting the file and causing previous entries to be lost
+        # We will instead load the workbook if it exists
         
         # Get all employees
         employees = self.get_employees()
         
-        # Create new workbook
-        wb = Workbook()
-        ws = wb.active
-        ws.title = date.strftime('%d-%b-%Y').lower()
-        
-        # Header styling
-        header_fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
-        header_font = Font(bold=True, color='FFFFFF', size=12)
-        
-        # Headers
-        headers = ['Emp ID', 'Employee Name', 'Team', 'Request Type', 'Reason', 'Timestamp']
-        for col_num, header in enumerate(headers, 1):
-            cell = ws.cell(row=1, column=col_num, value=header)
-            cell.fill = header_fill
-            cell.font = header_font
-            cell.alignment = Alignment(horizontal='center', vertical='center')
-        
+        if os.path.exists(workbook_path):
+            wb = load_workbook(workbook_path)
+            ws = wb.active
+            # Fix: If old file has no Status/Action By headers, add them now
+            if ws.cell(row=1, column=7).value is None:
+                ws.cell(row=1, column=7, value='Status')
+                ws.cell(row=1, column=8, value='Action By')
+                # Backfill existing data rows with Pending status
+                for r in range(2, ws.max_row + 1):
+                    if ws.cell(row=r, column=1).value and ws.cell(row=r, column=7).value is None:
+                        ws.cell(row=r, column=7, value='Pending')
+                        ws.cell(row=r, column=8, value='')
+        else:
+            # Create new workbook
+            wb = Workbook()
+            ws = wb.active
+            ws.title = date.strftime('%d-%b-%Y').lower()
+            
+            # Header styling
+            header_fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
+            header_font = Font(bold=True, color='FFFFFF', size=12)
+            
+            # Headers with Approval Status
+            headers = ['Emp ID', 'Employee Name', 'Team', 'Request Type', 'Reason', 'Timestamp', 'Status', 'Action By']
+            for col_num, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col_num, value=header)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+
+        # Find the next available row
+        next_row = ws.max_row + 1
+
         # Add only the employee's request
-        ws.cell(row=2, column=1, value=emp_id)
-        ws.cell(row=2, column=2, value=emp_name)
-        ws.cell(row=2, column=3, value=emp_team)
+        ws.cell(row=next_row, column=1, value=emp_id)
+        ws.cell(row=next_row, column=2, value=emp_name)
+        ws.cell(row=next_row, column=3, value=emp_team)
         
         # Request type with color coding
-        type_cell = ws.cell(row=2, column=4, value=request_type)
+        type_cell = ws.cell(row=next_row, column=4, value=request_type)
         if request_type == 'WFH':
             type_cell.fill = PatternFill(start_color='FFEB9C', end_color='FFEB9C', fill_type='solid')
             type_cell.font = Font(color='9C6500')
@@ -145,11 +158,12 @@ class WFHLeaveManager:
             
         type_cell.alignment = Alignment(horizontal='center', vertical='center')
         
-        # Reason
-        ws.cell(row=2, column=5, value=reason)
-        
-        # Timestamp
-        ws.cell(row=2, column=6, value=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        # Reason, Timestamp, Status
+        ws.cell(row=next_row, column=5, value=reason)
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        ws.cell(row=next_row, column=6, value=timestamp)
+        ws.cell(row=next_row, column=7, value='Pending')
+        ws.cell(row=next_row, column=8, value='')
         
         # Auto-adjust column widths
         ws.column_dimensions['A'].width = 12
@@ -162,8 +176,8 @@ class WFHLeaveManager:
         # Save workbook
         wb.save(workbook_path)
         
-        # Update Emp_data.xlsx counters
-        self.update_employee_counters(emp_id, request_type)
+        # We NO LONGER update counters here. Counters update upon Manager Approval.
+        # self.update_employee_counters(emp_id, request_type)
         
         return True
     
@@ -181,10 +195,14 @@ class WFHLeaveManager:
             if request_type == 'WFH':
                 df.at[idx, 'WFH_count'] = df.at[idx, 'WFH_count'] + 1 if pd.notna(df.at[idx, 'WFH_count']) else 1
             elif request_type == 'Leave':
+                if pd.notna(df.at[idx, 'Remaining_Leaves']) and df.at[idx, 'Remaining_Leaves'] < 1:
+                    raise Exception("Insufficient remaining leaves")
                 df.at[idx, 'Leaves'] = df.at[idx, 'Leaves'] + 1 if pd.notna(df.at[idx, 'Leaves']) else 1
                 if pd.notna(df.at[idx, 'Remaining_Leaves']):
                     df.at[idx, 'Remaining_Leaves'] = df.at[idx, 'Remaining_Leaves'] - 1
             elif request_type == 'Half Day':
+                if pd.notna(df.at[idx, 'Remaining_Leaves']) and df.at[idx, 'Remaining_Leaves'] < 0.5:
+                    raise Exception("Insufficient remaining leaves for a half day")
                 df.at[idx, 'Half_Day'] = df.at[idx, 'Half_Day'] + 1 if pd.notna(df.at[idx, 'Half_Day']) else 1
                 if pd.notna(df.at[idx, 'Remaining_Leaves']):
                     # Half day reduces remaining leaves by 0.5
@@ -225,7 +243,12 @@ class WFHLeaveManager:
                         request_type = ws.cell(row=row_num, column=4).value
                         reason = ws.cell(row=row_num, column=5).value
                         timestamp = ws.cell(row=row_num, column=6).value
+                        status = ws.cell(row=row_num, column=7).value
                         
+                        # Set default status for older files without the status column
+                        if status is None:
+                            status = 'Approved' 
+                            
                         if emp_id:
                             notifications.append({
                                 'date': filter_date.strftime('%d-%b-%Y'),
@@ -234,7 +257,8 @@ class WFHLeaveManager:
                                 'team': team,
                                 'type': request_type,
                                 'reason': reason,
-                                'timestamp': timestamp
+                                'timestamp': timestamp,
+                                'status': status
                             })
                             
                     # Reverse to show newest first for that day
@@ -247,6 +271,148 @@ class WFHLeaveManager:
             
         except Exception as e:
             print(f"Error getting notifications: {str(e)}")
+            return []
+
+    def get_pending_requests(self, days_back=30):
+        """Scan recent daily files for any 'Pending' requests"""
+        pending = []
+        try:
+            from datetime import timedelta
+            end_date = date.today()
+            start_date = end_date - timedelta(days=days_back)
+            
+            current_date = start_date
+            while current_date <= end_date:
+                filepath = self.get_daily_filepath(current_date)
+                
+                if os.path.exists(filepath):
+                    try:
+                        wb = load_workbook(filepath, data_only=True)
+                        ws = wb.active
+                        
+                        for row_num in range(2, ws.max_row + 1):
+                            emp_id = ws.cell(row=row_num, column=1).value
+                            if not emp_id:
+                                continue
+                            status = ws.cell(row=row_num, column=7).value
+                            # Treat None (legacy rows without status column) as Pending
+                            if status in ('Pending', None):
+                                emp_name = ws.cell(row=row_num, column=2).value
+                                request_type = ws.cell(row=row_num, column=4).value
+                                reason = ws.cell(row=row_num, column=5).value
+                                timestamp = ws.cell(row=row_num, column=6).value
+                                
+                                pending.append({
+                                    'date': current_date.strftime('%Y-%m-%d'),
+                                    'display_date': current_date.strftime('%d-%b-%Y'),
+                                    'emp_id': emp_id,
+                                    'emp_name': emp_name,
+                                    'type': request_type,
+                                    'reason': reason,
+                                    'timestamp': timestamp
+                                })
+                    except Exception as e:
+                        print(f"Error reading {filepath}: {str(e)}")
+                
+                current_date += timedelta(days=1)
+                
+            # Sort newest first
+            pending.sort(key=lambda x: x['timestamp'], reverse=True)
+            return pending
+            
+        except Exception as e:
+            print(f"Error getting pending requests: {str(e)}")
+            return []
+            
+    def update_request_status(self, request_date_str, emp_id, request_type, timestamp, new_status, manager_name):
+        """Update a specific request from Pending to Approved or Rejected"""
+        try:
+            req_date = datetime.strptime(request_date_str, '%Y-%m-%d').date()
+            filepath = self.get_daily_filepath(req_date)
+            
+            if not os.path.exists(filepath):
+                raise Exception(f"File not found for date: {request_date_str}")
+                
+            wb = load_workbook(filepath)
+            ws = wb.active
+            
+            updated = False
+            emp_name_found = ''
+            for row_num in range(2, ws.max_row + 1):
+                file_emp_id = ws.cell(row=row_num, column=1).value
+                file_timestamp = ws.cell(row=row_num, column=6).value
+                
+                # Match exactly the right row using employee ID and their unique timestamp
+                if str(file_emp_id) == str(emp_id) and str(file_timestamp) == str(timestamp):
+                    emp_name_found = ws.cell(row=row_num, column=2).value or ''
+                    ws.cell(row=row_num, column=7, value=new_status)
+                    ws.cell(row=row_num, column=8, value=manager_name)
+                    updated = True
+                    break
+                    
+            if not updated:
+                raise Exception("Could not find the specific request to update.")
+                
+            wb.save(filepath)
+            
+            # If approved, deduct from employee counters
+            if new_status == 'Approved':
+                self.update_employee_counters(emp_id, request_type)
+            
+            # Log the action for admin notifications
+            self.log_approval_action(
+                emp_id=emp_id,
+                emp_name=emp_name_found,
+                request_type=request_type,
+                request_date=request_date_str,
+                status=new_status,
+                manager_name=manager_name
+            )
+                
+            return True
+        except Exception as e:
+            print(f"Error updating request status: {str(e)}")
+            raise Exception(f"Failed to update status: {str(e)}")
+
+    def log_approval_action(self, emp_id, emp_name, request_type, request_date, status, manager_name):
+        """Append an approved/rejected action entry to approved_log.json"""
+        log_path = os.path.join(self.base_path, 'approved_log.json')
+        try:
+            if os.path.exists(log_path):
+                with open(log_path, 'r', encoding='utf-8') as f:
+                    log = json.load(f)
+            else:
+                log = []
+            
+            log.insert(0, {
+                'emp_id': emp_id,
+                'emp_name': emp_name,
+                'request_type': request_type,
+                'request_date': request_date,
+                'status': status,
+                'manager_name': manager_name,
+                'actioned_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            })
+            
+            # Keep only the latest 200 entries
+            log = log[:200]
+            
+            with open(log_path, 'w', encoding='utf-8') as f:
+                json.dump(log, f, indent=2)
+        except Exception as e:
+            print(f"Error writing approval log: {str(e)}")
+
+    def get_approval_log(self, limit=50):
+        """Return recent approved/rejected actions for admin notifications"""
+        log_path = os.path.join(self.base_path, 'approved_log.json')
+        try:
+            if not os.path.exists(log_path):
+                return []
+            with open(log_path, 'r', encoding='utf-8') as f:
+                log = json.load(f)
+            return log[:limit]
+        except Exception as e:
+            print(f"Error reading approval log: {str(e)}")
             return []
 
     def get_employee_records(self, emp_id, start_date, end_date):
@@ -267,13 +433,18 @@ class WFHLeaveManager:
                         for row_num in range(2, ws.max_row + 1):
                             file_emp_id = ws.cell(row=row_num, column=1).value
                             
-                            # Determine if this row belongs to the employee (handle int vs str mismatch)
+                            # Determine if this row belongs to the employee
                             if str(file_emp_id) == str(emp_id):
+                                status = ws.cell(row=row_num, column=7).value
+                                if status is None:
+                                    status = 'Approved' # Legacy default
+                                    
                                 records.append({
                                     'date': current_date.strftime('%d-%b-%Y'),
                                     'type': ws.cell(row=row_num, column=4).value,
                                     'reason': ws.cell(row=row_num, column=5).value,
-                                    'timestamp': ws.cell(row=row_num, column=6).value
+                                    'timestamp': ws.cell(row=row_num, column=6).value,
+                                    'status': status
                                 })
                     except:
                         pass
@@ -288,7 +459,7 @@ class WFHLeaveManager:
             print(f"Error getting employee records: {str(e)}")
             return []
 
-    def add_employee(self, emp_name, emp_team, is_admin, contract_type, contract_start_date, contract_end_date, total_leaves, password='SecurePass2026!'):
+    def add_employee(self, emp_name, emp_team, is_admin, is_manager, contract_type, contract_start_date, contract_end_date, total_leaves, password='SecurePass2026!'):
         """Add a new employee to Emp_data.xlsx"""
         try:
             if not os.path.exists(self.emp_data_file):
@@ -309,6 +480,7 @@ class WFHLeaveManager:
                 'Present': 0,
                 'Remaining_Leaves': total_leaves,
                 'is_admin': 1 if is_admin else 0,
+                'is_manager': 1 if is_manager else 0,
                 'WFH_count': 0,
                 'password': password,
                 'Contract_Type': contract_type,

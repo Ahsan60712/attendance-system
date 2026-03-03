@@ -57,15 +57,15 @@
 
                 <div class="stats-grid mt-3">
                     <div class="stat-card small">
-                        <div class="stat-value">{{ employee.WFH_count|default(0) }}</div>
+                        <div class="stat-value">{{ filtered_wfh|default(0) }}</div>
                         <div class="stat-label">Total WFH</div>
                     </div>
                     <div class="stat-card small">
-                        <div class="stat-value">{{ employee.Half_Day|default(0) }}</div>
+                        <div class="stat-value">{{ filtered_half_day|default(0) }}</div>
                         <div class="stat-label">Half Days</div>
                     </div>
                     <div class="stat-card small">
-                        <div class="stat-value">{{ employee.Leaves|default(0) }}</div>
+                        <div class="stat-value">{{ filtered_leaves|default(0) }}</div>
                         <div class="stat-label">Leaves Taken</div>
                     </div>
                     <div class="stat-card small">

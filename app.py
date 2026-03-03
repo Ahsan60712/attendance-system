@@ -25,9 +25,19 @@ def employee_login():
         password = request.form.get('password')
         
         try:
-            user = manager.authenticate_user(emp_name, password, role='employee')
-            
+            # Check manager first, then employee
+            user = manager.authenticate_user(emp_name, password, role='manager')
             if user:
+                session['logged_in'] = True
+                session['user_type'] = 'manager'
+                session['emp_id'] = user['emp_id']
+                session['emp_name'] = user['emp_name']
+                session['emp_team'] = user['emp_team']
+                return redirect(url_for('manager_dashboard'))
+                
+            user = manager.authenticate_user(emp_name, password)
+            if user:
+                session['logged_in'] = True
                 session['user_type'] = 'employee'
                 session['emp_id'] = user['emp_id']
                 session['emp_name'] = user['emp_name']
@@ -153,16 +163,21 @@ def mark_request():
         current_date = start_date
         count = 0
         while current_date <= end_date:
-            manager.mark_wfh_leave(
-                emp_id=session.get('emp_id'),
-                emp_name=session.get('emp_name'),
-                emp_team=session.get('emp_team'),
-                date=current_date,
-                request_type=request_type,
-                reason=reason
-            )
+            try:
+                manager.mark_wfh_leave(
+                    emp_id=session.get('emp_id'),
+                    emp_name=session.get('emp_name'),
+                    emp_team=session.get('emp_team'),
+                    date=current_date,
+                    request_type=request_type,
+                    reason=reason
+                )
+                count += 1
+            except Exception as e:
+                flash(f'Error on {current_date.strftime("%Y-%m-%d")}: {str(e)}', 'danger')
+                return redirect(url_for('employee_dashboard'))
+            
             current_date += timedelta(days=1)
-            count += 1
             
         flash(f'{request_type} request submitted successfully for {count} day(s)!', 'success')
         return redirect(url_for('employee_dashboard'))
@@ -170,6 +185,48 @@ def mark_request():
     except Exception as e:
         flash(f'Error submitting request: {str(e)}', 'error')
         return redirect(url_for('employee_dashboard'))
+
+# ===== MANAGER ROUTES =====
+
+@app.route('/manager-dashboard')
+def manager_dashboard():
+    """Manager dashboard showing pending requests"""
+    if session.get('user_type') not in ['manager', 'admin']:
+        return redirect(url_for('employee_login'))
+        
+    pending_requests = manager.get_pending_requests()
+    return render_template('manager_dashboard.html', 
+                           manager_name=session.get('emp_name'),
+                           requests=pending_requests)
+
+@app.route('/action-request', methods=['POST'])
+def action_request():
+    """Approve or Reject a pending request"""
+    if session.get('user_type') not in ['manager', 'admin']:
+        return redirect(url_for('employee_login'))
+        
+    emp_id = request.form.get('emp_id')
+    req_date = request.form.get('date')
+    req_type = request.form.get('type')
+    timestamp = request.form.get('timestamp')
+    action = request.form.get('action') # 'Approve' or 'Reject'
+    
+    try:
+        new_status = 'Approved' if action == 'Approve' else 'Rejected'
+        manager.update_request_status(
+            request_date_str=req_date, 
+            emp_id=emp_id, 
+            request_type=req_type,
+            timestamp=timestamp, 
+            new_status=new_status, 
+            manager_name=session.get('emp_name')
+        )
+        flash(f'Request successfully {new_status.lower()}!', 'success')
+    except Exception as e:
+        flash(f'Error processing request: {str(e)}', 'danger')
+        
+    # Redirect back to whoever called it (Admin might use this too)
+    return redirect(request.referrer or url_for('manager_dashboard'))
 
 # ===== ADMIN ROUTES =====
 
@@ -181,6 +238,7 @@ def admin_login():
         password = request.form.get('password')
         
         try:
+            # Check manager first, then employee
             user = manager.authenticate_user(emp_name, password, role='admin')
             
             if user:
@@ -214,10 +272,14 @@ def admin_dashboard():
     # Get all employees for dropdown
     employees = manager.get_employees()
     
+    # Get approval/rejection log for admin
+    approval_log = manager.get_approval_log(limit=50)
+    
     return render_template('admin_dashboard.html',
                          admin_name=session.get('emp_name'),
                          notifications=notifications,
                          employees=employees,
+                         approval_log=approval_log,
                          current_date=filter_date.strftime('%Y-%m-%d'))
 
 @app.route('/admin/performance-report')
@@ -271,13 +333,21 @@ def admin_view_employee(emp_id):
     # Get employee records
     records = manager.get_employee_records(emp_id, start_date, end_date)
     
+    # Calculate counts specifically for the returned records
+    filtered_wfh_count = sum(1 for r in records if r['type'] == 'WFH')
+    filtered_half_day_count = sum(1 for r in records if r['type'] == 'Half Day')
+    filtered_leaves_count = sum(1 for r in records if r['type'] == 'Leave')
+    
     # Get employee info
     employees = manager.get_employees()
-    emp_info = next((e for e in employees if e['emp_id'] == emp_id), None)
+    emp_info = next((e for e in employees if str(e['emp_id']) == str(emp_id)), None)
     
     return render_template('admin_view_employee.html',
                          employee=emp_info,
                          records=records,
+                         filtered_wfh=filtered_wfh_count,
+                         filtered_half_day=filtered_half_day_count,
+                         filtered_leaves=filtered_leaves_count,
                          filter_type=filter_type,
                          start_date=start_date.strftime('%Y-%m-%d'),
                          end_date=end_date.strftime('%Y-%m-%d'))
@@ -301,7 +371,6 @@ def add_employee_route():
             role = request.form.get('role')
             contract_type = request.form.get('contract_type')
             contract_start_date = request.form.get('contract_start_date')
-            contract_start_date = request.form.get('contract_start_date')
             contract_end_date = request.form.get('contract_end_date')
             
             if contract_type == 'Internship':
@@ -314,12 +383,14 @@ def add_employee_route():
                 return redirect(url_for('add_employee_route'))
                 
             is_admin = (role == 'admin')
+            is_manager = (role == 'manager')
             
             # Use 'SecurePass2026!' as default password
             manager.add_employee(
                 emp_name=emp_name,
                 emp_team=emp_team,
                 is_admin=is_admin,
+                is_manager=is_manager,
                 contract_type=contract_type,
                 contract_start_date=contract_start_date,
                 contract_end_date=contract_end_date,

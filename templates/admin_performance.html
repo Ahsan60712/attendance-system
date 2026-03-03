@@ -33,7 +33,6 @@
                                 <th class="text-center">WFH Days</th>
                                 <th class="text-center">Leaves Taken</th>
                                 <th class="text-center">Leaves Remaining</th>
-                                <th class="text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -52,15 +51,6 @@
                                     <span
                                         class="stat-value-small {{ 'text-success' if emp.Remaining_Leaves > 10 else '' }}">{{
                                         emp.Remaining_Leaves|default(0) }}</span>
-                                </td>
-                                <td class="text-center">
-                                    {% if emp.Remaining_Leaves|default(0) > 10 and emp.Leaves|default(0) < 2 %} <span
-                                        class="badge badge-success">Excellent</span>
-                                        {% elif emp.Remaining_Leaves|default(0) > 5 %}
-                                        <span class="badge badge-warning">Good</span>
-                                        {% else %}
-                                        <span class="badge badge-danger">Needs Improvement</span>
-                                        {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}

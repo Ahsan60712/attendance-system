@@ -44,6 +44,7 @@
                         <label>Role</label>
                         <select name="role" class="form-control">
                             <option value="employee">Employee</option>
+                            <option value="manager">Manager</option>
                             <option value="admin">Admin</option>
                         </select>
                     </div>
@@ -101,17 +102,19 @@
             const totalLeavesInput = document.querySelector('input[name="total_leaves"]');
 
             if (type === 'Internship') {
-                // Hide leaves option completely
+                // Hide and disable leaves option completely
                 if (totalLeavesGroup) totalLeavesGroup.style.display = 'none';
                 if (totalLeavesInput) {
                     totalLeavesInput.value = 0;
                     totalLeavesInput.required = false;
+                    totalLeavesInput.disabled = true;
                 }
             } else {
-                // Show leaves option
+                // Show and enable leaves option
                 if (totalLeavesGroup) totalLeavesGroup.style.display = 'block';
                 if (totalLeavesInput) {
                     totalLeavesInput.required = true;
+                    totalLeavesInput.disabled = false;
                     if (totalLeavesInput.value == 0) {
                         totalLeavesInput.value = '';
                     }
