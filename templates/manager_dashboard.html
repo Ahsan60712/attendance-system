@@ -19,17 +19,37 @@
         </nav>
 
         <div class="dashboard-content">
-            <div class="card">
-                <h2>Pending Requests</h2>
-                <p class="text-muted">Review WFH and Leave requests from employees.</p>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} mt-3">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
 
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                {% for category, message in messages %}
-                <div class="alert alert-{{ category }} mt-3">{{ message }}</div>
-                {% endfor %}
-                {% endif %}
-                {% endwith %}
+            <!-- ===== PERSONAL STATS ===== -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{{ emp_data.WFH_count|default(0) }}</div>
+                    <div class="stat-label">My Total WFH</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ emp_data.Half_Day|default(0) }}</div>
+                    <div class="stat-label">My Half Days</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ emp_data.Leaves|default(0) }}</div>
+                    <div class="stat-label">My Leaves Taken</div>
+                </div>
+                <div class="stat-card highlight">
+                    <div class="stat-value">{{ emp_data.Remaining_Leaves|default(0) }}</div>
+                    <div class="stat-label">Remaining Leaves</div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <h2>Team Pending Requests</h2>
+                <p class="text-muted">Review WFH and Leave requests from your team.</p>
 
                 {% if requests %}
                 <div class="table-responsive mt-4">
@@ -49,11 +69,10 @@
                             <tr>
                                 <td class="text-muted small">{{ req.timestamp }}</td>
                                 <td class="font-weight-bold">{{ req.display_date }}</td>
+                                <td>{{ req.emp_name }}</td>
                                 <td>
-                                    <div>{{ req.emp_name }}</div>
-                                </td>
-                                <td>
-                                    <span class="badge badge-{{ req.type.lower() }}">{{ req.type }}</span>
+                                    <span class="badge badge-{{ req.type.lower().replace(' ', '-') }}">{{ req.type
+                                        }}</span>
                                 </td>
                                 <td>{{ req.reason }}</td>
                                 <td>
@@ -88,14 +107,94 @@
                     </table>
                 </div>
                 {% else %}
-                <div class="alert alert-info mt-4"
-                    style="background-color: #f8fafc; text-align: center; padding: 2rem;">
-                    We're all caught up! No pending requests to review.
+                <div class="alert alert-info mt-4" style="text-align: center; padding: 2rem;">
+                    No pending team requests.
                 </div>
+                {% endif %}
+            </div>
+
+            <!-- ===== MY PERSONAL APPLICATION FORM ===== -->
+            <div class="card mt-4" style="border-top: 5px solid #4a90e2;">
+                <h2>Apply for Personal Leave / WFH</h2>
+                <div class="alert alert-info py-2" style="font-size: 0.9rem;">
+                    💡 Manager requests are <strong>Auto-Approved</strong> and logged for Admin review.
+                </div>
+                <form method="POST" action="{{ url_for('mark_request') }}" class="request-form mt-3">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>From Date</label>
+                            <input type="date" name="date" value="{{ today }}" min="{{ today }}" required>
+                        </div>
+                        <div class="form-group" id="end-date-group" style="display: none;">
+                            <label>To Date (Optional)</label>
+                            <input type="date" name="end_date" min="{{ today }}">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Request Type</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="request_type" value="WFH" onchange="toggleEndDate()" required>
+                                <span>WFH</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="request_type" value="Half Day" onchange="toggleEndDate()"
+                                    required>
+                                <span>Half Day</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="request_type" value="Leave" onchange="toggleEndDate()"
+                                    required>
+                                <span>Leave</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reason">Reason (Required)</label>
+                        <textarea id="reason" name="reason" rows="2" required
+                            placeholder="Reason for your request..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Apply Now (Auto-Approve)</button>
+                </form>
+            </div>
+
+            <!-- ===== MY HISTORY ===== -->
+            <div class="card mt-4">
+                <h2>My Recent History</h2>
+                {% if my_records %}
+                <div class="table-responsive">
+                    <table class="table" style="font-size: 0.85rem;">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in my_records[:10] %}
+                            <tr>
+                                <td>{{ record.date }}</td>
+                                <td><span class="badge badge-{{ record.type.lower().replace(' ', '-') }}">{{ record.type
+                                        }}</span></td>
+                                <td>{{ record.reason }}</td>
+                                <td><span class="badge badge-success">Approved</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No recent records.</p>
                 {% endif %}
             </div>
         </div>
     </div>
+
     <style>
         .gap-2 {
             gap: 8px;
@@ -118,7 +217,38 @@
         .justify-content-center {
             justify-content: center;
         }
+
+        .highlight {
+            border: 2px solid #3182ce;
+            background-color: #ebf8ff;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
     </style>
+
+    <script>
+        function toggleEndDate() {
+            const requestType = document.querySelector('input[name="request_type"]:checked').value;
+            const endDateGroup = document.getElementById('end-date-group');
+            if (requestType === 'Leave') {
+                endDateGroup.style.display = 'block';
+            } else {
+                endDateGroup.style.display = 'none';
+                document.querySelector('input[name="end_date"]').value = '';
+            }
+        }
+    </script>
 </body>
 
 </html>

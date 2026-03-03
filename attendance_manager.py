@@ -90,11 +90,13 @@ class WFHLeaveManager:
             
         return os.path.join(folder_path, filename)
     
-    def mark_wfh_leave(self, emp_id, emp_name, emp_team, date, request_type, reason):
+    def mark_wfh_leave(self, emp_id, emp_name, emp_team, date, request_type, reason, status='Pending', manager_name=''):
         """
         Mark WFH or Leave for an employee
         request_type: 'WFH' or 'Leave'
         reason: mandatory text explaining the request
+        status: 'Pending' or 'Approved'
+        manager_name: Name of manager if auto-approved
         """
         # Get structured filepath
         workbook_path = self.get_daily_filepath(date, create_dir=True)
@@ -162,8 +164,8 @@ class WFHLeaveManager:
         ws.cell(row=next_row, column=5, value=reason)
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         ws.cell(row=next_row, column=6, value=timestamp)
-        ws.cell(row=next_row, column=7, value='Pending')
-        ws.cell(row=next_row, column=8, value='')
+        ws.cell(row=next_row, column=7, value=status)
+        ws.cell(row=next_row, column=8, value=manager_name if status == 'Approved' else '')
         
         # Auto-adjust column widths
         ws.column_dimensions['A'].width = 12
@@ -176,8 +178,17 @@ class WFHLeaveManager:
         # Save workbook
         wb.save(workbook_path)
         
-        # We NO LONGER update counters here. Counters update upon Manager Approval.
-        # self.update_employee_counters(emp_id, request_type)
+        # If auto-approved (manager case), update counters and log for admin immediately
+        if status == 'Approved':
+            self.update_employee_counters(emp_id, request_type)
+            self.log_approval_action(
+                emp_id=emp_id,
+                emp_name=emp_name,
+                request_type=request_type,
+                request_date=date.strftime('%Y-%m-%d'),
+                status='Approved',
+                manager_name=manager_name or emp_name
+            )
         
         return True
     

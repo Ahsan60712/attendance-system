@@ -134,9 +134,15 @@ def employee_dashboard():
 
 @app.route('/mark-request', methods=['POST'])
 def mark_request():
-    """Handle WFH/Leave request from employee"""
-    if session.get('user_type') != 'employee':
+    """Handle WFH/Leave request from employee or manager"""
+    user_type = session.get('user_type')
+    if user_type not in ['employee', 'manager']:
         return redirect(url_for('employee_login'))
+    
+    # Managers are auto-approved for their own requests
+    status = 'Approved' if user_type == 'manager' else 'Pending'
+    manager_name = session.get('emp_name') if user_type == 'manager' else ''
+    redirect_target = 'manager_dashboard' if user_type == 'manager' else 'employee_dashboard'
     
     try:
         request_type = request.form.get('request_type')  # 'WFH' or 'Leave' or 'Half Day'
@@ -146,7 +152,7 @@ def mark_request():
         
         if not reason or not reason.strip():
             flash('Reason is required', 'error')
-            return redirect(url_for('employee_dashboard'))
+            return redirect(url_for(redirect_target))
         
         start_date = date.fromisoformat(start_date_str)
         
@@ -155,7 +161,7 @@ def mark_request():
             end_date = date.fromisoformat(end_date_str)
             if end_date < start_date:
                 flash('End date cannot be before start date', 'error')
-                return redirect(url_for('employee_dashboard'))
+                return redirect(url_for(redirect_target))
         else:
             end_date = start_date
 
@@ -170,34 +176,55 @@ def mark_request():
                     emp_team=session.get('emp_team'),
                     date=current_date,
                     request_type=request_type,
-                    reason=reason
+                    reason=reason,
+                    status=status,
+                    manager_name=manager_name
                 )
                 count += 1
             except Exception as e:
                 flash(f'Error on {current_date.strftime("%Y-%m-%d")}: {str(e)}', 'danger')
-                return redirect(url_for('employee_dashboard'))
+                return redirect(url_for(redirect_target))
             
             current_date += timedelta(days=1)
             
-        flash(f'{request_type} request submitted successfully for {count} day(s)!', 'success')
-        return redirect(url_for('employee_dashboard'))
+        success_msg = f'{request_type} request submitted successfully for {count} day(s)!'
+        if user_type == 'manager':
+            success_msg = f'{request_type} applied successfully (Auto-Approved)!'
+            
+        flash(success_msg, 'success')
+        return redirect(url_for(redirect_target))
         
     except Exception as e:
         flash(f'Error submitting request: {str(e)}', 'error')
-        return redirect(url_for('employee_dashboard'))
+        return redirect(url_for(redirect_target))
 
 # ===== MANAGER ROUTES =====
 
 @app.route('/manager-dashboard')
 def manager_dashboard():
-    """Manager dashboard showing pending requests"""
+    """Manager dashboard showing pending requests and personal application form"""
     if session.get('user_type') not in ['manager', 'admin']:
         return redirect(url_for('employee_login'))
-        
+    
+    emp_id = session.get('emp_id')
+    today = date.today()
+    
+    # Get manager's own data (balance etc)
+    employees = manager.get_employees()
+    current_emp = next((e for e in employees if str(e['emp_id']) == str(emp_id)), {})
+    
+    # Get pending requests for approval (from others)
     pending_requests = manager.get_pending_requests()
+    
+    # Get manager's OWN records for history display
+    my_records = manager.get_employee_records(emp_id, today - timedelta(days=30), today + timedelta(days=365))
+    
     return render_template('manager_dashboard.html', 
                            manager_name=session.get('emp_name'),
-                           requests=pending_requests)
+                           emp_data=current_emp,
+                           requests=pending_requests,
+                           my_records=my_records,
+                           today=today.strftime('%Y-%m-%d'))
 
 @app.route('/action-request', methods=['POST'])
 def action_request():
