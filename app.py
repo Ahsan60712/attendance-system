@@ -330,14 +330,13 @@ def mark_request():
             success_msg = f'{request_type} applied successfully (Auto-Approved)!'
 
         # ── WhatsApp: notify the team manager about the new request ──────────
-        if user_type in ['employee', 'manager']:
+        if user_type == 'employee':
             try:
                 emp_team = session.get('emp_team', '')
                 team_manager = manager.get_manager_for_team(emp_team)
                 # ── WhatsApp: notify the team manager about the new request ──────────
-                flash('Attempting to send WhatsApp notification...', 'info')
                 mgr_phone = team_manager.get('phone', '')
-                success = wa.notify_manager_new_request(
+                wa.notify_manager_new_request(
                     manager_phone=mgr_phone or '',
                     manager_name=team_manager.get('emp_name', 'Manager'),
                     emp_name=session.get('emp_name', ''),
@@ -345,10 +344,6 @@ def mark_request():
                     request_date=f"{start_date.strftime('%d %b %Y')} – {end_date.strftime('%d %b %Y')}" if end_date != start_date else start_date.strftime('%d %b %Y'),
                     reason=reason
                 )
-                if success:
-                    flash('WhatsApp notification sent successfully!', 'success')
-                else:
-                    flash('WhatsApp notification failed to send.', 'warning')
                 
                 # ── Notify the Employee themselves (Confirmation) ──
                 emp_id = session.get('emp_id')
