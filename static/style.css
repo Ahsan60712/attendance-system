@@ -440,6 +440,99 @@ body {
     letter-spacing: 0.5px;
 }
 
+.stat-card.highlight {
+    border-bottom: 4px solid #38a169;
+    background: linear-gradient(135deg, #f0fff4, #ffffff);
+}
+
+/* ===== Contract-Year Leave Balance Panel ===== */
+.leave-balance-panel {
+    background: linear-gradient(135deg, #ebf4ff 0%, #f0fff4 100%);
+    border: 1px solid #bee3f8;
+    border-left: 5px solid #667eea;
+    border-radius: 12px;
+    padding: 18px 24px;
+    margin-bottom: 20px;
+}
+
+.leave-balance-header {
+    font-size: 0.95rem;
+    color: #2d3748;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #bee3f8;
+}
+
+.leave-balance-body {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.lb-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: white;
+    border-radius: 10px;
+    padding: 10px 16px;
+    min-width: 90px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+.lb-item.highlight-item {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.lb-item.highlight-item .lb-label,
+.lb-item.highlight-item .lb-value {
+    color: white;
+}
+
+.lb-label {
+    font-size: 0.72rem;
+    color: #718096;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+}
+
+.lb-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2d3748;
+}
+
+.lb-value.entitlement { color: #667eea; }
+.lb-value.carried     { color: #38a169; }
+.lb-value.total       { color: #2d3748; }
+.lb-value.taken       { color: #e53e3e; }
+.lb-value.remaining   { color: white; }
+
+.lb-sep {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #a0aec0;
+    padding: 0 4px;
+}
+
+@media (max-width: 768px) {
+    .leave-balance-body {
+        gap: 6px;
+    }
+    .lb-item {
+        min-width: 70px;
+        padding: 8px 10px;
+    }
+    .lb-value {
+        font-size: 1.2rem;
+    }
+}
+
+
 /* Utilities */
 .mt-3 {
     margin-top: 1.5rem;

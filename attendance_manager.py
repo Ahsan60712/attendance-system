@@ -1,7 +1,8 @@
 import os
 import json
 import pandas as pd
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
+from dateutil.relativedelta import relativedelta
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import PatternFill, Font, Alignment
 
@@ -56,7 +57,7 @@ class WFHLeaveManager:
             df = pd.read_excel(self.emp_data_file, engine='openpyxl')
             
             # Convert emp_id to proper type if needed
-            df.loc[df['emp_id'] == emp_id, 'password'] = str(new_password)
+            df.loc[df['emp_id'] == int(emp_id), 'password'] = str(new_password)
             
             df.to_excel(self.emp_data_file, index=False, engine='openpyxl')
             return True
@@ -89,6 +90,156 @@ class WFHLeaveManager:
             os.makedirs(folder_path)
             
         return os.path.join(folder_path, filename)
+
+    # ===== CONTRACT YEAR LEAVE SYSTEM =====
+
+    def get_contract_year_window(self, contract_start_date_str, today=None):
+        """
+        Given a contract start date string (YYYY-MM-DD), return the
+        (year_start, year_end) of the CURRENT contract year that contains today.
+        e.g. contract start = 2024-05-15, today = 2026-03-11
+             → year 2 started 2025-05-15, ends 2026-05-14
+             → returns (date(2025,5,15), date(2026,5,14))
+        """
+        if today is None:
+            today = date.today()
+        try:
+            contract_start = date.fromisoformat(str(contract_start_date_str).split(' ')[0].split('T')[0])
+        except Exception:
+            return None, None
+
+        # Walk forward by years until we pass today
+        year_start = contract_start
+        while True:
+            year_end = year_start + relativedelta(years=1) - timedelta(days=1)
+            if year_start <= today <= year_end:
+                return year_start, year_end
+            if year_start > today:
+                # Shouldn't happen but guard against infinite loop
+                break
+            year_start = year_start + relativedelta(years=1)
+        return None, None
+
+    def check_and_rollover_leaves(self, emp_id):
+        """
+        Check if the employee's contract year has rolled over since the last
+        time we ran. If yes:
+          1. Carry forward unused leaves (up to max = Total_leaves cap or unlimited)
+          2. Reset Leaves_This_Year to 0
+          3. Recalculate Remaining_Leaves = Total_leaves + Leaves_Carried_Forward
+          4. Store the new Contract_Year_Start
+        Returns the updated employee row dict, or None on error.
+        """
+        try:
+            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
+
+            # Ensure new columns exist
+            for col, default in [('Leaves_This_Year', 0), ('Leaves_Carried_Forward', 0), ('Contract_Year_Start', '')]:
+                if col not in df.columns:
+                    df[col] = default
+
+            emp_row = df[df['emp_id'] == int(emp_id)]
+            if emp_row.empty:
+                return None
+            idx = emp_row.index[0]
+
+            contract_start_str = df.at[idx, 'Contract_Start_Date']
+            if not contract_start_str or pd.isna(contract_start_str):
+                # No contract date set — nothing to roll over
+                return df.iloc[idx].to_dict()
+
+            today = date.today()
+            year_start, year_end = self.get_contract_year_window(contract_start_str, today)
+            if year_start is None:
+                return df.iloc[idx].to_dict()
+
+            year_start_str = year_start.strftime('%Y-%m-%d')
+
+            # Read stored year start
+            stored_year_start = df.at[idx, 'Contract_Year_Start']
+            if pd.isna(stored_year_start) or str(stored_year_start).strip() == '':
+                stored_year_start = None
+
+            if stored_year_start == year_start_str:
+                # Already on the correct contract year — no rollover needed
+                return df.iloc[idx].to_dict()
+
+            # ---- ROLLOVER ----
+            # Leaves taken in the OLD year = Leaves_This_Year
+            old_leaves_taken = float(df.at[idx, 'Leaves_This_Year']) if pd.notna(df.at[idx, 'Leaves_This_Year']) else 0
+            old_total = float(df.at[idx, 'Total_leaves']) if pd.notna(df.at[idx, 'Total_leaves']) else 0
+            old_carried = float(df.at[idx, 'Leaves_Carried_Forward']) if pd.notna(df.at[idx, 'Leaves_Carried_Forward']) else 0
+
+            # Unused in old year = (Total + carried) - taken  (can't go below 0)
+            old_remaining = max(0, (old_total + old_carried) - old_leaves_taken)
+
+            # Carry forward unused leaves (no cap — adjust if you want a cap e.g. min(old_remaining, 7))
+            new_carried_forward = old_remaining
+
+            # Reset for new year
+            df.at[idx, 'Leaves_This_Year'] = 0
+            df.at[idx, 'Leaves_Carried_Forward'] = new_carried_forward
+            df.at[idx, 'Contract_Year_Start'] = year_start_str
+            # Remaining = fresh allocation + carried
+            df.at[idx, 'Remaining_Leaves'] = old_total + new_carried_forward
+            # Reset cumulative Leaves counter to 0 for new year
+            df.at[idx, 'Leaves'] = 0
+            df.at[idx, 'Half_Day'] = 0
+
+            df.to_excel(self.emp_data_file, index=False, engine='openpyxl')
+            print(f"[ROLLOVER] Employee {emp_id}: carried forward {new_carried_forward} leaves into new year starting {year_start_str}")
+            return df.iloc[idx].to_dict()
+
+        except Exception as e:
+            print(f"Error in check_and_rollover_leaves: {str(e)}")
+            return None
+
+    def get_leave_balance_info(self, emp_id):
+        """
+        Return a dict with rich leave balance details for display:
+        - contract_year_start, contract_year_end (formatted strings)
+        - total_leaves (annual entitlement)
+        - carried_forward (from last year)
+        - total_available (total + carried)
+        - leaves_taken_this_year
+        - half_days_taken
+        - remaining_leaves
+        """
+        try:
+            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
+            for col, default in [('Leaves_This_Year', 0), ('Leaves_Carried_Forward', 0), ('Contract_Year_Start', '')]:
+                if col not in df.columns:
+                    df[col] = default
+
+            emp_row = df[df['emp_id'] == int(emp_id)]
+            if emp_row.empty:
+                return {}
+            row = emp_row.iloc[0]
+
+            contract_start_str = row.get('Contract_Start_Date')
+            year_start, year_end = None, None
+            if contract_start_str and not pd.isna(contract_start_str):
+                year_start, year_end = self.get_contract_year_window(str(contract_start_str))
+
+            total = float(row.get('Total_leaves') or 0)
+            carried = float(row.get('Leaves_Carried_Forward') or 0)
+            taken_this_year = float(row.get('Leaves_This_Year') or 0)
+            half_days = float(row.get('Half_Day') or 0)
+            remaining = float(row.get('Remaining_Leaves') or 0)
+
+            return {
+                'contract_year_start': year_start.strftime('%d %b %Y') if year_start else 'N/A',
+                'contract_year_end': year_end.strftime('%d %b %Y') if year_end else 'N/A',
+                'total_leaves': total,
+                'carried_forward': carried,
+                'total_available': total + carried,
+                'leaves_taken_this_year': taken_this_year,
+                'half_days_taken': half_days,
+                'remaining_leaves': remaining,
+            }
+        except Exception as e:
+            print(f"Error in get_leave_balance_info: {str(e)}")
+            return {}
     
     def mark_wfh_leave(self, emp_id, emp_name, emp_team, date, request_type, reason, status='Pending', manager_name=''):
         """
@@ -196,8 +347,13 @@ class WFHLeaveManager:
         """Update WFH_count, Leaves, or Half_Day counter in Emp_data.xlsx"""
         try:
             df = pd.read_excel(self.emp_data_file, engine='openpyxl')
+
+            # Ensure contract-year columns exist
+            for col, default in [('Leaves_This_Year', 0), ('Leaves_Carried_Forward', 0), ('Contract_Year_Start', '')]:
+                if col not in df.columns:
+                    df[col] = default
             
-            emp_row = df[df['emp_id'] == emp_id]
+            emp_row = df[df['emp_id'] == int(emp_id)]
             if emp_row.empty:
                 return
             
@@ -209,14 +365,17 @@ class WFHLeaveManager:
                 if pd.notna(df.at[idx, 'Remaining_Leaves']) and df.at[idx, 'Remaining_Leaves'] < 1:
                     raise Exception("Insufficient remaining leaves")
                 df.at[idx, 'Leaves'] = df.at[idx, 'Leaves'] + 1 if pd.notna(df.at[idx, 'Leaves']) else 1
+                # Also track this-year counter
+                df.at[idx, 'Leaves_This_Year'] = (df.at[idx, 'Leaves_This_Year'] + 1) if pd.notna(df.at[idx, 'Leaves_This_Year']) else 1
                 if pd.notna(df.at[idx, 'Remaining_Leaves']):
                     df.at[idx, 'Remaining_Leaves'] = df.at[idx, 'Remaining_Leaves'] - 1
             elif request_type == 'Half Day':
                 if pd.notna(df.at[idx, 'Remaining_Leaves']) and df.at[idx, 'Remaining_Leaves'] < 0.5:
                     raise Exception("Insufficient remaining leaves for a half day")
                 df.at[idx, 'Half_Day'] = df.at[idx, 'Half_Day'] + 1 if pd.notna(df.at[idx, 'Half_Day']) else 1
+                # Half day = 0.5 leave this year
+                df.at[idx, 'Leaves_This_Year'] = (df.at[idx, 'Leaves_This_Year'] + 0.5) if pd.notna(df.at[idx, 'Leaves_This_Year']) else 0.5
                 if pd.notna(df.at[idx, 'Remaining_Leaves']):
-                    # Half day reduces remaining leaves by 0.5
                     df.at[idx, 'Remaining_Leaves'] = df.at[idx, 'Remaining_Leaves'] - 0.5
             
             df.to_excel(self.emp_data_file, index=False, engine='openpyxl')
@@ -224,6 +383,33 @@ class WFHLeaveManager:
         except Exception as e:
             print(f"Error updating employee counters: {str(e)}")
             raise Exception(f"Could not update Emp_data.xlsx. Please ensure it is closed in Excel. Error: {str(e)}")
+
+    def refund_employee_counters(self, emp_id, request_type):
+        """Reverse the counters if an approved request is cancelled."""
+        try:
+            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
+            emp_row = df[df['emp_id'] == int(emp_id)]
+            if emp_row.empty:
+                return
+            idx = emp_row.index[0]
+            
+            if request_type == 'WFH':
+                df.at[idx, 'WFH_count'] = max((df.at[idx, 'WFH_count'] - 1) if pd.notna(df.at[idx, 'WFH_count']) else 0, 0)
+            elif request_type == 'Leave':
+                df.at[idx, 'Leaves'] = max((df.at[idx, 'Leaves'] - 1) if pd.notna(df.at[idx, 'Leaves']) else 0, 0)
+                df.at[idx, 'Leaves_This_Year'] = max((df.at[idx, 'Leaves_This_Year'] - 1) if pd.notna(df.at[idx, 'Leaves_This_Year']) else 0, 0)
+                if pd.notna(df.at[idx, 'Remaining_Leaves']):
+                    df.at[idx, 'Remaining_Leaves'] = df.at[idx, 'Remaining_Leaves'] + 1
+            elif request_type == 'Half Day':
+                df.at[idx, 'Half_Day'] = max((df.at[idx, 'Half_Day'] - 1) if pd.notna(df.at[idx, 'Half_Day']) else 0, 0)
+                df.at[idx, 'Leaves_This_Year'] = max((df.at[idx, 'Leaves_This_Year'] - 0.5) if pd.notna(df.at[idx, 'Leaves_This_Year']) else 0, 0)
+                if pd.notna(df.at[idx, 'Remaining_Leaves']):
+                    df.at[idx, 'Remaining_Leaves'] = df.at[idx, 'Remaining_Leaves'] + 0.5
+            
+            df.to_excel(self.emp_data_file, index=False, engine='openpyxl')
+        except Exception as e:
+            print(f"Error refunding counters: {str(e)}")
+            raise Exception(f"Could not refund Emp_data.xlsx. Error: {str(e)}")
     
 
     def get_notifications(self, filter_date=None, limit=None):
@@ -284,13 +470,13 @@ class WFHLeaveManager:
             print(f"Error getting notifications: {str(e)}")
             return []
 
-    def get_pending_requests(self, days_back=30):
-        """Scan recent daily files for any 'Pending' requests"""
-        pending = []
+    def get_pending_requests(self, days_back=30, days_forward=365, req_status='Pending'):
+        """Scan recent and future daily files for requests based on req_status"""
+        requests_list = []
         try:
             from datetime import timedelta
-            end_date = date.today()
-            start_date = end_date - timedelta(days=days_back)
+            end_date = date.today() + timedelta(days=days_forward)
+            start_date = date.today() - timedelta(days=days_back)
             
             current_date = start_date
             while current_date <= end_date:
@@ -306,21 +492,28 @@ class WFHLeaveManager:
                             if not emp_id:
                                 continue
                             status = ws.cell(row=row_num, column=7).value
-                            # Treat None (legacy rows without status column) as Pending
-                            if status in ('Pending', None):
+                            if req_status == 'Pending':
+                                match = status in ('Pending', None)
+                            else:
+                                match = status == req_status
+                                
+                            if match:
                                 emp_name = ws.cell(row=row_num, column=2).value
+                                team = ws.cell(row=row_num, column=3).value
                                 request_type = ws.cell(row=row_num, column=4).value
                                 reason = ws.cell(row=row_num, column=5).value
                                 timestamp = ws.cell(row=row_num, column=6).value
                                 
-                                pending.append({
+                                requests_list.append({
                                     'date': current_date.strftime('%Y-%m-%d'),
                                     'display_date': current_date.strftime('%d-%b-%Y'),
                                     'emp_id': emp_id,
                                     'emp_name': emp_name,
+                                    'team': team,
                                     'type': request_type,
                                     'reason': reason,
-                                    'timestamp': timestamp
+                                    'timestamp': timestamp,
+                                    'status': status
                                 })
                     except Exception as e:
                         print(f"Error reading {filepath}: {str(e)}")
@@ -328,8 +521,8 @@ class WFHLeaveManager:
                 current_date += timedelta(days=1)
                 
             # Sort newest first
-            pending.sort(key=lambda x: x['timestamp'], reverse=True)
-            return pending
+            requests_list.sort(key=lambda x: x['timestamp'], reverse=True)
+            return requests_list
             
         except Exception as e:
             print(f"Error getting pending requests: {str(e)}")
@@ -384,6 +577,45 @@ class WFHLeaveManager:
         except Exception as e:
             print(f"Error updating request status: {str(e)}")
             raise Exception(f"Failed to update status: {str(e)}")
+
+    def cancel_request(self, request_date_str, emp_id, timestamp, cancelled_by):
+        """Cancel an existing request (pending or approved), refund counters if it was approved."""
+        try:
+            req_date = datetime.strptime(request_date_str, '%Y-%m-%d').date()
+            filepath = self.get_daily_filepath(req_date)
+            
+            if not os.path.exists(filepath):
+                raise Exception(f"File not found for date: {request_date_str}")
+                
+            wb = load_workbook(filepath)
+            ws = wb.active
+            
+            updated = False
+            for row_num in range(2, ws.max_row + 1):
+                file_emp_id = ws.cell(row=row_num, column=1).value
+                file_timestamp = ws.cell(row=row_num, column=6).value
+                
+                if str(file_emp_id) == str(emp_id) and str(file_timestamp) == str(timestamp):
+                    current_status = ws.cell(row=row_num, column=7).value
+                    request_type = ws.cell(row=row_num, column=4).value
+                    
+                    if current_status == 'Approved':
+                        self.refund_employee_counters(emp_id, request_type)
+                        
+                    ws.cell(row=row_num, column=7, value='Cancelled')
+                    ws.cell(row=row_num, column=8, value=cancelled_by)
+                    updated = True
+                    break
+                    
+            if not updated:
+                raise Exception("Could not find the specific request to cancel.")
+                
+            wb.save(filepath)
+            return True
+            
+        except Exception as e:
+            print(f"Error cancelling request: {str(e)}")
+            raise Exception(f"Failed to cancel request: {str(e)}")
 
     def log_approval_action(self, emp_id, emp_name, request_type, request_date, status, manager_name):
         """Append an approved/rejected action entry to approved_log.json"""
@@ -452,6 +684,7 @@ class WFHLeaveManager:
                                     
                                 records.append({
                                     'date': current_date.strftime('%d-%b-%Y'),
+                                    'raw_date': current_date.strftime('%Y-%m-%d'),
                                     'type': ws.cell(row=row_num, column=4).value,
                                     'reason': ws.cell(row=row_num, column=5).value,
                                     'timestamp': ws.cell(row=row_num, column=6).value,
@@ -477,9 +710,24 @@ class WFHLeaveManager:
                 raise FileNotFoundError("Employee data file not found")
             
             df = pd.read_excel(self.emp_data_file, engine='openpyxl')
+
+            # Ensure contract-year columns exist
+            for col, default in [('Leaves_This_Year', 0), ('Leaves_Carried_Forward', 0), ('Contract_Year_Start', '')]:
+                if col not in df.columns:
+                    df[col] = default
             
             # Generate new emp_id (max + 1)
-            new_id = df['emp_id'].max() + 1 if not df.empty else 1
+            new_id = int(df['emp_id'].max() + 1) if not df.empty else 1
+
+            # Compute the initial contract-year start for display
+            year_start_str = ''
+            if contract_start_date:
+                try:
+                    ys, _ = self.get_contract_year_window(contract_start_date)
+                    if ys:
+                        year_start_str = ys.strftime('%Y-%m-%d')
+                except Exception:
+                    pass
             
             new_emp = {
                 'emp_id': new_id,
@@ -488,6 +736,8 @@ class WFHLeaveManager:
                 'Total_leaves': total_leaves,
                 'Half_Day': 0,
                 'Leaves': 0,
+                'Leaves_This_Year': 0,
+                'Leaves_Carried_Forward': 0,
                 'Present': 0,
                 'Remaining_Leaves': total_leaves,
                 'is_admin': 1 if is_admin else 0,
@@ -496,7 +746,8 @@ class WFHLeaveManager:
                 'password': password,
                 'Contract_Type': contract_type,
                 'Contract_Start_Date': contract_start_date,
-                'Contract_End_Date': contract_end_date
+                'Contract_End_Date': contract_end_date,
+                'Contract_Year_Start': year_start_str,
             }
             
             # Append new row
@@ -508,6 +759,82 @@ class WFHLeaveManager:
         except Exception as e:
             print(f"Error adding employee: {str(e)}")
             raise Exception(f"Could not add employee: {str(e)}")
+
+    def update_employee(self, emp_id, emp_name, emp_team, is_admin, is_manager, contract_type, contract_start_date, contract_end_date, total_leaves, carried_forward=None, phone=None):
+        """Update an existing employee in Emp_data.xlsx"""
+        try:
+            if not os.path.exists(self.emp_data_file):
+                raise FileNotFoundError("Employee data file not found")
+            
+            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
+            
+            # Ensure contract-year columns exist
+            for col, default in [('Leaves_This_Year', 0), ('Leaves_Carried_Forward', 0), ('Contract_Year_Start', '')]:
+                if col not in df.columns:
+                    df[col] = default
+
+            # Find the row index
+            emp_idx = df.index[df['emp_id'] == int(emp_id)].tolist()
+            if not emp_idx:
+                raise Exception(f"Employee with ID {emp_id} not found")
+            
+            idx = emp_idx[0]
+            
+            # Prevent dtype crashing if empty excel columns were read as float64
+            for col in ['Contract_Type', 'Contract_Start_Date', 'Contract_End_Date', 'Contract_Year_Start']:
+                if col in df.columns and df[col].dtype == 'float64':
+                    df[col] = df[col].astype(object)
+            
+            df.at[idx, 'emp_name'] = str(emp_name) if emp_name else df.at[idx, 'emp_name']
+            df.at[idx, 'emp_team'] = str(emp_team) if emp_team else df.at[idx, 'emp_team']
+            df.at[idx, 'is_admin'] = 1 if is_admin else 0
+            df.at[idx, 'is_manager'] = 1 if is_manager else 0
+            df.at[idx, 'Contract_Type'] = str(contract_type) if contract_type else df.at[idx, 'Contract_Type']
+            
+            # If contract start date changed, we should reset the internal 'Contract_Year_Start'
+            # trigger so the system re-calculates the current contract year and rollover.
+            old_csd = str(df.at[idx, 'Contract_Start_Date']).strip()
+            new_csd = str(contract_start_date).strip() if contract_start_date else ''
+            
+            if contract_start_date: 
+                df.at[idx, 'Contract_Start_Date'] = new_csd
+                if new_csd != old_csd:
+                    # Date changed -> clear the calc'd year start to trigger re-rollover check
+                    df.at[idx, 'Contract_Year_Start'] = ''
+
+            if contract_end_date: df.at[idx, 'Contract_End_Date'] = str(contract_end_date)
+            
+            # Manual update of carried forward leaves
+            if carried_forward is not None:
+                df.at[idx, 'Leaves_Carried_Forward'] = float(carried_forward)
+
+            # Recalculate remaining leaves
+            # Remaining = (New Total + New Carried) - (Leaves Taken This Year)
+            old_total = df.at[idx, 'Total_leaves']
+            df.at[idx, 'Total_leaves'] = float(total_leaves)
+            
+            taken_this_year = float(df.at[idx, 'Leaves_This_Year']) if pd.notna(df.at[idx, 'Leaves_This_Year']) else 0
+            current_carried = float(df.at[idx, 'Leaves_Carried_Forward']) if pd.notna(df.at[idx, 'Leaves_Carried_Forward']) else 0
+            
+            # Ensure phone column exists
+            if 'phone' not in df.columns:
+                df['phone'] = ''
+
+            if 'phone' in df.columns and df['phone'].dtype == 'float64':
+                df['phone'] = df['phone'].astype(object)
+
+            df.at[idx, 'Remaining_Leaves'] = (float(total_leaves) + current_carried) - taken_this_year
+
+            # Save phone number if provided
+            if phone is not None:
+                df.at[idx, 'phone'] = str(phone).strip()
+
+            df.to_excel(self.emp_data_file, index=False, engine='openpyxl')
+            return True
+            
+        except Exception as e:
+            print(f"Error updating employee: {str(e)}")
+            raise Exception(f"Could not update employee: {str(e)}")
 
     def delete_employee(self, emp_id):
         """Delete an employee from Emp_data.xlsx"""
@@ -526,3 +853,130 @@ class WFHLeaveManager:
         except Exception as e:
             print(f"Error deleting employee: {str(e)}")
             raise Exception(f"Could not delete employee: {str(e)}")
+
+    # ── WhatsApp / notification helpers ──────────────────────────────────────
+
+    def get_manager_for_team(self, team_name: str) -> dict:
+        """
+        Return the manager row for the given team as a dict, or {}.
+        The dict includes 'emp_name', 'phone' (if set), etc.
+        If the team has no dedicated manager the first admin is returned as fallback.
+        """
+        try:
+            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
+            # Ensure phone column exists
+            if 'phone' not in df.columns:
+                df['phone'] = ''
+
+            # 1. Look for a manager in the same team
+            team_managers = df[
+                (df['emp_team'].str.strip().str.lower() == str(team_name).strip().lower()) &
+                (df['is_manager'] == 1)
+            ]
+            if not team_managers.empty:
+                return team_managers.iloc[0].to_dict()
+
+            # 2. Fallback: any admin
+            admins = df[df['is_admin'] == 1]
+            if not admins.empty:
+                return admins.iloc[0].to_dict()
+
+            return {}
+        except Exception as e:
+            print(f"Error in get_manager_for_team: {e}")
+            return {}
+
+    def get_employee_phone(self, emp_id) -> str:
+        """Return the phone number stored for an employee, or empty string."""
+        try:
+            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
+            if 'phone' not in df.columns:
+                return ''
+            emp_row = df[df['emp_id'] == int(emp_id)]
+            if emp_row.empty:
+                return ''
+            phone = emp_row.iloc[0].get('phone', '')
+            return str(phone) if phone and not pd.isna(phone) else ''
+        except Exception as e:
+            print(f"Error in get_employee_phone: {e}")
+            return ''
+
+    def get_all_managers(self) -> list:
+        """Return list of dicts for all managers (is_manager=1) with phone numbers."""
+        try:
+            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
+            if 'phone' not in df.columns:
+                df['phone'] = ''
+            managers = df[df['is_manager'] == 1]
+            return managers.to_dict('records')
+        except Exception as e:
+            print(f"Error in get_all_managers: {e}")
+            return []
+
+    def get_daily_attendance_summary(self, summary_date):
+        """
+        Build a per-team attendance summary for the given date.
+        Returns: {
+            'team_name': {
+                'wfh': [emp_name, ...],
+                'leave': [emp_name, ...],
+                'half_day': [emp_name, ...],
+                'no_request': [emp_name, ...]   # employees with no entry for the day
+            }, ...
+        }
+        """
+        try:
+            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
+            filepath = self.get_daily_filepath(summary_date)
+
+            # Build a set of emp_ids who filed something for this date
+            filed_requests = {}   # emp_id → {'type': ..., 'status': ...}
+            if os.path.exists(filepath):
+                wb = load_workbook(filepath, data_only=True)
+                ws = wb.active
+                for row_num in range(2, ws.max_row + 1):
+                    emp_id = ws.cell(row=row_num, column=1).value
+                    if not emp_id:
+                        continue
+                    req_type = ws.cell(row=row_num, column=4).value
+                    status = ws.cell(row=row_num, column=7).value or 'Approved'
+                    # Only count non-cancelled / non-rejected requests
+                    if status in ('Approved', 'Pending'):
+                        filed_requests[str(emp_id)] = {
+                            'type': req_type,
+                            'status': status
+                        }
+
+            # Group employees by team
+            teams = {}
+            for _, row in df.iterrows():
+                team = str(row.get('emp_team', 'Unknown')).strip()
+                emp_id = str(row.get('emp_id', ''))
+                emp_name = str(row.get('emp_name', ''))
+                is_manager = row.get('is_manager', 0)
+                is_admin = row.get('is_admin', 0)
+
+                if team not in teams:
+                    teams[team] = {'wfh': [], 'leave': [], 'half_day': [], 'no_request': []}
+
+                if emp_id in filed_requests:
+                    req = filed_requests[emp_id]
+                    rtype = req['type']
+                    if rtype == 'WFH':
+                        teams[team]['wfh'].append(emp_name)
+                    elif rtype == 'Leave':
+                        teams[team]['leave'].append(emp_name)
+                    elif rtype == 'Half Day':
+                        teams[team]['half_day'].append(emp_name)
+                # If no request filed and it's a weekday, mark as no_request
+                # (Skip managers/admins from the "no request" list — they self-approve)
+                elif summary_date.weekday() < 5:
+                    # Don't flag managers/admins as absent
+                    if not is_manager and not is_admin:
+                        teams[team]['no_request'].append(emp_name)
+
+            return teams
+        except Exception as e:
+            print(f"Error in get_daily_attendance_summary: {e}")
+            return {}
+

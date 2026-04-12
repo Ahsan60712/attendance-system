@@ -32,6 +32,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h2>📢 Notifications for {{ current_date }}</h2>
                     <div class="header-actions">
+                        <a href="{{ url_for('admin_whatsapp_settings') }}" class="btn btn-warning mr-2">📱 WhatsApp Settings</a>
                         <a href="{{ url_for('add_employee_route') }}" class="btn btn-secondary mr-2">➕ Add Employee</a>
                         <a href="{{ url_for('manage_employees_route') }}" class="btn btn-danger mr-2">🗑️ Remove
                             Employee</a>

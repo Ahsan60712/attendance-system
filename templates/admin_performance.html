@@ -31,8 +31,10 @@
                                 <th>Employee Name</th>
                                 <th>Team</th>
                                 <th class="text-center">WFH Days</th>
-                                <th class="text-center">Leaves Taken</th>
-                                <th class="text-center">Leaves Remaining</th>
+                                <th class="text-center">Allowed</th>
+                                <th class="text-center">Carried</th>
+                                <th class="text-center">Taken</th>
+                                <th class="text-center">Remaining</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -44,8 +46,14 @@
                                     <span class="stat-value-small">{{ emp.WFH_count|default(0) }}</span>
                                 </td>
                                 <td class="text-center">
-                                    <span class="stat-value-small {{ 'text-danger' if emp.Leaves > 5 else '' }}">{{
-                                        emp.Leaves|default(0) }}</span>
+                                    <span class="stat-value-small">{{ emp.Total_leaves|default(14) }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="stat-value-small text-success">{{ emp.Leaves_Carried_Forward|default(0) }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="stat-value-small {{ 'text-danger' if emp.Leaves_This_Year > 10 else '' }}">{{
+                                        emp.Leaves_This_Year|default(0) }}</span>
                                 </td>
                                 <td class="text-center">
                                     <span

@@ -58,21 +58,55 @@
                 <div class="stats-grid mt-3">
                     <div class="stat-card small">
                         <div class="stat-value">{{ filtered_wfh|default(0) }}</div>
-                        <div class="stat-label">Total WFH</div>
+                        <div class="stat-label">Total WFH (Range)</div>
                     </div>
                     <div class="stat-card small">
                         <div class="stat-value">{{ filtered_half_day|default(0) }}</div>
-                        <div class="stat-label">Half Days</div>
+                        <div class="stat-label">Half Days (Range)</div>
                     </div>
                     <div class="stat-card small">
                         <div class="stat-value">{{ filtered_leaves|default(0) }}</div>
-                        <div class="stat-label">Leaves Taken</div>
+                        <div class="stat-label">Leaves Taken (Range)</div>
                     </div>
-                    <div class="stat-card small">
-                        <div class="stat-value">{{ employee.Remaining_Leaves|default(0) }}</div>
+                    <div class="stat-card small highlight">
+                        <div class="stat-value">{{ leave_balance.remaining_leaves|default(employee.Remaining_Leaves|default(0)) }}</div>
                         <div class="stat-label">Leaves Left</div>
                     </div>
                 </div>
+
+                {% if leave_balance and leave_balance.contract_year_start != 'N/A' %}
+                <div class="leave-balance-panel mt-3">
+                    <div class="leave-balance-header">
+                        <span>📅 Contract Year: <strong>{{ leave_balance.contract_year_start }}</strong> → <strong>{{ leave_balance.contract_year_end }}</strong></span>
+                    </div>
+                    <div class="leave-balance-body">
+                        <div class="lb-item">
+                            <span class="lb-label">Annual Entitlement</span>
+                            <span class="lb-value entitlement">{{ leave_balance.total_leaves | int }}</span>
+                        </div>
+                        <div class="lb-sep">+</div>
+                        <div class="lb-item">
+                            <span class="lb-label">Carried Forward</span>
+                            <span class="lb-value carried">{{ leave_balance.carried_forward | int }}</span>
+                        </div>
+                        <div class="lb-sep">=</div>
+                        <div class="lb-item">
+                            <span class="lb-label">Total Available</span>
+                            <span class="lb-value total">{{ leave_balance.total_available | int }}</span>
+                        </div>
+                        <div class="lb-sep">−</div>
+                        <div class="lb-item">
+                            <span class="lb-label">Taken This Year</span>
+                            <span class="lb-value taken">{{ leave_balance.leaves_taken_this_year }}</span>
+                        </div>
+                        <div class="lb-sep">=</div>
+                        <div class="lb-item highlight-item">
+                            <span class="lb-label">Remaining</span>
+                            <span class="lb-value remaining">{{ leave_balance.remaining_leaves }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
 
                 <p class="text-muted mt-3">Period: {{ start_date }} to {{ end_date }}</p>
 
@@ -84,6 +118,7 @@
                             <th>Type</th>
                             <th>Reason</th>
                             <th>Submitted At</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -91,10 +126,23 @@
                         <tr>
                             <td>{{ record.date }}</td>
                             <td>
-                                <span class="badge badge-{{ record.type.lower() }}">{{ record.type }}</span>
+                                <span class="badge badge-{{ record.type.lower().replace(' ', '-') }}">{{ record.type }}</span>
                             </td>
                             <td>{{ record.reason }}</td>
                             <td>{{ record.timestamp }}</td>
+                            <td>
+                                {% if record.status == 'Pending' %}
+                                <span class="badge" style="background-color: #f6ad55; color: white;">Pending</span>
+                                {% elif record.status == 'Approved' %}
+                                <span class="badge badge-success">Approved</span>
+                                {% elif record.status == 'Rejected' %}
+                                <span class="badge badge-danger">Rejected</span>
+                                {% elif record.status == 'Cancelled' %}
+                                <span class="badge" style="background-color: #718096; color: white;">Cancelled</span>
+                                {% else %}
+                                <span class="badge badge-success">{{ record.status|default('Approved') }}</span>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
