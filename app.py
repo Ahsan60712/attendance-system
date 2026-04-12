@@ -361,6 +361,7 @@ def mark_request():
                         request_date=f"{start_date.strftime('%d %b %Y')} – {end_date.strftime('%d %b %Y')}" if end_date != start_date else start_date.strftime('%d %b %Y')
                     )
             except Exception as wa_err:
+                flash(f"WhatsApp Error: {str(wa_err)}", 'danger')
                 print(f"[WhatsApp] Could not notify manager or employee: {wa_err}")
         # ─────────────────────────────────────────────────────────────────────
 

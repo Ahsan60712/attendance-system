@@ -11,9 +11,10 @@
 <body>
     <div class="dashboard-container">
         <nav class="navbar">
-            <div class="nav-brand">Manager Portal</div>
+            <div class="nav-brand">Manager Portal (WhatsApp Active)</div>
             <div class="nav-user">
                 <span>Welcome, {{ manager_name }}</span>
+                <a href="{{ url_for('change_password') }}" class="btn btn-sm">Change Password</a>
                 <a href="{{ url_for('logout') }}" class="btn btn-sm">Logout</a>
             </div>
         </nav>
@@ -34,21 +35,59 @@
                     <div class="stat-label">My Total WFH</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">{{ emp_data.Half_Day|default(0) }}</div>
-                    <div class="stat-label">My Half Days</div>
+                    <div class="stat-value">{{ leave_balance.half_days_taken|default(emp_data.Half_Day|default(0)) }}
+                    </div>
+                    <div class="stat-label">My Half Days (This Year)</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">{{ emp_data.Leaves|default(0) }}</div>
-                    <div class="stat-label">My Leaves Taken</div>
+                    <div class="stat-value">{{ leave_balance.leaves_taken_this_year|default(emp_data.Leaves|default(0))
+                        }}</div>
+                    <div class="stat-label">My Leaves Taken (This Year)</div>
                 </div>
                 <div class="stat-card highlight">
-                    <div class="stat-value">{{ emp_data.Remaining_Leaves|default(0) }}</div>
+                    <div class="stat-value">{{
+                        leave_balance.remaining_leaves|default(emp_data.Remaining_Leaves|default(0)) }}</div>
                     <div class="stat-label">Remaining Leaves</div>
                 </div>
             </div>
 
+            {% if leave_balance and leave_balance.contract_year_start != 'N/A' %}
+            <div class="leave-balance-panel mt-3">
+                <div class="leave-balance-header">
+                    <span>📅 My Contract Year: <strong>{{ leave_balance.contract_year_start }}</strong> → <strong>{{
+                            leave_balance.contract_year_end }}</strong></span>
+                </div>
+                <div class="leave-balance-body">
+                    <div class="lb-item">
+                        <span class="lb-label">Annual Entitlement</span>
+                        <span class="lb-value entitlement">{{ leave_balance.total_leaves | int }}</span>
+                    </div>
+                    <div class="lb-sep">+</div>
+                    <div class="lb-item">
+                        <span class="lb-label">Carried Forward</span>
+                        <span class="lb-value carried">{{ leave_balance.carried_forward | int }}</span>
+                    </div>
+                    <div class="lb-sep">=</div>
+                    <div class="lb-item">
+                        <span class="lb-label">Total Available</span>
+                        <span class="lb-value total">{{ leave_balance.total_available | int }}</span>
+                    </div>
+                    <div class="lb-sep">−</div>
+                    <div class="lb-item">
+                        <span class="lb-label">Taken This Year</span>
+                        <span class="lb-value taken">{{ leave_balance.leaves_taken_this_year }}</span>
+                    </div>
+                    <div class="lb-sep">=</div>
+                    <div class="lb-item highlight-item">
+                        <span class="lb-label">Remaining</span>
+                        <span class="lb-value remaining">{{ leave_balance.remaining_leaves }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <div class="card mt-4">
-                <h2>Team Pending Requests</h2>
+                <h2>{{ emp_data.emp_team }} Team Pending Requests</h2>
                 <p class="text-muted">Review WFH and Leave requests from your team.</p>
 
                 {% if requests %}
@@ -109,6 +148,58 @@
                 {% else %}
                 <div class="alert alert-info mt-4" style="text-align: center; padding: 2rem;">
                     No pending team requests.
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="card mt-4">
+                <h2>{{ emp_data.emp_team }} Team Approved Requests</h2>
+                <p class="text-muted">Review recently approved WFH and Leave requests for your team.</p>
+
+                {% if approved_requests %}
+                <div class="table-responsive mt-4">
+                    <table class="table" style="font-size: 0.9rem;">
+                        <thead>
+                            <tr>
+                                <th>Submitted On</th>
+                                <th>Date Requested</th>
+                                <th>Employee</th>
+                                <th>Type</th>
+                                <th>Reason</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for req in approved_requests[:15] %}
+                            <tr>
+                                <td class="text-muted small">{{ req.timestamp }}</td>
+                                <td class="font-weight-bold">{{ req.display_date }}</td>
+                                <td>{{ req.emp_name }}</td>
+                                <td>
+                                    <span class="badge badge-{{ req.type.lower().replace(' ', '-') }}">{{ req.type
+                                        }}</span>
+                                </td>
+                                <td>{{ req.reason }}</td>
+                                <td class="text-center">
+                                    <form method="POST" action="{{ url_for('cancel_request') }}"
+                                        style="margin: 0; display: inline;">
+                                        <input type="hidden" name="emp_id" value="{{ req.emp_id }}">
+                                        <input type="hidden" name="date" value="{{ req.date }}">
+                                        <input type="hidden" name="timestamp" value="{{ req.timestamp }}">
+                                        <button type="submit" class="btn btn-sm btn-danger"
+                                            onclick="return confirm('Cancel this approved request? The leave balance will be refunded to the employee.');">
+                                            Delete / Cancel
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info mt-4" style="text-align: center; padding: 2rem;">
+                    No recently approved team requests.
                 </div>
                 {% endif %}
             </div>
