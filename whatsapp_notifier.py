@@ -156,7 +156,6 @@ def send_whatsapp_template(to_phone: str, template_name: str, language_code: str
 
     payload = {
         'messaging_product': 'whatsapp',
-        'recipient_type': 'individual',
         'to': recipient,
         'type': 'template',
         'template': {
@@ -174,10 +173,11 @@ def send_whatsapp_template(to_phone: str, template_name: str, language_code: str
             print(f"[WhatsApp Template] ✅ Sent {template_name} to {recipient}")
             return True
         else:
-            print(f"[WhatsApp Template] ❌ Error: {response.text}")
+            print(f"[WhatsApp Template] ❌ API Error ({response.status_code}): {response.text}")
+            logger.error(f"[WhatsApp Template] API Error: {response.text}")
             return False
     except Exception as e:
-        print(f"[WhatsApp Template] ❌ Failed: {e}")
+        print(f"[WhatsApp Template] ❌ Exception: {e}")
         return False
 
 
@@ -201,7 +201,7 @@ def notify_manager_new_request(manager_phone: str, manager_name: str,
             "type": "body",
             "parameters": [
                 {"type": "text", "text": emp_name},
-                {"type": "text", "text": f"{request_type}: {reason}"}
+                {"type": "text", "text": request_type} # Variable {{2}} = WFH / Leave / Half Day
             ]
         }
     ]
