@@ -227,15 +227,19 @@ class WFHLeaveManager:
             half_days = float(row.get('Half_Day') or 0)
             remaining = float(row.get('Remaining_Leaves') or 0)
 
+            total_available = total + carried
+            # Real-time calculation to avoid discrepancies with Excel stored value
+            calculated_remaining = total_available - taken_this_year
+
             return {
                 'contract_year_start': year_start.strftime('%d %b %Y') if year_start else 'N/A',
                 'contract_year_end': year_end.strftime('%d %b %Y') if year_end else 'N/A',
                 'total_leaves': total,
                 'carried_forward': carried,
-                'total_available': total + carried,
+                'total_available': total_available,
                 'leaves_taken_this_year': taken_this_year,
                 'half_days_taken': half_days,
-                'remaining_leaves': remaining,
+                'remaining_leaves': calculated_remaining,
             }
         except Exception as e:
             print(f"Error in get_leave_balance_info: {str(e)}")
