@@ -11,7 +11,7 @@
 <body>
     <div class="dashboard-container">
         <nav class="navbar">
-            <div class="nav-brand">Employee Portal</div>
+            <div class="nav-brand">Employee Portal (WhatsApp Active)</div>
             <div class="nav-user">
                 <span>Welcome, {{ emp_name }}</span>
                 <a href="{{ url_for('change_password') }}" class="btn btn-sm">Change Password</a>
@@ -34,18 +34,52 @@
                     <div class="stat-label">Total WFH</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">{{ emp_data.Half_Day|default(0) }}</div>
-                    <div class="stat-label">Half Days</div>
+                    <div class="stat-value">{{ leave_balance.half_days_taken|default(emp_data.Half_Day|default(0)) }}</div>
+                    <div class="stat-label">Half Days (This Year)</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">{{ emp_data.Leaves|default(0) }}</div>
-                    <div class="stat-label">Total Leaves Taken</div>
+                    <div class="stat-value">{{ leave_balance.leaves_taken_this_year|default(emp_data.Leaves|default(0)) }}</div>
+                    <div class="stat-label">Leaves Taken (This Year)</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value">{{ emp_data.Remaining_Leaves|default(0) }}</div>
+                <div class="stat-card highlight">
+                    <div class="stat-value">{{ leave_balance.remaining_leaves|default(emp_data.Remaining_Leaves|default(0)) }}</div>
                     <div class="stat-label">Remaining Leaves</div>
                 </div>
             </div>
+
+            {% if leave_balance and leave_balance.contract_year_start != 'N/A' %}
+            <div class="leave-balance-panel mt-3">
+                <div class="leave-balance-header">
+                    <span>📅 Contract Year: <strong>{{ leave_balance.contract_year_start }}</strong> → <strong>{{ leave_balance.contract_year_end }}</strong></span>
+                </div>
+                <div class="leave-balance-body">
+                    <div class="lb-item">
+                        <span class="lb-label">Annual Entitlement</span>
+                        <span class="lb-value entitlement">{{ leave_balance.total_leaves | int }}</span>
+                    </div>
+                    <div class="lb-sep">+</div>
+                    <div class="lb-item">
+                        <span class="lb-label">Carried Forward</span>
+                        <span class="lb-value carried">{{ leave_balance.carried_forward | int }}</span>
+                    </div>
+                    <div class="lb-sep">=</div>
+                    <div class="lb-item">
+                        <span class="lb-label">Total Available</span>
+                        <span class="lb-value total">{{ leave_balance.total_available | int }}</span>
+                    </div>
+                    <div class="lb-sep">−</div>
+                    <div class="lb-item">
+                        <span class="lb-label">Taken This Year</span>
+                        <span class="lb-value taken">{{ leave_balance.leaves_taken_this_year }}</span>
+                    </div>
+                    <div class="lb-sep">=</div>
+                    <div class="lb-item highlight-item">
+                        <span class="lb-label">Remaining</span>
+                        <span class="lb-value remaining">{{ leave_balance.remaining_leaves }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
 
             <div class="card mt-4">
                 <h2>Submit Request</h2>
@@ -171,6 +205,7 @@
                             <th>Reason</th>
                             <th>Submitted At</th>
                             <th>Status</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -192,6 +227,16 @@
                                 <span class="badge badge-danger">Rejected</span>
                                 {% else %}
                                 <span class="badge badge-success">{{ record.status|default('Approved') }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.status == 'Pending' %}
+                                <form method="POST" action="{{ url_for('cancel_request') }}" style="margin: 0;">
+                                    <input type="hidden" name="emp_id" value="{{ emp_data.emp_id }}">
+                                    <input type="hidden" name="date" value="{{ record.raw_date }}">
+                                    <input type="hidden" name="timestamp" value="{{ record.timestamp }}">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Cancel this request?');">Cancel Request</button>
+                                </form>
                                 {% endif %}
                             </td>
                         </tr>
