@@ -897,5 +897,32 @@ def admin_whatsapp_settings():
 
 
 
+@app.route('/admin/reset-system-balances')
+def reset_system_balances():
+    """Hidden admin route to reset all balances (Final Initialization)"""
+    try:
+        import pandas as pd
+        file_path = manager.emp_data_file
+        df = pd.read_excel(file_path, engine='openpyxl')
+        
+        # Reset Logic
+        for idx in df.index:
+            c_start = df.at[idx, 'Contract_Start_Date']
+            year_start, _ = manager.get_contract_year_window(str(c_start))
+            year_start_str = year_start.strftime('%Y-%m-%d') if year_start else ""
+            
+            df.at[idx, 'Leaves_Carried_Forward'] = 0
+            df.at[idx, 'Leaves_This_Year'] = 0
+            df.at[idx, 'Leaves'] = 0
+            df.at[idx, 'Half_Day'] = 0
+            df.at[idx, 'Remaining_Leaves'] = df.at[idx, 'Total_leaves']
+            df.at[idx, 'Contract_Year_Start'] = year_start_str
+            df.at[idx, 'Carried_Forward_Expiry'] = ""
+            
+        df.to_excel(file_path, index=False, engine='openpyxl')
+        return "✅ System Balances Reset Successfully! Go to dashboard."
+    except Exception as e:
+        return f"❌ Reset Failed: {str(e)}"
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000, use_reloader=False)
