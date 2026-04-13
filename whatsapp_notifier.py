@@ -181,6 +181,13 @@ def send_whatsapp_template(to_phone: str, template_name: str, language_code: str
         return False
 
 
+# ── Helper to determine target phone (with test override) ────────────────────
+def _get_target_phone(provided_phone: str) -> str:
+    """Helper to apply test number override if present in code or environment."""
+    # Hafiz Zohaib's new number as the default fallback
+    test_num = os.environ.get('TEST_MANAGER_PHONE', '03365111740')
+    return test_num if test_num else provided_phone
+
 # ── High-level notification helpers ──────────────────────────────────────────
 
 def notify_manager_new_request(manager_phone: str, manager_name: str,
@@ -192,9 +199,7 @@ def notify_manager_new_request(manager_phone: str, manager_name: str,
     Variable {{1}} = Employee Name
     Variable {{2}} = request_type / reason
     """
-    # Override for testing: Hafiz Zohaib (03365111740)
-    test_num = os.environ.get('TEST_MANAGER_PHONE', '03365111740')
-    target_phone = test_num if test_num else manager_phone
+    target_phone = _get_target_phone(manager_phone)
 
     components = [
         {
@@ -253,13 +258,14 @@ def notify_manager_request_cancelled(manager_phone: str, manager_name: str,
     """
     Notify a manager that an employee has cancelled a request.
     """
+    target_phone = _get_target_phone(manager_phone)
     message = (
         f"🚫 *Request Cancelled*\n\n"
         f"Hi {manager_name},\n"
         f"*{emp_name}* has cancelled their *{request_type}* request "
         f"for *{request_date}*."
     )
-    return send_whatsapp(manager_phone, message)
+    return send_whatsapp(target_phone, message)
 
 
 # ── Daily Summary & Absent Alerts ────────────────────────────────────────────
@@ -317,7 +323,8 @@ def send_daily_summary(manager_phone: str, manager_name: str,
     lines.append(f"📈 *Total Away:* {total_away} | *Unaccounted:* {len(absent_list)}")
 
     message = "\n".join(lines)
-    return send_whatsapp(manager_phone, message)
+    target_phone = _get_target_phone(manager_phone)
+    return send_whatsapp(target_phone, message)
 
 
 def send_absent_alert(manager_phone: str, manager_name: str,
@@ -341,7 +348,8 @@ def send_absent_alert(manager_phone: str, manager_name: str,
         f"{names}\n\n"
         f"Please check with them or mark attendance accordingly."
     )
-    return send_whatsapp(manager_phone, message)
+    target_phone = _get_target_phone(manager_phone)
+    return send_whatsapp(target_phone, message)
 
 
 def notify_employee_absence(emp_phone: str, emp_name: str, alert_date: date) -> bool:
