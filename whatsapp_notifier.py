@@ -55,6 +55,10 @@ def _format_phone(phone: str) -> str:
     if not phone:
         return ''
 
+    # Handle float numbers from Excel (e.g. 3001234567.0)
+    if phone.endswith('.0'):
+        phone = phone[:-2]
+
     # Strip any old Twilio-style prefix if present
     phone = phone.replace('whatsapp:', '')
 
