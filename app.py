@@ -24,6 +24,11 @@ manager = WFHLeaveManager(BASE_PATH)
 from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
 
+@app.route('/privacy-policy')
+def privacy_policy():
+    """Privacy policy page for Meta API compliance"""
+    return render_template('privacy_policy.html')
+
 def _send_daily_summaries():
     """Background job: build per-team attendance summary and WhatsApp each manager."""
     today = date.today()
