@@ -11,33 +11,38 @@ if not os.path.exists(FILE_PATH):
 try:
     df = pd.read_excel(FILE_PATH, engine='openpyxl')
     
-    # 1. Ensure required columns exist
-    if 'Leaves_Carried_Forward' not in df.columns:
-        df['Leaves_Carried_Forward'] = 0
-    if 'Leaves_This_Year' not in df.columns:
-        df['Leaves_This_Year'] = 0
+    # Ensure required columns exist
+    cols_to_ensure = [
+        'Leaves_Carried_Forward', 
+        'Leaves_This_Year', 
+        'Carried_Forward_Expiry', 
+        'Contract_Year_Start'
+    ]
+    for col in cols_to_ensure:
+        if col not in df.columns:
+            df[col] = ""
 
-    print("--- Resetting Leave Balances for First Year ---")
+    print("--- Resetting Leave Balances & Implementing Expiry Logic ---")
     
-    # 2. Reset Carry Forward to 0
+    # 1. Reset Carry Forward to 0 for all (as requested)
     df['Leaves_Carried_Forward'] = 0
     
-    # 3. Reset Taken this year to 0 (optional based on whether they want to clear history)
-    # The user said "is year ki to 14 hi leaves hain", implying fresh start.
+    # 2. Clear Expiry dates (since carried is 0)
+    df['Carried_Forward_Expiry'] = ""
+    
+    # 3. Reset Taken this year (optional, but requested for "first year" feel)
     df['Leaves_This_Year'] = 0
     df['Leaves'] = 0
     df['Half_Day'] = 0
     
     # 4. Update Remaining_Leaves to be exactly the Annual Total_leaves
-    # (Since carried is now 0 and taken is now 0)
     df['Remaining_Leaves'] = df['Total_leaves']
     
-    # 5. Clear stored contract year start so it picks up the join date cycle fresh
-    if 'Contract_Year_Start' in df.columns:
-        df['Contract_Year_Start'] = ""
+    # 5. Reset stored contract year start so rollover can re-trigger on next anniversary
+    df['Contract_Year_Start'] = ""
 
     df.to_excel(FILE_PATH, index=False, engine='openpyxl')
-    print("✅ SUCCESS: All employees reset to 14 leaves (0 carried forward).")
+    print("✅ SUCCESS: Carried forward leaves removed. 6-month expiry logic implemented for future years.")
 
 except Exception as e:
     print(f"❌ ERROR: {e}")

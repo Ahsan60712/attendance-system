@@ -165,34 +165,78 @@ class WFHLeaveManager:
                 return df.iloc[idx].to_dict()
 
             # ---- ROLLOVER ----
-            # Leaves taken in the OLD year = Leaves_This_Year
             old_leaves_taken = float(df.at[idx, 'Leaves_This_Year']) if pd.notna(df.at[idx, 'Leaves_This_Year']) else 0
             old_total = float(df.at[idx, 'Total_leaves']) if pd.notna(df.at[idx, 'Total_leaves']) else 0
             old_carried = float(df.at[idx, 'Leaves_Carried_Forward']) if pd.notna(df.at[idx, 'Leaves_Carried_Forward']) else 0
 
-            # Unused in old year = (Total + carried) - taken  (can't go below 0)
+            # Unused in old year
             old_remaining = max(0, (old_total + old_carried) - old_leaves_taken)
-
-            # Carry forward unused leaves (no cap — adjust if you want a cap e.g. min(old_remaining, 7))
             new_carried_forward = old_remaining
+
+            # Set Expiry Date (6 months from new year start)
+            expiry_date = year_start + pd.DateOffset(months=6)
+            expiry_str = expiry_date.strftime('%Y-%m-%d')
 
             # Reset for new year
             df.at[idx, 'Leaves_This_Year'] = 0
             df.at[idx, 'Leaves_Carried_Forward'] = new_carried_forward
+            df.at[idx, 'Carried_Forward_Expiry'] = expiry_str  # Path 6 months expiry
             df.at[idx, 'Contract_Year_Start'] = year_start_str
-            # Remaining = fresh allocation + carried
             df.at[idx, 'Remaining_Leaves'] = old_total + new_carried_forward
-            # Reset cumulative Leaves counter to 0 for new year
             df.at[idx, 'Leaves'] = 0
             df.at[idx, 'Half_Day'] = 0
 
             df.to_excel(self.emp_data_file, index=False, engine='openpyxl')
-            print(f"[ROLLOVER] Employee {emp_id}: carried forward {new_carried_forward} leaves into new year starting {year_start_str}")
+            print(f"[ROLLOVER] Employee {emp_id}: {new_carried_forward} leaves carried (Expires {expiry_str})")
             return df.iloc[idx].to_dict()
 
         except Exception as e:
             print(f"Error in check_and_rollover_leaves: {str(e)}")
             return None
+
+    def check_and_apply_expiry(self, emp_id):
+        """
+        Check if carried-forward leaves have expired (6 months past contract start).
+        Logic: Carried leaves are assumed to be used FIRST. 
+        If Leaves_This_Year < Leaves_Carried_Forward after 6 months, the difference is lost.
+        """
+        try:
+            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
+            idx = df[df['emp_id'] == int(emp_id)].index
+            if idx.empty: return
+            idx = idx[0]
+
+            if 'Carried_Forward_Expiry' not in df.columns: return
+            
+            expiry_str = df.at[idx, 'Carried_Forward_Expiry']
+            if pd.isna(expiry_str) or str(expiry_str).strip() == '': return
+
+            expiry_date = pd.to_datetime(expiry_str).date()
+            today = date.today()
+
+            if today >= expiry_date:
+                carried = float(df.at[idx, 'Leaves_Carried_Forward'])
+                taken = float(df.at[idx, 'Leaves_This_Year'])
+                
+                if carried > 0:
+                    # How many carried leaves were NOT used?
+                    # If they used 5 and had 10 carried, 5 expire.
+                    # If they used 15 and had 10 carried, 0 expire.
+                    unused_carried = max(0, carried - taken)
+                    
+                    if unused_carried > 0:
+                        print(f"[EXPIRY] Employee {emp_id}: {unused_carried} carried leaves expired on {expiry_date}")
+                        df.at[idx, 'Leaves_Carried_Forward'] = carried - unused_carried
+                        # We also need to update Remaining_Leaves display
+                        total = float(df.at[idx, 'Total_leaves'])
+                        df.at[idx, 'Remaining_Leaves'] = total + df.at[idx, 'Leaves_Carried_Forward'] - taken
+                    
+                    # Clear expiry date so we don't process it again for this year
+                    df.at[idx, 'Carried_Forward_Expiry'] = ""
+                    df.to_excel(self.emp_data_file, index=False, engine='openpyxl')
+
+        except Exception as e:
+            print(f"Error in check_and_apply_expiry: {str(e)}")
 
     def get_leave_balance_info(self, emp_id):
         """
@@ -225,7 +269,6 @@ class WFHLeaveManager:
             carried = float(row.get('Leaves_Carried_Forward') or 0)
             taken_this_year = float(row.get('Leaves_This_Year') or 0)
             half_days = float(row.get('Half_Day') or 0)
-            remaining = float(row.get('Remaining_Leaves') or 0)
 
             total_available = total + carried
             # Real-time calculation to avoid discrepancies with Excel stored value

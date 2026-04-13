@@ -217,6 +217,7 @@ def employee_dashboard():
     
     # Auto-rollover contract year leaves if anniversary passed
     manager.check_and_rollover_leaves(emp_id)
+    manager.check_and_apply_expiry(emp_id)
 
     # Get all employees to find current emp data
     employees = manager.get_employees()
@@ -404,6 +405,7 @@ def manager_dashboard():
 
     # Auto-rollover contract year leaves if anniversary passed
     manager.check_and_rollover_leaves(emp_id)
+    manager.check_and_apply_expiry(emp_id)
     
     # Get manager's own data (balance etc)
     employees = manager.get_employees()
