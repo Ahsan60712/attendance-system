@@ -906,7 +906,9 @@ def reset_system_balances():
         df = pd.read_excel(file_path, engine='openpyxl')
         
         # Reset Logic
+        results = []
         for idx in df.index:
+            name = df.at[idx, 'emp_name']
             c_start = df.at[idx, 'Contract_Start_Date']
             year_start, _ = manager.get_contract_year_window(str(c_start))
             year_start_str = year_start.strftime('%Y-%m-%d') if year_start else ""
@@ -918,9 +920,10 @@ def reset_system_balances():
             df.at[idx, 'Remaining_Leaves'] = df.at[idx, 'Total_leaves']
             df.at[idx, 'Contract_Year_Start'] = year_start_str
             df.at[idx, 'Carried_Forward_Expiry'] = ""
+            results.append(f"{name}: Reset to 14 total, 0 carried. Year Start: {year_start_str}")
             
         df.to_excel(file_path, index=False, engine='openpyxl')
-        return "✅ System Balances Reset Successfully! Go to dashboard."
+        return "✅ FINAL RESET SUCCESSFUL:<br>" + "<br>".join(results)
     except Exception as e:
         return f"❌ Reset Failed: {str(e)}"
 
