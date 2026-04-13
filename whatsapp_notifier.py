@@ -59,6 +59,10 @@ def _format_phone(phone: str) -> str:
     if phone.endswith('.0'):
         phone = phone[:-2]
 
+    # Prepend 92 if it's a 10-digit local number (e.g. 3365111740 -> 923365111740)
+    if len(phone) == 10 and phone.startswith('3'):
+        phone = '92' + phone
+
     # Strip any old Twilio-style prefix if present
     phone = phone.replace('whatsapp:', '')
 
