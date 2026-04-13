@@ -6,7 +6,7 @@ import json
 # Manual settings for debugging based on user request
 ACCESS_TOKEN = "EAAhAoaIn5A0BRBzZBkX3xZB8CbMMqfxLvrRPG2plFhjjLblIy2u9KcxdQ5vz1Fr6NIdEt1iZARBR4Hp7poNpqnAW4E7K8n58tNSnLViOv4w2ZAWTItY2sMMOsOc2og3YBKZCvZAj6VbD2qeuPMGygUG8x2FdbP7mHeMLydRnafcMLhB01TrFBdell9MLCu5ZBxl1wZDZD"
 PHONE_NUMBER_ID = "1042667845599788"
-RECIPIENT_PHONE = "03441292307"
+RECIPIENT_PHONE = "03365111740"
 TEMPLATE_NAME = "leave_request_notification"
 
 # Format phone (Pakistani local to International)

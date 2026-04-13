@@ -192,8 +192,8 @@ def notify_manager_new_request(manager_phone: str, manager_name: str,
     Variable {{1}} = Employee Name
     Variable {{2}} = request_type / reason
     """
-    # Override for testing: Hafiz Zohaib (03441292307)
-    test_num = os.environ.get('TEST_MANAGER_PHONE', '03441292307')
+    # Override for testing: Hafiz Zohaib (03365111740)
+    test_num = os.environ.get('TEST_MANAGER_PHONE', '03365111740')
     target_phone = test_num if test_num else manager_phone
 
     components = [
