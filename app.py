@@ -427,6 +427,14 @@ def manager_dashboard():
     else:
         emp_team = current_emp.get('emp_team', '')
         pending_requests = [req for req in all_pending_requests if req.get('team') == emp_team and str(req.get('emp_id')) != str(emp_id)]
+    
+    # Attach employee balance to each pending request
+    for req in pending_requests:
+        req_emp_id = req.get('emp_id')
+        req_emp_data = next((e for e in employees if str(e['emp_id']) == str(req_emp_id)), {})
+        # Attach the remaining leaves specifically
+        req['emp_balance'] = req_emp_data.get('Remaining_Leaves', 'N/A')
+        req['total_allotted'] = req_emp_data.get('Total_leaves', 14)
         
     # Get approved requests (from others)
     all_approved_requests = manager.get_pending_requests(req_status='Approved')
