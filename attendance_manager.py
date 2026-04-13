@@ -160,7 +160,7 @@ class WFHLeaveManager:
             if pd.isna(stored_year_start) or str(stored_year_start).strip() == '':
                 stored_year_start = None
 
-            if stored_year_start == year_start_str:
+            if str(stored_year_start).strip() == str(year_start_str).strip():
                 # Already on the correct contract year — no rollover needed
                 return df.iloc[idx].to_dict()
 
