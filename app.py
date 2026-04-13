@@ -904,16 +904,19 @@ def reset_system_balances():
         df = pd.read_excel(file_path, engine='openpyxl')
         
         # Reset Logic
-        df['Leaves_Carried_Forward'] = 0
-        df['Leaves_This_Year'] = 0
-        df['Leaves'] = 0
-        df['Half_Day'] = 0
-        df['Remaining_Leaves'] = df['Total_leaves']
-        df['Contract_Year_Start'] = ""
-        if 'Carried_Forward_Expiry' in df.columns:
-            df['Carried_Forward_Expiry'] = ""
-        else:
-            df['Carried_Forward_Expiry'] = ""
+        for idx in df.index:
+            # Calculate what current contract year should be
+            c_start = df.at[idx, 'Contract_Start_Date']
+            year_start, _ = manager.get_contract_year_window(str(c_start))
+            year_start_str = year_start.strftime('%Y-%m-%d') if year_start else ""
+            
+            df.at[idx, 'Leaves_Carried_Forward'] = 0
+            df.at[idx, 'Leaves_This_Year'] = 0
+            df.at[idx, 'Leaves'] = 0
+            df.at[idx, 'Half_Day'] = 0
+            df.at[idx, 'Remaining_Leaves'] = df.at[idx, 'Total_leaves']
+            df.at[idx, 'Contract_Year_Start'] = year_start_str
+            df.at[idx, 'Carried_Forward_Expiry'] = ""
             
         df.to_excel(file_path, index=False, engine='openpyxl')
         return "✅ System Balances Reset Successfully! Go back to your dashboard and refresh."
