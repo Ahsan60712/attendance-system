@@ -1,351 +1,284 @@
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manager Dashboard - Attendance Management system</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
+{% extends 'base.html' %}
 
-<body>
-    <div class="dashboard-container">
-        <nav class="navbar">
-            <div class="nav-brand">Manager Portal</div>
-            <div class="nav-user">
-                <span>Welcome, {{ manager_name }}</span>
-                <a href="{{ url_for('change_password') }}" class="btn btn-sm">Change Password</a>
-                <a href="{{ url_for('logout') }}" class="btn btn-sm">Logout</a>
-            </div>
-        </nav>
-
-        <div class="dashboard-content">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            {% for category, message in messages %}
-            <div class="alert alert-{{ category }} mt-3">{{ message }}</div>
-            {% endfor %}
-            {% endif %}
-            {% endwith %}
-
-            <!-- ===== PERSONAL STATS ===== -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value">{{ emp_data.WFH_count|default(0) }}</div>
-                    <div class="stat-label">My Total WFH</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">{{ leave_balance.half_days_taken|default(emp_data.Half_Day|default(0)) }}
-                    </div>
-                    <div class="stat-label">My Half Days (This Year)</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">{{ leave_balance.leaves_taken_this_year|default(emp_data.Leaves|default(0))
-                        }}</div>
-                    <div class="stat-label">My Leaves Taken (This Year)</div>
-                </div>
-                <div class="stat-card highlight">
-                    <div class="stat-value">{{
-                        leave_balance.remaining_leaves|default(emp_data.Remaining_Leaves|default(0)) }}</div>
-                    <div class="stat-label">Remaining Leaves</div>
-                </div>
-            </div>
-
-            {% if leave_balance and leave_balance.contract_year_start != 'N/A' %}
-            <div class="leave-balance-panel mt-3">
-                <div class="leave-balance-header">
-                    <span>📅 My Contract Year: <strong>{{ leave_balance.contract_year_start }}</strong> → <strong>{{
-                            leave_balance.contract_year_end }}</strong></span>
-                </div>
-                <div class="leave-balance-body">
-                    <div class="lb-item">
-                        <span class="lb-label">Annual Entitlement</span>
-                        <span class="lb-value entitlement">{{ leave_balance.total_leaves | int }}</span>
-                    </div>
-                    <div class="lb-sep">+</div>
-                    <div class="lb-item">
-                        <span class="lb-label">Carried Forward</span>
-                        <span class="lb-value carried">{{ leave_balance.carried_forward | int }}</span>
-                    </div>
-                    <div class="lb-sep">=</div>
-                    <div class="lb-item">
-                        <span class="lb-label">Total Available</span>
-                        <span class="lb-value total">{{ leave_balance.total_available | int }}</span>
-                    </div>
-                    <div class="lb-sep">−</div>
-                    <div class="lb-item">
-                        <span class="lb-label">Taken This Year</span>
-                        <span class="lb-value taken">{{ leave_balance.leaves_taken_this_year }}</span>
-                    </div>
-                    <div class="lb-sep">=</div>
-                    <div class="lb-item highlight-item">
-                        <span class="lb-label">Remaining</span>
-                        <span class="lb-value remaining">{{ leave_balance.remaining_leaves }}</span>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <div class="card mt-4">
-                <h2>{{ emp_data.emp_team }} Team Pending Requests</h2>
-                <p class="text-muted">Review WFH and Leave requests from your team.</p>
-
-                {% if requests %}
-                <div class="table-responsive mt-4">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Submitted On</th>
-                                <th>Date Requested</th>
-                                <th>Employee</th>
-                                <th>Rem. Balance</th>
-                                <th>Type</th>
-                                <th>Reason</th>
-                                <th class="text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for req in requests %}
-                            <tr>
-                                <td class="text-muted small">{{ req.timestamp }}</td>
-                                <td class="font-weight-bold">{{ req.display_date }}</td>
-                                <td>{{ req.emp_name }}</td>
-                                <td>
-                                    <span class="badge badge-outline-primary" style="border: 1px solid #4a90e2; color: #4a90e2; padding: 2px 8px; border-radius: 12px; font-weight: bold;">
-                                        {{ req.emp_balance }} / {{ req.total_allotted }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge badge-{{ req.type.lower().replace(' ', '-') }}">{{ req.type
-                                        }}</span>
-                                </td>
-                                <td>{{ req.reason }}</td>
-                                <td>
-                                    <div class="d-flex justify-content-center gap-2">
-                                        <form method="POST" action="{{ url_for('action_request') }}" style="margin: 0;">
-                                            <input type="hidden" name="emp_id" value="{{ req.emp_id }}">
-                                            <input type="hidden" name="date" value="{{ req.date }}">
-                                            <input type="hidden" name="type" value="{{ req.type }}">
-                                            <input type="hidden" name="timestamp" value="{{ req.timestamp }}">
-                                            <input type="hidden" name="action" value="Approve">
-                                            <button type="submit" class="btn btn-sm btn-success"
-                                                onclick="return confirm('Approve this request? Leave balances will be updated immediately.');">
-                                                ✔️ Approve
-                                            </button>
-                                        </form>
-                                        <form method="POST" action="{{ url_for('action_request') }}" style="margin: 0;">
-                                            <input type="hidden" name="emp_id" value="{{ req.emp_id }}">
-                                            <input type="hidden" name="date" value="{{ req.date }}">
-                                            <input type="hidden" name="type" value="{{ req.type }}">
-                                            <input type="hidden" name="timestamp" value="{{ req.timestamp }}">
-                                            <input type="hidden" name="action" value="Reject">
-                                            <button type="submit" class="btn btn-sm btn-danger"
-                                                onclick="return confirm('Reject this request?');">
-                                                ❌ Reject
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="alert alert-info mt-4" style="text-align: center; padding: 2rem;">
-                    No pending team requests.
-                </div>
-                {% endif %}
-            </div>
-
-            <div class="card mt-4">
-                <h2>{{ emp_data.emp_team }} Team Approved Requests</h2>
-                <p class="text-muted">Review recently approved WFH and Leave requests for your team.</p>
-
-                {% if approved_requests %}
-                <div class="table-responsive mt-4">
-                    <table class="table" style="font-size: 0.9rem;">
-                        <thead>
-                            <tr>
-                                <th>Submitted On</th>
-                                <th>Date Requested</th>
-                                <th>Employee</th>
-                                <th>Type</th>
-                                <th>Reason</th>
-                                <th class="text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for req in approved_requests[:15] %}
-                            <tr>
-                                <td class="text-muted small">{{ req.timestamp }}</td>
-                                <td class="font-weight-bold">{{ req.display_date }}</td>
-                                <td>{{ req.emp_name }}</td>
-                                <td>
-                                    <span class="badge badge-{{ req.type.lower().replace(' ', '-') }}">{{ req.type
-                                        }}</span>
-                                </td>
-                                <td>{{ req.reason }}</td>
-                                <td class="text-center">
-                                    <form method="POST" action="{{ url_for('cancel_request') }}"
-                                        style="margin: 0; display: inline;">
-                                        <input type="hidden" name="emp_id" value="{{ req.emp_id }}">
-                                        <input type="hidden" name="date" value="{{ req.date }}">
-                                        <input type="hidden" name="timestamp" value="{{ req.timestamp }}">
-                                        <button type="submit" class="btn btn-sm btn-danger"
-                                            onclick="return confirm('Cancel this approved request? The leave balance will be refunded to the employee.');">
-                                            Delete / Cancel
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="alert alert-info mt-4" style="text-align: center; padding: 2rem;">
-                    No recently approved team requests.
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- ===== MY PERSONAL APPLICATION FORM ===== -->
-            <div class="card mt-4" style="border-top: 5px solid #4a90e2;">
-                <h2>Apply for Personal Leave / WFH</h2>
-                <div class="alert alert-info py-2" style="font-size: 0.9rem;">
-                    💡 Manager requests are <strong>Auto-Approved</strong> and logged for Admin review.
-                </div>
-                <form method="POST" action="{{ url_for('mark_request') }}" class="request-form mt-3">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>From Date</label>
-                            <input type="date" name="date" value="{{ today }}" min="{{ today }}" required>
-                        </div>
-                        <div class="form-group" id="end-date-group" style="display: none;">
-                            <label>To Date (Optional)</label>
-                            <input type="date" name="end_date" min="{{ today }}">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Request Type</label>
-                        <div class="radio-group">
-                            <label class="radio-label">
-                                <input type="radio" name="request_type" value="WFH" onchange="toggleEndDate()" required>
-                                <span>WFH</span>
-                            </label>
-                            <label class="radio-label">
-                                <input type="radio" name="request_type" value="Half Day" onchange="toggleEndDate()"
-                                    required>
-                                <span>Half Day</span>
-                            </label>
-                            <label class="radio-label">
-                                <input type="radio" name="request_type" value="Leave" onchange="toggleEndDate()"
-                                    required>
-                                <span>Leave</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="reason">Reason (Required)</label>
-                        <textarea id="reason" name="reason" rows="2" required
-                            placeholder="Reason for your request..."></textarea>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">Apply Now (Auto-Approve)</button>
-                </form>
-            </div>
-
-            <!-- ===== MY HISTORY ===== -->
-            <div class="card mt-4">
-                <h2>My Recent History</h2>
-                {% if my_records %}
-                <div class="table-responsive">
-                    <table class="table" style="font-size: 0.85rem;">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Type</th>
-                                <th>Reason</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for record in my_records[:10] %}
-                            <tr>
-                                <td>{{ record.date }}</td>
-                                <td><span class="badge badge-{{ record.type.lower().replace(' ', '-') }}">{{ record.type
-                                        }}</span></td>
-                                <td>{{ record.reason }}</td>
-                                <td><span class="badge badge-success">Approved</span></td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <p class="text-muted">No recent records.</p>
-                {% endif %}
-            </div>
+{% block content %}
+<div class="dashboard-container">
+    <header class="dashboard-header animate__animated animate__fadeIn">
+        <div class="header-main">
+            <h1>Manager Dashboard</h1>
+            <p class="welcome-text">Welcome back, <strong>{{ manager_name }}</strong></p>
         </div>
+        <div class="header-actions">
+            <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm">Sign Out</a>
+        </div>
+    </header>
+
+    <div class="main-grid">
+        <!-- Sidebar: Personal Stats -->
+        <aside class="sidebar-column animate__animated animate__fadeInLeft">
+            <div class="card profile-card">
+                <div class="profile-header">
+                    <div class="profile-avatar">{{ manager_name[0] }}</div>
+                    <h3>{{ manager_name }}</h3>
+                    <span class="badge badge-primary">{{ emp_data.emp_team }} Manager</span>
+                </div>
+                
+                <div class="leave-summary mt-4">
+                    <div class="lb-header">Your Leave Balance</div>
+                    <div class="lb-grid">
+                        <div class="lb-item">
+                            <span class="lb-label">Annual</span>
+                            <span class="lb-value">{{ leave_balance.total_allotted }}</span>
+                        </div>
+                        <div class="lb-sep">+</div>
+                        <div class="lb-item">
+                            <span class="lb-label">Carried</span>
+                            <span class="lb-value">{{ leave_balance.carried_forward }}</span>
+                        </div>
+                        <div class="lb-sep">=</div>
+                        <div class="lb-item highlight-item">
+                            <span class="lb-label">Remaining</span>
+                            <span class="lb-value">{{ leave_balance.remaining_leaves }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <h3>Quick Info</h3>
+                <ul class="info-list">
+                    <li><strong>Team:</strong> {{ emp_data.emp_team }}</li>
+                    <li><strong>ID:</strong> #{{ emp_data.emp_id }}</li>
+                    <li><strong>Date:</strong> {{ today }}</li>
+                </ul>
+            </div>
+        </aside>
+
+        <!-- Main Content: Tabs Section -->
+        <main class="content-column animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
+            
+            <!-- Custom Tabs Navigation -->
+            <div class="tabs-nav">
+                <button class="tab-btn active" onclick="openTab(event, 'pending-tab')">
+                    <span class="tab-icon">⏳</span> {{ emp_data.emp_team }} Pending
+                </button>
+                <button class="tab-btn" onclick="openTab(event, 'apply-tab')">
+                    <span class="tab-icon">📝</span> Apply Personal
+                </button>
+                <button class="tab-btn" onclick="openTab(event, 'approved-tab')">
+                    <span class="tab-icon">✅</span> Team History
+                </button>
+            </div>
+
+            <!-- TAB 1: PENDING REQUESTS -->
+            <div id="pending-tab" class="tab-content active">
+                <div class="card">
+                    <h2>Pending Team Requests</h2>
+                    <p class="text-muted">Review and take action on employee requests.</p>
+                    
+                    {% if requests %}
+                    <div class="table-responsive mt-3">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Balance</th>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Reason</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for req in requests %}
+                                <tr>
+                                    <td><strong>{{ req.emp_name }}</strong></td>
+                                    <td>
+                                        <span class="badge badge-outline-primary" style="border: 1px solid #4a90e2; color: #4a90e2; padding: 2px 8px; border-radius: 12px;">
+                                            {{ req.emp_balance }} / {{ req.total_allotted }}
+                                        </span>
+                                    </td>
+                                    <td>{{ req.display_date }}</td>
+                                    <td><span class="badge badge-{{ req.type.lower().replace(' ', '-') }}">{{ req.type }}</span></td>
+                                    <td>{{ req.reason }}</td>
+                                    <td>
+                                        <div class="d-flex gap-2 justify-content-center">
+                                            <form method="POST" action="{{ url_for('action_request') }}">
+                                                <input type="hidden" name="emp_id" value="{{ req.emp_id }}">
+                                                <input type="hidden" name="date" value="{{ req.date }}">
+                                                <input type="hidden" name="type" value="{{ req.type }}">
+                                                <input type="hidden" name="timestamp" value="{{ req.timestamp }}">
+                                                <input type="hidden" name="action" value="Approve">
+                                                <button type="submit" class="btn btn-sm btn-success">✔️ Appr.</button>
+                                            </form>
+                                            <form method="POST" action="{{ url_for('action_request') }}">
+                                                <input type="hidden" name="emp_id" value="{{ req.emp_id }}">
+                                                <input type="hidden" name="date" value="{{ req.date }}">
+                                                <input type="hidden" name="type" value="{{ req.type }}">
+                                                <input type="hidden" name="timestamp" value="{{ req.timestamp }}">
+                                                <input type="hidden" name="action" value="Reject">
+                                                <button type="submit" class="btn btn-sm btn-danger">❌ Rej.</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">No pending requests found.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- TAB 2: APPLY FOR PERSONAL LEAVE -->
+            <div id="apply-tab" class="tab-content">
+                <div class="card">
+                    <h2>Apply for Personal Leave / WFH</h2>
+                    <div class="alert alert-info">
+                        💡 Manager personal requests are <strong>Auto-Approved</strong>.
+                    </div>
+                    <form method="POST" action="{{ url_for('mark_request') }}" class="request-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>From Date</label>
+                                <input type="date" name="date" value="{{ today }}" min="{{ today }}" required>
+                            </div>
+                            <div class="form-group" id="end-date-group" style="display: none;">
+                                <label>To Date (Optional)</label>
+                                <input type="date" name="end_date" min="{{ today }}">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Request Type</label>
+                            <div class="radio-group">
+                                <label class="radio-label"><input type="radio" name="request_type" value="WFH" onchange="toggleEndDate()" required><span>WFH</span></label>
+                                <label class="radio-label"><input type="radio" name="request_type" value="Half Day" onchange="toggleEndDate()"><span>Half Day</span></label>
+                                <label class="radio-label"><input type="radio" name="request_type" value="Leave" onchange="toggleEndDate()"><span>Leave</span></label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Reason</label>
+                            <textarea name="reason" rows="3" required placeholder="Why are you applying?"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block">Submit Application</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- TAB 3: APPROVED HISTORY WITH DATE FILTER -->
+            <div id="approved-tab" class="tab-content">
+                <div class="card">
+                    <h2>Team Approved History</h2>
+                    
+                    <!-- Date Filter Form -->
+                    <form method="GET" action="{{ url_for('manager_dashboard') }}" class="filter-form mb-4" id="history-filter">
+                        <div class="filter-row">
+                            <div class="filter-group">
+                                <label>Start Date</label>
+                                <input type="date" name="start_date" value="{{ start_date }}">
+                            </div>
+                            <div class="filter-group">
+                                <label>End Date</label>
+                                <input type="date" name="end_date" value="{{ end_date }}">
+                            </div>
+                            <button type="submit" class="btn btn-outline-secondary btn-sm filter-btn">🔍 Filter</button>
+                        </div>
+                        <!-- Maintain tab state after refresh -->
+                        <input type="hidden" name="tab" value="approved-tab">
+                    </form>
+
+                    {% if approved_requests %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Employee</th>
+                                    <th>Type</th>
+                                    <th>Reason</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for req in approved_requests %}
+                                <tr>
+                                    <td>{{ req.display_date }}</td>
+                                    <td>{{ req.emp_name }}</td>
+                                    <td><span class="badge badge-{{ req.type.lower().replace(' ', '-') }}">{{ req.type }}</span></td>
+                                    <td class="small">{{ req.reason }}</td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('cancel_request') }}">
+                                            <input type="hidden" name="emp_id" value="{{ req.emp_id }}">
+                                            <input type="hidden" name="date" value="{{ req.date }}">
+                                            <input type="hidden" name="timestamp" value="{{ req.timestamp }}">
+                                            <button type="submit" class="btn btn-link text-danger p-0" onclick="return confirm('Cancel approval?');">Cancel</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">No history records found for this period.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </main>
     </div>
+</div>
 
-    <style>
-        .gap-2 {
-            gap: 8px;
+<style>
+    /* Tab Styling */
+    .tabs-nav { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    .tab-btn { background: none; border: none; padding: 10px 20px; font-weight: 600; color: #7f8c8d; cursor: pointer; transition: all 0.3s; border-radius: 8px; }
+    .tab-btn.active { color: #4a90e2; background-color: #eef2f7; }
+    .tab-content { display: none; border: none; }
+    .tab-content.active { display: block; animation: fadeInUp 0.4s ease; }
+    
+    /* Filter Styling */
+    .filter-row { display: flex; align-items: flex-end; gap: 15px; background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+    .filter-group { flex: 1; min-width: 150px; }
+    .filter-group label { display: block; font-size: 0.8rem; font-weight: bold; color: #555; margin-bottom: 5px; }
+    .filter-group input { width: 100%; border: 1px solid #ddd; padding: 8px; border-radius: 6px; }
+    .filter-btn { height: 38px; }
+
+    .empty-state { text-align: center; padding: 40px; background: #fcfcfc; border: 2px dashed #eee; border-radius: 15px; color: #999; }
+</style>
+
+<script>
+    function openTab(evt, tabName) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].classList.remove("active");
         }
-
-        .btn-success {
-            background-color: #38a169;
-            color: white;
-            border: none;
+        tablinks = document.getElementsByClassName("tab-btn");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].classList.remove("active");
         }
+        document.getElementById(tabName).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
 
-        .btn-success:hover {
-            background-color: #2f855a;
-        }
+    function toggleEndDate() {
+        const type = document.querySelector('input[name="request_type"]:checked').value;
+        const endDateGroup = document.getElementById('end-date-group');
+        endDateGroup.style.display = (type === 'Leave' || type === 'WFH') ? 'block' : 'none';
+    }
 
-        .d-flex {
-            display: flex;
-        }
-
-        .justify-content-center {
-            justify-content: center;
-        }
-
-        .highlight {
-            border: 2px solid #3182ce;
-            background-color: #ebf8ff;
-        }
-
-        .radio-group {
-            display: flex;
-            gap: 15px;
-            margin-top: 5px;
-        }
-
-        .radio-label {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            cursor: pointer;
-        }
-    </style>
-
-    <script>
-        function toggleEndDate() {
-            const requestType = document.querySelector('input[name="request_type"]:checked').value;
-            const endDateGroup = document.getElementById('end-date-group');
-            if (requestType === 'Leave') {
-                endDateGroup.style.display = 'block';
-            } else {
-                endDateGroup.style.display = 'none';
-                document.querySelector('input[name="end_date"]').value = '';
-            }
-        }
-    </script>
-</body>
-
-</html>
+    // Restore tab from URL if present
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab');
+    if (activeTab) {
+        const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.innerText.includes(activeTab === 'approved-tab' ? 'History' : ''));
+        if (btn) btn.click();
+    }
+</script>
+{% endblock %}

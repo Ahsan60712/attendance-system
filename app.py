@@ -409,6 +409,10 @@ def manager_dashboard():
     emp_id = session.get('emp_id')
     today = date.today()
 
+    # Get filter dates from query params
+    start_date_str = request.args.get('start_date', (today - timedelta(days=30)).strftime('%Y-%m-%d'))
+    end_date_str = request.args.get('end_date', today.strftime('%Y-%m-%d'))
+
     # Auto-rollover contract year leaves if anniversary passed
     manager.check_and_rollover_leaves(emp_id)
     manager.check_and_apply_expiry(emp_id)
@@ -436,13 +440,29 @@ def manager_dashboard():
         req['emp_balance'] = req_emp_data.get('Remaining_Leaves', 'N/A')
         req['total_allotted'] = req_emp_data.get('Total_leaves', 14)
         
-    # Get approved requests (from others)
+    # Get approved requests (from others) with date filtering
     all_approved_requests = manager.get_pending_requests(req_status='Approved')
+    
+    # Filter by team first
     if session.get('user_type') == 'admin':
-        approved_requests = [req for req in all_approved_requests if str(req.get('emp_id')) != str(emp_id)]
+        team_approved = [req for req in all_approved_requests if str(req.get('emp_id')) != str(emp_id)]
     else:
         emp_team = current_emp.get('emp_team', '')
-        approved_requests = [req for req in all_approved_requests if req.get('team') == emp_team and str(req.get('emp_id')) != str(emp_id)]
+        team_approved = [req for req in all_approved_requests if req.get('team') == emp_team and str(req.get('emp_id')) != str(emp_id)]
+
+    # Then filter by date range
+    approved_requests = []
+    try:
+        sd = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        ed = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        for req in team_approved:
+            req_date_raw = req.get('date')
+            if req_date_raw:
+                req_date = datetime.strptime(req_date_raw, '%Y-%m-%d').date()
+                if sd <= req_date <= ed:
+                    approved_requests.append(req)
+    except Exception:
+        approved_requests = team_approved[:20] # Fallback
     
     # Get manager's OWN records for history display
     my_records = manager.get_employee_records(emp_id, today - timedelta(days=30), today + timedelta(days=365))
@@ -454,6 +474,8 @@ def manager_dashboard():
                            requests=pending_requests,
                            approved_requests=approved_requests,
                            my_records=my_records,
+                           start_date=start_date_str,
+                           end_date=end_date_str,
                            today=today.strftime('%Y-%m-%d'))
 
 @app.route('/action-request', methods=['POST'])
