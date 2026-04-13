@@ -342,7 +342,8 @@ def mark_request():
                 team_manager = manager.get_manager_for_team(emp_team)
                 # ── WhatsApp: notify the team manager about the new request ──────────
                 mgr_phone = team_manager.get('phone', '')
-                wa.notify_manager_new_request(
+                print(f"[DEBUG] Triggering WhatsApp to Manager: {mgr_phone}")
+                wa_success = wa.notify_manager_new_request(
                     manager_phone=mgr_phone or '',
                     manager_name=team_manager.get('emp_name', 'Manager'),
                     emp_name=session.get('emp_name', ''),
