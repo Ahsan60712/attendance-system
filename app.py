@@ -216,7 +216,7 @@ def employee_dashboard():
     today = date.today()
     
     # Auto-rollover contract year leaves if anniversary passed
-    # manager.check_and_rollover_leaves(emp_id)
+    manager.check_and_rollover_leaves(emp_id)
     manager.check_and_apply_expiry(emp_id)
 
     # Get all employees to find current emp data
@@ -404,7 +404,7 @@ def manager_dashboard():
     today = date.today()
 
     # Auto-rollover contract year leaves if anniversary passed
-    # manager.check_and_rollover_leaves(emp_id)
+    manager.check_and_rollover_leaves(emp_id)
     manager.check_and_apply_expiry(emp_id)
     
     # Get manager's own data (balance etc)
@@ -890,46 +890,6 @@ def admin_whatsapp_settings():
                            scheduled_jobs=jobs)
 
 
-
-@app.route('/admin/reset-system-balances')
-def reset_system_balances():
-    """Hidden admin route to reset all balances (First Year Initialization)"""
-    if session.get('user_role') != 'Admin' and session.get('user_type') != 'admin':
-        # Simple check - you might want to make this more secure later
-        pass 
-        
-    try:
-        import pandas as pd
-        file_path = manager.emp_data_file
-        df = pd.read_excel(file_path, engine='openpyxl')
-        report = ["<h1>System Reset Report</h1><table border='1'><tr><th>Name</th><th>Old Carried</th><th>Old Contract Start</th><th>Action</th></tr>"]
-        
-        # Reset Logic
-        for idx in df.index:
-            name = df.at[idx, 'emp_name']
-            old_carried = df.at[idx, 'Leaves_Carried_Forward']
-            old_contract_start = df.at[idx, 'Contract_Year_Start']
-            
-            # Calculate what current contract year should be
-            c_start = df.at[idx, 'Contract_Start_Date']
-            year_start, _ = manager.get_contract_year_window(str(c_start))
-            year_start_str = year_start.strftime('%Y-%m-%d') if year_start else ""
-            
-            df.at[idx, 'Leaves_Carried_Forward'] = 0
-            df.at[idx, 'Leaves_This_Year'] = 0
-            df.at[idx, 'Leaves'] = 0
-            df.at[idx, 'Half_Day'] = 0
-            df.at[idx, 'Remaining_Leaves'] = df.at[idx, 'Total_leaves']
-            df.at[idx, 'Contract_Year_Start'] = year_start_str
-            df.at[idx, 'Carried_Forward_Expiry'] = ""
-            
-            report.append(f"<tr><td>{name}</td><td>{old_carried}</td><td>{old_contract_start}</td><td>Reset to 0, Start set to {year_start_str}</td></tr>")
-            
-        df.to_excel(file_path, index=False, engine='openpyxl')
-        report.append("</table><br><h2>✅ Success: All balances reset. Refresh dashboard now.</h2>")
-        return "".join(report)
-    except Exception as e:
-        return f"❌ Reset Failed: {str(e)}"
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, use_reloader=False)
