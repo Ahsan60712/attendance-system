@@ -183,9 +183,8 @@ def send_whatsapp_template(to_phone: str, template_name: str, language_code: str
 
 # ── Helper to determine target phone (with test override) ────────────────────
 def _get_target_phone(provided_phone: str) -> str:
-    """Helper to apply test number override if present in code or environment."""
-    # Hafiz Zohaib's new number as the default fallback
-    test_num = os.environ.get('TEST_MANAGER_PHONE', '03365111740')
+    """Helper to apply test number override if present in environment, otherwise use provided."""
+    test_num = os.environ.get('TEST_MANAGER_PHONE', '')
     return test_num if test_num else provided_phone
 
 # ── High-level notification helpers ──────────────────────────────────────────
