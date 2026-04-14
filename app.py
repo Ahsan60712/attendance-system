@@ -458,11 +458,17 @@ def manager_dashboard():
         for req in team_approved:
             req_date_raw = req.get('date')
             if req_date_raw:
-                req_date = datetime.strptime(req_date_raw, '%Y-%m-%d').date()
+                # Robust parsing: handle both string and date objects
+                if isinstance(req_date_raw, (date, datetime)):
+                    req_date = req_date_raw.date() if isinstance(req_date_raw, datetime) else req_date_raw
+                else:
+                    req_date = datetime.strptime(str(req_date_raw).split(' ')[0], '%Y-%m-%d').date()
+                
                 if sd <= req_date <= ed:
                     approved_requests.append(req)
-    except Exception:
-        approved_requests = team_approved[:20] # Fallback
+    except Exception as e:
+        print(f"Filter Error: {e}")
+        approved_requests = team_approved[:20] # Final Fallback
     
     # Get manager's OWN records for history display
     my_records = manager.get_employee_records(emp_id, today - timedelta(days=30), today + timedelta(days=365))
