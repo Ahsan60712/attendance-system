@@ -97,9 +97,15 @@
                 <h3>Apply for Personal Absence</h3>
                 <p class="mgr-hint">Manager requests are auto-approved and tracked for HR.</p>
                 <form method="POST" action="{{ url_for('mark_request') }}" class="mgr-form">
-                    <div class="mgr-form-group">
-                        <label>Start Date</label>
-                        <input type="date" name="date" value="{{ today }}" min="{{ today }}" required>
+                    <div class="mgr-form-grid">
+                        <div class="mgr-form-group">
+                            <label>Start Date</label>
+                            <input type="date" name="date" value="{{ today }}" min="{{ today }}" required>
+                        </div>
+                        <div class="mgr-form-group">
+                            <label>End Date (Optional)</label>
+                            <input type="date" name="end_date" min="{{ today }}">
+                        </div>
                     </div>
                     <div class="mgr-form-group">
                         <label>Type</label>
@@ -212,7 +218,8 @@
     .mgr-btn-cancel { background: none; border: none; color: #e53e3e; text-decoration: underline; cursor: pointer; font-size: 0.85rem; }
 
     /* Form UI */
-    .mgr-form { max-width: 500px; margin: 0 auto; }
+    .mgr-form { max-width: 600px; margin: 0 auto; }
+    .mgr-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
     .mgr-form-group { margin-bottom: 15px; }
     .mgr-form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; }
     .mgr-form-group input, .mgr-form-group select, .mgr-form-group textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 8px; }
