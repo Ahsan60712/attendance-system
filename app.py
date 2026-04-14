@@ -403,102 +403,106 @@ def manager_login():
 @app.route('/manager-dashboard')
 def manager_dashboard():
     """Manager dashboard showing pending requests and personal application form"""
-    if session.get('user_type') not in ['manager', 'admin']:
-        return redirect(url_for('employee_login'))
-    
-    emp_id = session.get('emp_id')
-    today = date.today()
-
-    # Get filter dates from query params
-    start_date_str = request.args.get('start_date', (today - timedelta(days=30)).strftime('%Y-%m-%d'))
-    end_date_str = request.args.get('end_date', today.strftime('%Y-%m-%d'))
-
-    # Auto-rollover contract year leaves if anniversary passed
-    manager.check_and_rollover_leaves(emp_id)
-    manager.check_and_apply_expiry(emp_id)
-    
-    # Get manager's own data from the master list
-    employees = manager.get_employees()
-    emp_id = session.get('emp_id')
-    current_emp = next((e for e in employees if str(e.get('emp_id')) == str(emp_id)), {})
-    
-    # If for some reason manager isn't found in employees list, use session name
-    if not current_emp:
-        current_emp = {
-            'emp_id': emp_id,
-            'emp_name': session.get('emp_name', 'Manager'),
-            'emp_team': session.get('emp_team', 'General')
-        }
-
-    # Rich leave balance for display
-    leave_balance = manager.get_leave_balance_info(emp_id)
-    
-    # Get pending requests for approval (from others)
-    all_pending_requests = manager.get_pending_requests(req_status='Pending')
-    if session.get('user_type') == 'admin':
-        pending_requests = [req for req in all_pending_requests if str(req.get('emp_id')) != str(emp_id)]
-    else:
-        emp_team = current_emp.get('emp_team', '')
-        pending_requests = [req for req in all_pending_requests if req.get('team') == emp_team and str(req.get('emp_id')) != str(emp_id)]
-    
-    # Attach employee balance to each pending request
-    for req in pending_requests:
-        req_emp_id = req.get('emp_id')
-        req_emp_data = next((e for e in employees if str(e['emp_id']) == str(req_emp_id)), {})
-        # Attach the remaining leaves specifically
-        req['emp_balance'] = req_emp_data.get('Remaining_Leaves', 'N/A')
-        req['total_allotted'] = req_emp_data.get('Total_leaves', 14)
-        
-    # Get approved requests (from others) with date filtering
-    all_approved_requests = manager.get_pending_requests(req_status='Approved')
-    
-    # Filter by team first
-    if session.get('user_type') == 'admin':
-        team_approved = [req for req in all_approved_requests if str(req.get('emp_id')) != str(emp_id)]
-    else:
-        emp_team = current_emp.get('emp_team', '')
-        team_approved = [req for req in all_approved_requests if req.get('team') == emp_team and str(req.get('emp_id')) != str(emp_id)]
-
-    # Then filter by date range
-    approved_requests = []
     try:
-        sd = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-        ed = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        for req in team_approved:
-            req_date_raw = req.get('date')
-            if req_date_raw:
-                # Robust parsing: handle both string and date objects
-                if isinstance(req_date_raw, (date, datetime)):
-                    req_date = req_date_raw.date() if isinstance(req_date_raw, datetime) else req_date_raw
-                else:
-                    req_date = datetime.strptime(str(req_date_raw).split(' ')[0], '%Y-%m-%d').date()
-                
-                if sd <= req_date <= ed:
-                    approved_requests.append(req)
+        if session.get('user_type') not in ['manager', 'admin']:
+            return redirect(url_for('employee_login'))
+        
+        emp_id = session.get('emp_id')
+        today = date.today()
+
+        # Get filter dates from query params
+        start_date_str = request.args.get('start_date', (today - timedelta(days=30)).strftime('%Y-%m-%d'))
+        end_date_str = request.args.get('end_date', today.strftime('%Y-%m-%d'))
+
+        # Auto-rollover contract year leaves if anniversary passed
+        manager.check_and_rollover_leaves(emp_id)
+        manager.check_and_apply_expiry(emp_id)
+        
+        # Get manager's own data from the master list
+        employees = manager.get_employees()
+        emp_id = session.get('emp_id')
+        current_emp = next((e for e in employees if str(e.get('emp_id')) == str(emp_id)), {})
+        
+        # If for some reason manager isn't found in employees list, use session name
+        if not current_emp:
+            current_emp = {
+                'emp_id': emp_id,
+                'emp_name': session.get('emp_name', 'Manager'),
+                'emp_team': session.get('emp_team', 'General')
+            }
+
+        # Rich leave balance for display
+        leave_balance = manager.get_leave_balance_info(emp_id)
+        
+        # Get pending requests for approval (from others)
+        all_pending_requests = manager.get_pending_requests(req_status='Pending')
+        if session.get('user_type') == 'admin':
+            pending_requests = [req for req in all_pending_requests if str(req.get('emp_id')) != str(emp_id)]
+        else:
+            emp_team = current_emp.get('emp_team', '')
+            pending_requests = [req for req in all_pending_requests if req.get('team') == emp_team and str(req.get('emp_id')) != str(emp_id)]
+        
+        # Attach employee balance to each pending request
+        for req in pending_requests:
+            req_emp_id = req.get('emp_id')
+            req_emp_data = next((e for e in employees if str(e['emp_id']) == str(req_emp_id)), {})
+            # Attach the remaining leaves specifically
+            req['emp_balance'] = req_emp_data.get('Remaining_Leaves', 'N/A')
+            req['total_allotted'] = req_emp_data.get('Total_leaves', 14)
+            
+        # Get approved requests (from others) with date filtering
+        all_approved_requests = manager.get_pending_requests(req_status='Approved')
+        
+        # Filter by team first
+        if session.get('user_type') == 'admin':
+            team_approved = [req for req in all_approved_requests if str(req.get('emp_id')) != str(emp_id)]
+        else:
+            emp_team = current_emp.get('emp_team', '')
+            team_approved = [req for req in all_approved_requests if req.get('team') == emp_team and str(req.get('emp_id')) != str(emp_id)]
+
+        # Then filter by date range
+        approved_requests = []
+        try:
+            sd = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            ed = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            for req in team_approved:
+                req_date_raw = req.get('date')
+                if req_date_raw:
+                    # Robust parsing: handle both string and date objects
+                    if isinstance(req_date_raw, (date, datetime)):
+                        req_date = req_date_raw.date() if isinstance(req_date_raw, datetime) else req_date_raw
+                    else:
+                        req_date = datetime.strptime(str(req_date_raw).split(' ')[0], '%Y-%m-%d').date()
+                    
+                    if sd <= req_date <= ed:
+                        approved_requests.append(req)
+        except Exception as e:
+            print(f"Filter Error: {e}")
+            approved_requests = team_approved[:20] # Final Fallback
+        
+        # Get manager's OWN records for history display
+        my_records = manager.get_employee_records(emp_id, today - timedelta(days=30), today + timedelta(days=365))
+        
+        # Ensure leave_balance is a dictionary and has required keys
+        if not isinstance(leave_balance, dict):
+            leave_balance = {}
+        
+        return render_template('manager_dashboard.html', 
+                               manager_name=session.get('emp_name', 'Manager'),
+                               emp_data=current_emp or {},
+                               leave_balance=leave_balance,
+                               requests=pending_requests,
+                               approved_requests=approved_requests,
+                               my_records=my_records,
+                               start_date=start_date_str,
+                               end_date=end_date_str,
+                               total_allotted=leave_balance.get('total_allotted', 0),
+                               carried_forward=leave_balance.get('carried_forward', 0),
+                               remaining_leaves=leave_balance.get('remaining_leaves', 0),
+                               today=today.strftime('%Y-%m-%d'))
     except Exception as e:
-        print(f"Filter Error: {e}")
-        approved_requests = team_approved[:20] # Final Fallback
-    
-    # Get manager's OWN records for history display
-    my_records = manager.get_employee_records(emp_id, today - timedelta(days=30), today + timedelta(days=365))
-    
-    # Ensure leave_balance is a dictionary and has required keys
-    if not isinstance(leave_balance, dict):
-        leave_balance = {}
-    
-    return render_template('manager_dashboard.html', 
-                           manager_name=session.get('emp_name', 'Manager'),
-                           emp_data=current_emp or {},
-                           leave_balance=leave_balance,
-                           requests=pending_requests,
-                           approved_requests=approved_requests,
-                           my_records=my_records,
-                           start_date=start_date_str,
-                           end_date=end_date_str,
-                           total_allotted=leave_balance.get('total_allotted', 0),
-                           carried_forward=leave_balance.get('carried_forward', 0),
-                           remaining_leaves=leave_balance.get('remaining_leaves', 0),
-                           today=today.strftime('%Y-%m-%d'))
+        import traceback
+        return f"<h2>⚠️ Dashboard Crash!</h2><p>Error: {str(e)}</p><pre>{traceback.format_exc()}</pre>"
 
 @app.route('/action-request', methods=['POST'])
 def action_request():
