@@ -170,8 +170,14 @@ class WFHLeaveManager:
             old_carried = float(df.at[idx, 'Leaves_Carried_Forward']) if pd.notna(df.at[idx, 'Leaves_Carried_Forward']) else 0
 
             # Unused in old year
+            # Calculation: (Total Allotted + What was Carried) - Shared Used
             old_remaining = max(0, (old_total + old_carried) - old_leaves_taken)
+            
+            # CRITICAL: If last year was never initialized or it's a fresh start, 
+            # don't carry forward full 14 if we already have 14.
             new_carried_forward = old_remaining
+            if stored_year_start is None and old_total > 0:
+                new_carried_forward = 0 # Don't carry if initialization
 
             # Set Expiry Date (6 months from new year start)
             expiry_date = year_start + pd.DateOffset(months=6)
@@ -180,7 +186,7 @@ class WFHLeaveManager:
             # Reset for new year
             df.at[idx, 'Leaves_This_Year'] = 0
             df.at[idx, 'Leaves_Carried_Forward'] = new_carried_forward
-            df.at[idx, 'Carried_Forward_Expiry'] = expiry_str  # Path 6 months expiry
+            df.at[idx, 'Carried_Forward_Expiry'] = expiry_str
             df.at[idx, 'Contract_Year_Start'] = year_start_str
             df.at[idx, 'Remaining_Leaves'] = old_total + new_carried_forward
             df.at[idx, 'Leaves'] = 0
