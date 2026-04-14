@@ -12,13 +12,13 @@
         </div>
         <div class="mgr-stat-card highlight">
             <span class="mgr-stat-label">Remaining Leaves</span>
-            <span class="mgr-stat-value">{{ leave_balance.remaining_leaves }}</span>
-            <span class="mgr-stat-sub">From Total {{ leave_balance.total_allotted + leave_balance.carried_forward }}</span>
+            <span class="mgr-stat-value">{{ remaining_leaves }}</span>
+            <span class="mgr-stat-sub">From Total {{ total_allotted + carried_forward }}</span>
         </div>
         <div class="mgr-stat-card">
             <span class="mgr-stat-label">Annual Entitlement</span>
-            <span class="mgr-stat-value">{{ leave_balance.total_allotted }}</span>
-            <span class="mgr-stat-sub">+ {{ leave_balance.carried_forward }} Carried</span>
+            <span class="mgr-stat-value">{{ total_allotted }}</span>
+            <span class="mgr-stat-sub">+ {{ carried_forward }} Carried</span>
         </div>
     </div>
 
