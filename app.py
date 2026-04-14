@@ -417,9 +417,18 @@ def manager_dashboard():
     manager.check_and_rollover_leaves(emp_id)
     manager.check_and_apply_expiry(emp_id)
     
-    # Get manager's own data (balance etc)
+    # Get manager's own data from the master list
     employees = manager.get_employees()
-    current_emp = next((e for e in employees if str(e['emp_id']) == str(emp_id)), {})
+    emp_id = session.get('emp_id')
+    current_emp = next((e for e in employees if str(e.get('emp_id')) == str(emp_id)), {})
+    
+    # If for some reason manager isn't found in employees list, use session name
+    if not current_emp:
+        current_emp = {
+            'emp_id': emp_id,
+            'emp_name': session.get('emp_name', 'Manager'),
+            'emp_team': session.get('emp_team', 'General')
+        }
 
     # Rich leave balance for display
     leave_balance = manager.get_leave_balance_info(emp_id)
