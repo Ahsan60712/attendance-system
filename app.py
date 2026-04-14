@@ -473,9 +473,13 @@ def manager_dashboard():
     # Get manager's OWN records for history display
     my_records = manager.get_employee_records(emp_id, today - timedelta(days=30), today + timedelta(days=365))
     
+    # Ensure leave_balance is a dictionary and has required keys
+    if not isinstance(leave_balance, dict):
+        leave_balance = {}
+    
     return render_template('manager_dashboard.html', 
-                           manager_name=session.get('emp_name'),
-                           emp_data=current_emp,
+                           manager_name=session.get('emp_name', 'Manager'),
+                           emp_data=current_emp or {},
                            leave_balance=leave_balance,
                            requests=pending_requests,
                            approved_requests=approved_requests,
