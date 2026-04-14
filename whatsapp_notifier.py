@@ -43,6 +43,10 @@ WHATSAPP_ENABLED = os.environ.get('WHATSAPP_ENABLED', 'true').lower() == 'true'
 API_URL = f"https://graph.facebook.com/{GRAPH_API_VERSION}/{WHATSAPP_PHONE_NUMBER_ID}/messages"
 
 
+def _format_phone(phone: str) -> str:
+    """
+    Ensure phone number is in E.164 format WITHOUT the '+' prefix.
+    """
     # Handle scientific notation or float strings from Excel (e.g. 3.36e+09 or 300123.0)
     try:
         phone_str = str(phone).strip().lower()
