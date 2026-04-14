@@ -43,19 +43,20 @@ WHATSAPP_ENABLED = os.environ.get('WHATSAPP_ENABLED', 'true').lower() == 'true'
 API_URL = f"https://graph.facebook.com/{GRAPH_API_VERSION}/{WHATSAPP_PHONE_NUMBER_ID}/messages"
 
 
-def _format_phone(phone: str) -> str:
-    """
-    Ensure phone number is in E.164 format WITHOUT the '+' prefix
-    (Meta API expects digits only, e.g. '923001234567').
+    # Handle scientific notation or float strings from Excel (e.g. 3.36e+09 or 300123.0)
+    try:
+        phone_str = str(phone).strip().lower()
+        if 'e+' in phone_str or '.' in phone_str:
+            phone = str(int(float(phone)))
+        else:
+            phone = phone_str.replace(' ', '').replace('-', '')
+    except Exception:
+        phone = str(phone).strip().replace(' ', '').replace('-', '')
 
-    Accepts: '03001234567', '+923001234567', '923001234567', 'whatsapp:+923001234567'
-    Returns: '923001234567'
-    """
-    phone = str(phone).strip().replace(' ', '').replace('-', '')
     if not phone:
         return ''
 
-    # Handle float numbers from Excel (e.g. 3001234567.0)
+    # Handle float suffix .0 if still present
     if phone.endswith('.0'):
         phone = phone[:-2]
 
