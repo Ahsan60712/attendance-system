@@ -482,6 +482,9 @@ def manager_dashboard():
                            my_records=my_records,
                            start_date=start_date_str,
                            end_date=end_date_str,
+                           total_allotted=leave_balance.get('total_allotted', 0),
+                           carried_forward=leave_balance.get('carried_forward', 0),
+                           remaining_leaves=leave_balance.get('remaining_leaves', 0),
                            today=today.strftime('%Y-%m-%d'))
 
 @app.route('/action-request', methods=['POST'])
