@@ -501,8 +501,7 @@ def manager_dashboard():
                                remaining_leaves=leave_balance.get('remaining_leaves', 0),
                                today=today.strftime('%Y-%m-%d'))
     except Exception as e:
-        import traceback
-        return f"<h2>⚠️ Dashboard Crash!</h2><p>Error: {str(e)}</p><pre>{traceback.format_exc()}</pre>"
+        return f"<h2>⚠️ Dashboard Crash!</h2><p>Error Type: {type(e).__name__}</p><p>Message: {str(e)}</p>"
 
 @app.route('/action-request', methods=['POST'])
 def action_request():
