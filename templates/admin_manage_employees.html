@@ -1,67 +1,70 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Employees - Admin Portal</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
+{% block title %}Manage Employees - Adlab Solutions{% endblock %}
 
-<body>
-    <div class="dashboard-container">
-        <nav class="navbar">
-            <div class="nav-brand">Admin Portal</div>
-            <div class="nav-user">
-                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-sm">← Back to Dashboard</a>
-            </div>
-        </nav>
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 animate-in">
+    <h2 style="font-size: 1.5rem;" class="d-flex align-items-center gap-2">
+        <i data-lucide="users" style="width: 24px; height: 24px;"></i> Manage Employees
+    </h2>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">
+        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back to Dashboard
+    </a>
+</div>
 
-        <div class="dashboard-content">
-            <div class="card">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h2>Employees List</h2>
-                    <a href="{{ url_for('add_employee_route') }}" class="btn btn-secondary">➕ Add New Employee</a>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Name</th>
-                                <th>Team</th>
-                                <th>Role</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for emp in employees %}
-                            <tr>
-                                <td>{{ emp.emp_id }}</td>
-                                <td><strong>{{ emp.emp_name }}</strong></td>
-                                <td>{{ emp.emp_team }}</td>
-                                <td>{{ 'Admin' if emp.is_admin else 'Employee' }}</td>
-                                <td>
-                                    <form method="POST"
-                                        action="{{ url_for('delete_employee_route', emp_id=emp.emp_id) }}"
-                                        style="display:inline;"
-                                        onsubmit="return confirm('Are you sure you want to remove {{ emp.emp_name }}? This action cannot be undone.');">
-                                        <button type="submit" class="btn btn-sm btn-danger">🗑️ Remove</button>
-                                    </form>
-                                    <a href="{{ url_for('admin_view_employee', emp_id=emp.emp_id) }}"
-                                        class="btn btn-sm btn-primary">👁️ View</a>
-                                    <a href="{{ url_for('edit_employee_route', emp_id=emp.emp_id) }}" class="btn btn-sm"
-                                        style="background-color: #f6ad55; color: white;">✏️ Edit</a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+<div class="card animate-in" style="animation-delay: 0.1s;">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-4">
+        <h3 class="mb-0 d-flex align-items-center gap-2">Employees Directory</h3>
+        <a href="{{ url_for('add_employee_route') }}" class="btn btn-primary d-flex align-items-center gap-2">
+            <i data-lucide="user-plus" style="width:16px; height:16px;"></i> Add New Employee
+        </a>
     </div>
-</body>
 
-</html>
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Emp ID</th>
+                    <th>Name</th>
+                    <th>Team</th>
+                    <th>Role</th>
+                    <th class="text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in employees %}
+                <tr>
+                    <td class="text-muted font-family-mono">{{ emp.emp_id }}</td>
+                    <td><strong>{{ emp.emp_name }}</strong></td>
+                    <td><span class="badge" style="background: var(--light); color: var(--text);">{{ emp.emp_team }}</span></td>
+                    <td>
+                        {% if emp.is_admin %}
+                        <span class="badge" style="background: #fee2e2; color: #991b1b;">Admin</span>
+                        {% elif emp.is_manager %}
+                        <span class="badge" style="background: #e0e7ff; color: #4338ca;">Manager</span>
+                        {% else %}
+                        <span class="badge" style="background: #dcfce7; color: #166534;">Employee</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="{{ url_for('admin_view_employee', emp_id=emp.emp_id) }}" class="btn btn-sm btn-primary tooltip" data-tip="View Details">
+                                <i data-lucide="eye" style="width: 14px; height: 14px;"></i>
+                            </a>
+                            <a href="{{ url_for('edit_employee_route', emp_id=emp.emp_id) }}" class="btn btn-sm btn-warning tooltip" data-tip="Edit Info" style="background: #f59e0b; color: white;">
+                                <i data-lucide="edit-2" style="width: 14px; height: 14px;"></i>
+                            </a>
+                            <form method="POST" action="{{ url_for('delete_employee_route', emp_id=emp.emp_id) }}" style="margin: 0;" onsubmit="return confirm('Remove {{ emp.emp_name }}? This cannot be undone.');">
+                                <button type="submit" class="btn btn-sm btn-danger tooltip" data-tip="Delete Employee">
+                                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

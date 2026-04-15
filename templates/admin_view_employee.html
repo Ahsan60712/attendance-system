@@ -1,159 +1,170 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Records - {{ employee.emp_name }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
+{% block title %}Employee Records: {{ employee.emp_name }} - Adlab Solutions{% endblock %}
 
-<body>
-    <div class="dashboard-container">
-        <nav class="navbar">
-            <div class="nav-brand">Admin Portal</div>
-            <div class="nav-user">
-                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-sm">← Back to Dashboard</a>
-                <a href="{{ url_for('logout') }}" class="btn btn-sm">Logout</a>
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 animate-in">
+    <h2 style="font-size: 1.5rem;" class="d-flex align-items-center gap-2">
+        <i data-lucide="user" style="width: 24px; height: 24px;"></i> {{ employee.emp_name }}'s Records
+    </h2>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">
+            <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Dashboard
+        </a>
+        <a href="{{ url_for('manage_employees_route') }}" class="btn btn-secondary btn-sm">
+            <i data-lucide="users" style="width: 16px; height: 16px;"></i> Directory
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4 animate-in" style="animation-delay: 0.1s; background: linear-gradient(135deg, #f8fafc, #ffffff);">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-4">
+        <div>
+            <h3 class="mb-2">{{ employee.emp_name }}</h3>
+            <p class="text-muted d-flex align-items-center gap-2 mb-1">
+                <i data-lucide="briefcase" style="width: 14px; height: 14px;"></i> {{ employee.emp_team }} Team
+            </p>
+            <p class="text-muted d-flex align-items-center gap-2 mb-1">
+                <i data-lucide="hash" style="width: 14px; height: 14px;"></i> Emp ID: {{ employee.emp_id }}
+            </p>
+            {% if employee.Contract_Type and employee.Contract_Type != 'Permanent' %}
+            <p class="text-muted small mt-2">
+                <span class="badge" style="background: var(--primary-light); color: var(--primary);">{{ employee.Contract_Type }}</span>
+                {{ employee.Contract_Start_Date }} to {{ employee.Contract_End_Date }}
+            </p>
+            {% endif %}
+        </div>
+        <form method="POST" action="{{ url_for('delete_employee_route', emp_id=employee.emp_id) }}" style="margin: 0;" onsubmit="return confirm('Are you sure you want to remove this employee? This action cannot be undone.');">
+            <button type="submit" class="btn btn-danger btn-sm d-flex align-items-center gap-2">
+                <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Remove Employee
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- On-page Filter -->
+<div class="card mb-4 animate-in" style="animation-delay: 0.2s; padding: 1.5rem;">
+    <form method="GET" class="d-flex justify-content-between align-items-end flex-wrap gap-4" style="margin: 0;">
+        <input type="hidden" name="filter_type" value="custom">
+        <div class="d-flex gap-4 flex-wrap flex-1">
+            <div class="form-group mb-0 flex-1" style="min-width: 200px;">
+                <label class="text-muted small">From Date</label>
+                <input type="date" name="start_date" value="{{ start_date }}" class="form-control-sm w-full">
             </div>
-        </nav>
-
-        <div class="dashboard-content">
-            <div class="card">
-                <h2>{{ employee.emp_name }}'s Records</h2>
-                <div class="header-info">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <p class="text-muted mb-1">Team: {{ employee.emp_team }} | Emp ID: {{ employee.emp_id }}</p>
-                            {% if employee.Contract_Type and employee.Contract_Type != 'Permanent' %}
-                            <p class="text-muted small">
-                                <strong>{{ employee.Contract_Type }}</strong>:
-                                {{ employee.Contract_Start_Date }} to {{ employee.Contract_End_Date }}
-                            </p>
-                            {% endif %}
-                        </div>
-                        <form method="POST" action="{{ url_for('delete_employee_route', emp_id=employee.emp_id) }}"
-                            onsubmit="return confirm('Are you sure you want to remove this employee? This action cannot be undone.');">
-                            <button type="submit" class="btn btn-sm btn-danger">🗑️ Remove Employee</button>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- On-page Filter -->
-                <form method="GET" class="filter-bar mt-3">
-                    <input type="hidden" name="filter_type" value="custom">
-                    <div class="form-row align-items-end">
-                        <div class="form-group mb-0">
-                            <label class="small-label">From</label>
-                            <input type="date" name="start_date" value="{{ start_date }}" class="form-control-sm">
-                        </div>
-                        <div class="form-group mb-0">
-                            <label class="small-label">To</label>
-                            <input type="date" name="end_date" value="{{ end_date }}" class="form-control-sm">
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-                    </div>
-                </form>
-
-                <div class="stats-grid mt-3">
-                    <div class="stat-card small">
-                        <div class="stat-value">{{ filtered_wfh|default(0) }}</div>
-                        <div class="stat-label">Total WFH (Range)</div>
-                    </div>
-                    <div class="stat-card small">
-                        <div class="stat-value">{{ filtered_half_day|default(0) }}</div>
-                        <div class="stat-label">Half Days (Range)</div>
-                    </div>
-                    <div class="stat-card small">
-                        <div class="stat-value">{{ filtered_leaves|default(0) }}</div>
-                        <div class="stat-label">Leaves Taken (Range)</div>
-                    </div>
-                    <div class="stat-card small highlight">
-                        <div class="stat-value">{{ leave_balance.remaining_leaves|default(employee.Remaining_Leaves|default(0)) }}</div>
-                        <div class="stat-label">Leaves Left</div>
-                    </div>
-                </div>
-
-                {% if leave_balance and leave_balance.contract_year_start != 'N/A' %}
-                <div class="leave-balance-panel mt-3">
-                    <div class="leave-balance-header">
-                        <span>📅 Contract Year: <strong>{{ leave_balance.contract_year_start }}</strong> → <strong>{{ leave_balance.contract_year_end }}</strong></span>
-                    </div>
-                    <div class="leave-balance-body">
-                        <div class="lb-item">
-                            <span class="lb-label">Annual Entitlement</span>
-                            <span class="lb-value entitlement">{{ leave_balance.total_leaves | int }}</span>
-                        </div>
-                        <div class="lb-sep">+</div>
-                        <div class="lb-item">
-                            <span class="lb-label">Carried Forward</span>
-                            <span class="lb-value carried">{{ leave_balance.carried_forward | int }}</span>
-                        </div>
-                        <div class="lb-sep">=</div>
-                        <div class="lb-item">
-                            <span class="lb-label">Total Available</span>
-                            <span class="lb-value total">{{ leave_balance.total_available | int }}</span>
-                        </div>
-                        <div class="lb-sep">−</div>
-                        <div class="lb-item">
-                            <span class="lb-label">Taken This Year</span>
-                            <span class="lb-value taken">{{ leave_balance.leaves_taken_this_year }}</span>
-                        </div>
-                        <div class="lb-sep">=</div>
-                        <div class="lb-item highlight-item">
-                            <span class="lb-label">Remaining</span>
-                            <span class="lb-value remaining">{{ leave_balance.remaining_leaves }}</span>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-
-                <p class="text-muted mt-3">Period: {{ start_date }} to {{ end_date }}</p>
-
-                {% if records %}
-                <table class="table mt-3">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Type</th>
-                            <th>Reason</th>
-                            <th>Submitted At</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for record in records %}
-                        <tr>
-                            <td>{{ record.date }}</td>
-                            <td>
-                                <span class="badge badge-{{ record.type.lower().replace(' ', '-') }}">{{ record.type }}</span>
-                            </td>
-                            <td>{{ record.reason }}</td>
-                            <td>{{ record.timestamp }}</td>
-                            <td>
-                                {% if record.status == 'Pending' %}
-                                <span class="badge" style="background-color: #f6ad55; color: white;">Pending</span>
-                                {% elif record.status == 'Approved' %}
-                                <span class="badge badge-success">Approved</span>
-                                {% elif record.status == 'Rejected' %}
-                                <span class="badge badge-danger">Rejected</span>
-                                {% elif record.status == 'Cancelled' %}
-                                <span class="badge" style="background-color: #718096; color: white;">Cancelled</span>
-                                {% else %}
-                                <span class="badge badge-success">{{ record.status|default('Approved') }}</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <p class="mt-3"><strong>Total records:</strong> {{ records|length }}</p>
-                {% else %}
-                <p class="text-muted mt-3">No WFH or Leave records found for this period.</p>
-                {% endif %}
+            <div class="form-group mb-0 flex-1" style="min-width: 200px;">
+                <label class="text-muted small">To Date</label>
+                <input type="date" name="end_date" value="{{ end_date }}" class="form-control-sm w-full">
             </div>
         </div>
-    </div>
-</body>
+        <button type="submit" class="btn btn-primary btn-sm"><i data-lucide="filter" style="width: 14px; height: 14px;"></i> Filter Records</button>
+    </form>
+    <p class="text-muted small mt-3 mb-0 text-right">Showing records from {{ start_date }} to {{ end_date }}</p>
+</div>
 
-</html>
+<!-- Stats Grid for Range -->
+<div class="stats-grid mb-4 animate-in" style="animation-delay: 0.3s;">
+    <div class="stat-card">
+        <div class="stat-value text-primary">{{ filtered_wfh|default(0) }}</div>
+        <div class="stat-label">WFH (Range)</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ filtered_half_day|default(0) }}</div>
+        <div class="stat-label">Half Days (Range)</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value text-warning">{{ filtered_leaves|default(0) }}</div>
+        <div class="stat-label">Leaves (Range)</div>
+    </div>
+    <div class="stat-card" style="border-left-color: var(--success); background: linear-gradient(135deg, #f0fdf4, #ffffff);">
+        <div class="stat-value text-success">{{ leave_balance.remaining_leaves|default(employee.Remaining_Leaves|default(0)) }}</div>
+        <div class="stat-label">Leaves Left</div>
+    </div>
+</div>
+
+{% if leave_balance and leave_balance.contract_year_start != 'N/A' %}
+<div class="leave-balance-panel animate-in mb-4" style="animation-delay: 0.4s;">
+    <div class="leave-balance-header">
+        <strong><i data-lucide="calendar" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 4px;"></i> Contract Year: {{ leave_balance.contract_year_start }} &rarr; {{ leave_balance.contract_year_end }}</strong>
+    </div>
+    <div class="leave-balance-body">
+        <div class="lb-item">
+            <span class="lb-label">Annual Entitlement</span>
+            <span class="lb-value">{{ leave_balance.total_leaves | int }}</span>
+        </div>
+        <div class="lb-sep">+</div>
+        <div class="lb-item">
+            <span class="lb-label">Carried Forward</span>
+            <span class="lb-value text-success">{{ leave_balance.carried_forward | int }}</span>
+        </div>
+        <div class="lb-sep">=</div>
+        <div class="lb-item">
+            <span class="lb-label">Total Available</span>
+            <span class="lb-value">{{ leave_balance.total_available | int }}</span>
+        </div>
+        <div class="lb-sep">&minus;</div>
+        <div class="lb-item">
+            <span class="lb-label">Taken This Year</span>
+            <span class="lb-value" style="color: var(--danger);">{{ leave_balance.leaves_taken_this_year }}</span>
+        </div>
+        <div class="lb-sep">=</div>
+        <div class="lb-item highlight-item">
+            <span class="lb-label">Remaining</span>
+            <span class="lb-value">{{ leave_balance.remaining_leaves }}</span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card animate-in" style="animation-delay: 0.5s;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0 d-flex align-items-center gap-2"><i data-lucide="list"></i> Usage History</h3>
+        <p class="text-muted small mb-0">Total records: {{ records|length }}</p>
+    </div>
+
+    {% if records %}
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Reason</th>
+                    <th>Submitted At</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td><strong>{{ record.date }}</strong></td>
+                    <td>
+                        <span class="badge badge-{{ record.type.lower().replace(' ', '-') }}">{{ record.type }}</span>
+                    </td>
+                    <td>{{ record.reason }}</td>
+                    <td class="text-muted small">{{ record.timestamp }}</td>
+                    <td>
+                        {% if record.status == 'Pending' %}
+                        <span class="badge badge-pending">Pending</span>
+                        {% elif record.status == 'Approved' %}
+                        <span class="badge badge-approved">Approved</span>
+                        {% elif record.status == 'Rejected' %}
+                        <span class="badge badge-rejected">Rejected</span>
+                        {% elif record.status == 'Cancelled' %}
+                        <span class="badge" style="background: var(--border); color: var(--text-muted);">Cancelled</span>
+                        {% else %}
+                        <span class="badge badge-approved">{{ record.status|default('Approved') }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="p-4 text-center text-muted" style="background: var(--light); border-radius: 12px;">
+        <i data-lucide="inbox" style="width: 32px; height: 32px; opacity: 0.5; margin-bottom: 0.5rem;"></i>
+        <p>No WFH or Leave records found for this period.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

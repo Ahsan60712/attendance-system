@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Adlab Solutions{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
 <body>
@@ -14,35 +15,47 @@
         {% if session.get('logged_in') %}
         <header class="header">
             <div class="header-content">
-                <div class="logo-area">
-                    <h1 class="logo">📋 Adlab Solutions</h1>
-                </div>
-                <div class="user-info">
-                    <span class="username">👤 {{ session.get('username') }}</span>
-                    <a href="{{ url_for('logout') }}" class="btn btn-logout-nav">Logout</a>
+                <a href="/" class="logo">
+                    <i data-lucide="clipboard-check"></i>
+                    <span>Adlab Solutions</span>
+                </a>
+                <div class="nav-user">
+                    <span class="username">
+                        <i data-lucide="user"></i>
+                        {{ session.get('username') }}
+                    </span>
+                    <a href="{{ url_for('logout') }}" class="btn btn-danger btn-sm">
+                        <i data-lucide="log-out"></i>
+                        Logout
+                    </a>
                 </div>
             </div>
         </header>
         {% endif %}
 
         <main class="main-content">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            {% for category, message in messages %}
-            <div class="alert alert-{{ category }}">
-                {{ message }}
-            </div>
-            {% endfor %}
-            {% endif %}
-            {% endwith %}
+            <div class="dashboard-content">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} animate-in">
+                    {{ message }}
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
 
-            {% block content %}{% endblock %}
+                {% block content %}{% endblock %}
+            </div>
         </main>
 
-        <footer class="footer">
-            <p>&copy; 2026 Adlab Solutions</p>
+        <footer class="footer" style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.875rem;">
+            <p>&copy; 2026 Adlab Solutions • Attendance Management System</p>
         </footer>
     </div>
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 
 </html>

@@ -1,168 +1,116 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Settings - Admin Portal</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        .settings-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 25px;
-        }
-        .status-badge {
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-        .status-on { background: #c6f6d5; color: #22543d; }
-        .status-off { background: #fed7d7; color: #742a2a; }
-        .config-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border);
-        }
-        .config-item:last-child { border-bottom: none; }
-        .config-label { font-weight: 500; color: #4a5568; }
-        .config-value { font-family: monospace; background: #edf2f7; padding: 2px 6px; border-radius: 4px; }
+{% extends "base.html" %}
+
+{% block title %}WhatsApp Settings - Adlab Solutions{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 animate-in">
+    <h2 style="font-size: 1.5rem;" class="d-flex align-items-center gap-2">
+        <i data-lucide="message-circle" style="width: 24px; height: 24px;"></i> WhatsApp Cloud API Controls
+    </h2>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">
+        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back to Dashboard
+    </a>
+</div>
+
+<div class="stats-grid mb-4 animate-in" style="animation-delay: 0.1s;">
+    <!-- API CONFIGURATION -->
+    <div class="card w-full mb-0" style="padding-bottom: 2rem;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="mb-0 d-flex align-items-center gap-2"><i data-lucide="settings"></i> API Configuration</h3>
+            <span class="badge {{ 'badge-approved' if enabled else 'badge-rejected' }}">
+                {{ 'ENABLED' if enabled else 'DISABLED' }}
+            </span>
+        </div>
         
-        .manager-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        .manager-item {
-            padding: 10px;
-            border-bottom: 1px solid #f7fafc;
-            display: flex;
-            justify-content: space-between;
-        }
-        .job-card {
-            background: #f8fafc;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-left: 4px solid var(--primary);
-        }
-        .job-next { font-size: 0.85rem; color: #718096; margin-top: 5px; }
+        <div class="d-flex flex-column gap-2 mb-4">
+            <div class="d-flex justify-content-between align-items-center p-3" style="background: var(--light); border-radius: 8px; border: 1px solid var(--border);">
+                <span class="font-weight-600 text-muted">Access Token</span>
+                <span class="font-family-mono badge {{ 'badge-approved' if token_set else 'badge-rejected' }}">{{ 'Configured' if token_set else 'Missing' }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center p-3" style="background: var(--light); border-radius: 8px; border: 1px solid var(--border);">
+                <span class="font-weight-600 text-muted">Phone Number ID</span>
+                <span class="font-family-mono badge {{ 'badge-approved' if phone_id_set else 'badge-rejected' }}">{{ 'Configured' if phone_id_set else 'Missing' }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center p-3" style="background: var(--light); border-radius: 8px; border: 1px solid var(--border);">
+                <span class="font-weight-600 text-muted">API Version</span>
+                <span class="font-family-mono badge badge-pending">{{ api_version }}</span>
+            </div>
+        </div>
+        <p class="text-muted small"><i data-lucide="info" style="width: 14px; height: 14px; vertical-align: middle;"></i> Update these values in your <code>.env</code> file.</p>
+    </div>
+
+    <!-- SCHEDULED JOBS -->
+    <div class="card w-full mb-0" style="padding-bottom: 2rem;">
+        <h3 class="mb-4 d-flex align-items-center gap-2"><i data-lucide="clock"></i> Automation Schedule</h3>
         
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-    </style>
-</head>
-<body>
-    <div class="dashboard-container">
-        <nav class="navbar">
-            <div class="nav-brand">WhatsApp Cloud API Controls</div>
-            <div class="nav-user">
-                <span>Admin: {{ admin_name }}</span>
-                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-sm">Back to Dashboard</a>
-                <a href="{{ url_for('logout') }}" class="btn btn-sm">Logout</a>
+        {% if scheduled_jobs %}
+            <div class="d-flex flex-column gap-3 mb-4">
+            {% for job in scheduled_jobs %}
+                <div class="p-3" style="background: #f8fafc; border-radius: 12px; border-left: 4px solid var(--primary);">
+                    <strong class="d-block mb-1">{{ job.name }}</strong>
+                    <div class="text-muted small mb-2"><i data-lucide="calendar" style="width: 12px; height: 12px; display: inline;"></i> Next Run: {{ job.next_run }}</div>
+                    <div class="badge badge-pending">{{ job.trigger }}</div>
+                </div>
+            {% endfor %}
             </div>
-        </nav>
-
-        <div class="dashboard-content">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-
-            <div class="settings-grid">
-                <!-- API CONFIGURATION -->
-                <div class="card">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2>⚙️ API Configuration</h2>
-                        <span class="status-badge {{ 'status-on' if enabled else 'status-off' }}">
-                            {{ 'ENABLED' if enabled else 'DISABLED' }}
-                        </span>
-                    </div>
-                    
-                    <div class="config-list">
-                        <div class="config-item">
-                            <span class="config-label">Access Token</span>
-                            <span class="config-value">{{ '✅ Configured' if token_set else '❌ Missing' }}</span>
-                        </div>
-                        <div class="config-item">
-                            <span class="config-label">Phone Number ID</span>
-                            <span class="config-value">{{ '✅ Configured' if phone_id_set else '❌ Missing' }}</span>
-                        </div>
-                        <div class="config-item">
-                            <span class="config-label">API Version</span>
-                            <span class="config-value">{{ api_version }}</span>
-                        </div>
-                    </div>
-
-                    <div class="mt-4">
-                        <p class="text-muted small">Update these values in your <code>.env</code> file.</p>
-                    </div>
-                </div>
-
-                <!-- SCHEDULED JOBS -->
-                <div class="card">
-                    <h2>⏰ Automation Schedule</h2>
-                    {% if scheduled_jobs %}
-                        {% for job in scheduled_jobs %}
-                            <div class="job-card">
-                                <strong>{{ job.name }}</strong>
-                                <div class="job-next">Next Run: {{ job.next_run }}</div>
-                                <div class="small-label mt-1">{{ job.trigger }}</div>
-                            </div>
-                        {% endfor %}
-                    {% else %}
-                        <p class="text-muted">No active background jobs.</p>
-                    {% endif %}
-
-                    <div class="action-buttons">
-                        <form action="{{ url_for('admin_send_daily_summary') }}" method="POST" style="flex: 1;">
-                            <button type="submit" class="btn btn-primary" style="width: 100%;">🚀 Trigger Summary Now</button>
-                        </form>
-                        <form action="{{ url_for('admin_send_absent_alert') }}" method="POST" style="flex: 1;">
-                            <button type="submit" class="btn btn-warning" style="width: 100%; font-size: 0.9rem;">⚠️ Trigger Absent Alert</button>
-                        </form>
-                    </div>
-                </div>
+        {% else %}
+            <div class="p-4 text-center text-muted mb-4" style="background: var(--light); border-radius: 12px;">
+                <i data-lucide="calendar-x" style="width: 24px; height: 24px; opacity: 0.5; margin-bottom: 0.25rem;"></i>
+                <p>No active background jobs.</p>
             </div>
+        {% endif %}
 
-            <div class="card mt-4">
-                <h2>📱 Manager Phone Directory</h2>
-                <p class="text-muted mb-3">These managers will receive the daily summaries and alerts for their respective teams.</p>
-                
-                <div class="settings-grid">
-                    <div>
-                        <h3 class="mb-2" style="font-size: 1rem; color: var(--success);">✅ Configured ({{ managers_with_phone|length }})</h3>
-                        <div class="manager-list">
-                            {% for mgr in managers_with_phone %}
-                                <div class="manager-item">
-                                    <span><strong>{{ mgr.emp_name }}</strong> <small class="text-muted">({{ mgr.emp_team }})</small></span>
-                                    <span class="config-value">{{ mgr.phone }}</span>
-                                </div>
-                            {% endfor %}
+        <div class="d-flex gap-2">
+            <form action="{{ url_for('admin_send_daily_summary') }}" method="POST" style="flex: 1; margin: 0;">
+                <button type="submit" class="btn btn-primary w-full"><i data-lucide="send" style="width: 16px; height: 16px;"></i> Trigger Summary Now</button>
+            </form>
+            <form action="{{ url_for('admin_send_absent_alert') }}" method="POST" style="flex: 1; margin: 0;">
+                <button type="submit" class="btn btn-danger w-full"><i data-lucide="alert-triangle" style="width: 16px; height: 16px;"></i> Trigger Absent Alert</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="card animate-in" style="animation-delay: 0.2s;">
+    <h3 class="mb-2 d-flex align-items-center gap-2"><i data-lucide="smartphone"></i> Manager Phone Directory</h3>
+    <p class="text-muted mb-4">These managers will receive the daily summaries and alerts for their respective teams.</p>
+    
+    <div class="stats-grid">
+        <div style="background: var(--light); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border);">
+            <h4 class="mb-3 d-flex align-items-center gap-2 text-success">
+                <i data-lucide="check-circle-2"></i> Configured ({{ managers_with_phone|length }})
+            </h4>
+            <div class="d-flex flex-column gap-2" style="max-height: 300px; overflow-y: auto; padding-right: 0.5rem;">
+                {% for mgr in managers_with_phone %}
+                    <div class="d-flex justify-content-between align-items-center p-3" style="background: white; border-radius: 8px; box-shadow: var(--shadow-sm);">
+                        <div>
+                            <strong>{{ mgr.emp_name }}</strong> <br>
+                            <small class="text-muted">{{ mgr.emp_team }}</small>
                         </div>
+                        <span class="badge" style="background: #e0e7ff; color: #4338ca; font-family: monospace;">{{ mgr.phone }}</span>
                     </div>
-                    <div>
-                        <h3 class="mb-2" style="font-size: 1rem; color: var(--danger);">❌ Missing Phone ({{ managers_without_phone|length }})</h3>
-                        <div class="manager-list">
-                            {% for mgr in managers_without_phone %}
-                                <div class="manager-item">
-                                    <span>{{ mgr.emp_name }} <small class="text-muted">({{ mgr.emp_team }})</small></span>
-                                    <a href="{{ url_for('edit_employee_route', emp_id=mgr.emp_id) }}" class="small" style="color: var(--primary);">Add Phone</a>
-                                </div>
-                            {% endfor %}
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div style="background: var(--light); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border);">
+            <h4 class="mb-3 d-flex align-items-center gap-2 text-danger">
+                <i data-lucide="x-circle"></i> Missing Phone ({{ managers_without_phone|length }})
+            </h4>
+            <div class="d-flex flex-column gap-2" style="max-height: 300px; overflow-y: auto; padding-right: 0.5rem;">
+                {% for mgr in managers_without_phone %}
+                    <div class="d-flex justify-content-between align-items-center p-3" style="background: white; border-radius: 8px; box-shadow: var(--shadow-sm);">
+                        <div>
+                            <strong>{{ mgr.emp_name }}</strong> <br>
+                            <small class="text-muted">{{ mgr.emp_team }}</small>
                         </div>
+                        <a href="{{ url_for('edit_employee_route', emp_id=mgr.emp_id) }}" class="btn btn-sm btn-secondary">
+                            <i data-lucide="edit" style="width: 14px; height: 14px;"></i> Add Phone
+                        </a>
                     </div>
-                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}

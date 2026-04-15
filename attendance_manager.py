@@ -1,10 +1,6 @@
 import os
-import json
-import pandas as pd
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
-from openpyxl import Workbook, load_workbook
-from openpyxl.styles import PatternFill, Font, Alignment
 
 from database_snowflake import SnowflakeDatabase
 
@@ -12,37 +8,52 @@ class WFHLeaveManager:
     def __init__(self, base_path):
         self.base_path = base_path
         self.db = SnowflakeDatabase()
-        excel_filename = os.environ.get('EXCEL_PATH', 'Emp_data.xlsx')
-        self.emp_data_file = os.path.join(base_path, excel_filename)
-    
-    def authenticate_user(self, emp_name, password=None, role='employee'):
-        """
-        Authenticate user via Snowflake
-        """
-        conn = self.db.get_connection()
-        if not conn: return None
+
+    def get_connection(self):
+        return self.db.get_connection()
+
+    def _execute_query(self, query, params=None, fetchone=False, commit=False):
+        conn = self.get_connection()
+        if not conn:
+            return None
         try:
-            cur = conn.cursor(snowflake.connector.DictCursor)
-            cur.execute("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE LOWER(EMP_NAME) = LOWER(%s)", (emp_name,))
-            user = cur.fetchone()
+            cur = conn.cursor()
+            cur.execute(query, params or ())
             
+            if commit:
+                conn.commit()
+                return True
+                
+            if cur.description:
+                columns = [col[0] for col in cur.description]
+                if fetchone:
+                    row = cur.fetchone()
+                    return dict(zip(columns, row)) if row else None
+                else:
+                    return [dict(zip(columns, row)) for row in cur.fetchall()]
+            return True
+        except Exception as e:
+            print(f"Snowflake Query Error: {e} - Query: {query}")
+            return None
+        finally:
+            conn.close()
+
+    def authenticate_user(self, emp_name, password=None, role='employee'):
+        try:
+            user = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE LOWER(EMP_NAME) = LOWER(%s)", (emp_name,), fetchone=True)
             if not user: return None
 
-            # Map snowflake uppercase columns to expected lowercase/mixed for Flask
             emp_data = {
-                'emp_id': user['EMP_ID'],
-                'emp_name': user['EMP_NAME'],
-                'emp_team': user['EMP_TEAM'],
-                'is_admin': bool(user['IS_ADMIN']),
-                'is_manager': bool(user['IS_MANAGER']),
-                'password': user['PASSWORD']
+                'emp_id': user.get('EMP_ID'),
+                'emp_name': user.get('EMP_NAME'),
+                'emp_team': user.get('EMP_TEAM', ''),
+                'is_admin': bool(user.get('IS_ADMIN')),
+                'is_manager': bool(user.get('IS_MANAGER')),
+                'password': user.get('PASSWORD')
             }
             
-            # Verify password
             if password and str(emp_data['password']) != str(password):
                 return None
-            
-            # Check role
             if role == 'admin' and not emp_data['is_admin']:
                 return None
             if role == 'manager' and not emp_data['is_manager'] and not emp_data['is_admin']:
@@ -52,887 +63,431 @@ class WFHLeaveManager:
         except Exception as e:
             print(f"Auth Exception: {e}")
             return None
-        finally:
-            conn.close()
 
     def change_password(self, emp_id, new_password):
-        """Update employee password"""
-        try:
-            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
-            
-            # Convert emp_id to proper type if needed
-            df.loc[df['emp_id'] == int(emp_id), 'password'] = str(new_password)
-            
-            df.to_excel(self.emp_data_file, index=False, engine='openpyxl')
-            return True
-            
-        except Exception as e:
-            print(f"Error changing password: {str(e)}")
-            raise Exception(f"Could not change password. Please ensure Emp_data.xlsx is closed. Error: {str(e)}")
-    
-    def get_employees(self):
-        """Read employee list from Emp_data.xlsx"""
-        try:
-            if not os.path.exists(self.emp_data_file):
-                raise FileNotFoundError(f"Employee data file not found: {self.emp_data_file}")
-            
-            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
-            return df.to_dict('records')
-        except Exception as e:
-            print(f"Error reading employee data: {str(e)}")
-            raise Exception(f"Could not read employee data. Please ensure Emp_data.xlsx is closed in Excel and is a valid Excel file. Error: {str(e)}")
-    
-    def get_daily_filepath(self, date_obj, create_dir=False):
-        """Construct path: base_path/YYYY/Month/dd-mon-yyyy.xlsx"""
-        year = date_obj.strftime('%Y')
-        month = date_obj.strftime('%B') # Full month name
-        filename = date_obj.strftime('%d-%b-%Y').lower() + '.xlsx'
-        
-        folder_path = os.path.join(self.base_path, year, month)
-        
-        if create_dir and not os.path.exists(folder_path):
-            os.makedirs(folder_path)
-            
-        return os.path.join(folder_path, filename)
+        self._execute_query("UPDATE ADLABS.AHSAN.EMPLOYEES SET PASSWORD = %s WHERE EMP_ID = %s", (new_password, emp_id), commit=True)
+        return True
 
-    # ===== CONTRACT YEAR LEAVE SYSTEM =====
+    def _map_employee(self, e):
+        """Map Snowflake UPPERCASE column names to Python/Flask expected keys"""
+        emp = {}
+        # Keep case-insensitive fallback logic for the frontend templates
+        for k, v in e.items():
+            emp[k.lower()] = v
+        # Critical capitalized keys expected by frontend templates
+        emp['Total_leaves'] = float(e.get('TOTAL_LEAVES') or 0)
+        emp['Remaining_Leaves'] = float(e.get('REMAINING_LEAVES') or 0)
+        emp['Leaves_This_Year'] = float(e.get('LEAVES_THIS_YEAR') or 0)
+        emp['Leaves_Carried_Forward'] = float(e.get('LEAVES_CARRIED_FORWARD') or 0)
+        emp['Contract_Type'] = str(e.get('CONTRACT_TYPE') or '')
+        emp['Contract_Start_Date'] = str(e.get('CONTRACT_START_DATE') or '')
+        emp['Contract_End_Date'] = str(e.get('CONTRACT_END_DATE') or '')
+        emp['Contract_Year_Start'] = str(e.get('CONTRACT_YEAR_START') or '')
+        emp['Carried_Forward_Expiry'] = str(e.get('CARRIED_FORWARD_EXPIRY') or '')
+        emp['WFH_count'] = float(e.get('WFH_COUNT') or 0) # Just in case
+        emp['emp_name'] = e.get('EMP_NAME')
+        emp['emp_team'] = e.get('EMP_TEAM')
+        
+        # Derived fields (calculated on the fly from the database in the new system)
+        emp['Leaves'] = emp['Leaves_This_Year']
+        emp['Half_Day'] = 0 # Fallback
+        
+        return emp
+
+    def get_employees(self):
+        rows = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES ORDER BY EMP_ID ASC")
+        return [self._map_employee(row) for row in rows] if rows else []
 
     def get_contract_year_window(self, contract_start_date_str, today=None):
-        """
-        Given a contract start date string (YYYY-MM-DD), return the
-        (year_start, year_end) of the CURRENT contract year that contains today.
-        e.g. contract start = 2024-05-15, today = 2026-03-11
-             → year 2 started 2025-05-15, ends 2026-05-14
-             → returns (date(2025,5,15), date(2026,5,14))
-        """
-        if today is None:
-            today = date.today()
+        if today is None: today = date.today()
         try:
             contract_start = date.fromisoformat(str(contract_start_date_str).split(' ')[0].split('T')[0])
         except Exception:
             return None, None
 
-        # Walk forward by years until we pass today
         year_start = contract_start
         while True:
             year_end = year_start + relativedelta(years=1) - timedelta(days=1)
             if year_start <= today <= year_end:
                 return year_start, year_end
             if year_start > today:
-                # Shouldn't happen but guard against infinite loop
                 break
             year_start = year_start + relativedelta(years=1)
         return None, None
 
     def check_and_rollover_leaves(self, emp_id):
-        """
-        Check if the employee's contract year has rolled over since the last
-        time we ran. If yes:
-          1. Carry forward unused leaves (up to max = Total_leaves cap or unlimited)
-          2. Reset Leaves_This_Year to 0
-          3. Recalculate Remaining_Leaves = Total_leaves + Leaves_Carried_Forward
-          4. Store the new Contract_Year_Start
-        Returns the updated employee row dict, or None on error.
-        """
-        try:
-            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
-
-            # Ensure new columns exist
-            for col, default in [('Leaves_This_Year', 0), ('Leaves_Carried_Forward', 0), ('Contract_Year_Start', '')]:
-                if col not in df.columns:
-                    df[col] = default
-
-            emp_row = df[df['emp_id'] == int(emp_id)]
-            if emp_row.empty:
-                return None
-            idx = emp_row.index[0]
-
-            contract_start_str = df.at[idx, 'Contract_Start_Date']
-            if not contract_start_str or pd.isna(contract_start_str):
-                # No contract date set — nothing to roll over
-                return df.iloc[idx].to_dict()
-
-            today = date.today()
-            year_start, year_end = self.get_contract_year_window(contract_start_str, today)
-            if year_start is None:
-                return df.iloc[idx].to_dict()
-
-            year_start_str = year_start.strftime('%Y-%m-%d')
-
-            # Read stored year start
-            stored_year_start = df.at[idx, 'Contract_Year_Start']
-            if pd.isna(stored_year_start) or str(stored_year_start).strip() == '':
-                stored_year_start = None
-
-            if str(stored_year_start).strip() == str(year_start_str).strip():
-                # Already on the correct contract year — no rollover needed
-                return df.iloc[idx].to_dict()
-
-            # ---- ROLLOVER ----
-            old_leaves_taken = float(df.at[idx, 'Leaves_This_Year']) if pd.notna(df.at[idx, 'Leaves_This_Year']) else 0
-            old_total = float(df.at[idx, 'Total_leaves']) if pd.notna(df.at[idx, 'Total_leaves']) else 0
-            old_carried = float(df.at[idx, 'Leaves_Carried_Forward']) if pd.notna(df.at[idx, 'Leaves_Carried_Forward']) else 0
-
-            # Unused in old year
-            # Calculation: (Total Allotted + What was Carried) - Shared Used
-            old_remaining = max(0, (old_total + old_carried) - old_leaves_taken)
+        emp = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id,), fetchone=True)
+        if not emp: return None
+        
+        contract_start_str = emp.get('CONTRACT_START_DATE')
+        if not contract_start_str: return self._map_employee(emp)
+        
+        today = date.today()
+        year_start, year_end = self.get_contract_year_window(contract_start_str, today)
+        if not year_start: return self._map_employee(emp)
+        
+        year_start_str = year_start.strftime('%Y-%m-%d')
+        stored_year_start = emp.get('CONTRACT_YEAR_START')
+        if stored_year_start and str(stored_year_start).strip() == year_start_str:
+            return self._map_employee(emp)
             
-            # CRITICAL: If last year was never initialized or it's a fresh start, 
-            # don't carry forward full 14 if we already have 14.
-            new_carried_forward = old_remaining
-            if stored_year_start is None and old_total > 0:
-                new_carried_forward = 0 # Don't carry if initialization
-
-            # Set Expiry Date (6 months from new year start)
-            expiry_date = year_start + pd.DateOffset(months=6)
-            expiry_str = expiry_date.strftime('%Y-%m-%d')
-
-            # Reset for new year
-            df.at[idx, 'Leaves_This_Year'] = 0
-            df.at[idx, 'Leaves_Carried_Forward'] = new_carried_forward
-            df.at[idx, 'Carried_Forward_Expiry'] = expiry_str
-            df.at[idx, 'Contract_Year_Start'] = year_start_str
-            df.at[idx, 'Remaining_Leaves'] = old_total + new_carried_forward
-            df.at[idx, 'Leaves'] = 0
-            df.at[idx, 'Half_Day'] = 0
-
-            df.to_excel(self.emp_data_file, index=False, engine='openpyxl')
-            print(f"[ROLLOVER] Employee {emp_id}: {new_carried_forward} leaves carried (Expires {expiry_str})")
-            return df.iloc[idx].to_dict()
-
-        except Exception as e:
-            print(f"Error in check_and_rollover_leaves: {str(e)}")
-            return None
+        old_taken = float(emp.get('LEAVES_THIS_YEAR') or 0)
+        old_total = float(emp.get('TOTAL_LEAVES') or 0)
+        old_carried = float(emp.get('LEAVES_CARRIED_FORWARD') or 0)
+        
+        old_remaining = max(0, (old_total + old_carried) - old_taken)
+        new_carried = old_remaining if (stored_year_start and old_total > 0) else 0
+        
+        expiry_date = (year_start + relativedelta(months=6)).strftime('%Y-%m-%d')
+        new_remaining = old_total + new_carried
+        
+        self._execute_query(
+            """UPDATE ADLABS.AHSAN.EMPLOYEES SET 
+                LEAVES_THIS_YEAR = 0, 
+                LEAVES_CARRIED_FORWARD = %s, 
+                CARRIED_FORWARD_EXPIRY = %s, 
+                CONTRACT_YEAR_START = %s, 
+                REMAINING_LEAVES = %s 
+               WHERE EMP_ID = %s""",
+            (new_carried, expiry_date, year_start_str, new_remaining, emp_id), commit=True
+        )
+        # Fetch updated
+        updated_emp = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id,), fetchone=True)
+        return self._map_employee(updated_emp)
 
     def check_and_apply_expiry(self, emp_id):
-        """
-        Check if carried-forward leaves have expired (6 months past contract start).
-        Logic: Carried leaves are assumed to be used FIRST. 
-        If Leaves_This_Year < Leaves_Carried_Forward after 6 months, the difference is lost.
-        """
+        emp = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id,), fetchone=True)
+        if not emp: return
+        
+        expiry_str = emp.get('CARRIED_FORWARD_EXPIRY')
+        if not expiry_str: return
+        
         try:
-            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
-            idx = df[df['emp_id'] == int(emp_id)].index
-            if idx.empty: return
-            idx = idx[0]
-
-            if 'Carried_Forward_Expiry' not in df.columns: return
+            if isinstance(expiry_str, date):
+                expiry_date = expiry_str
+            else:
+                expiry_date = date.fromisoformat(str(expiry_str).split(' ')[0])
+        except: return
             
-            expiry_str = df.at[idx, 'Carried_Forward_Expiry']
-            if pd.isna(expiry_str) or str(expiry_str).strip() == '': return
-
-            expiry_date = pd.to_datetime(expiry_str).date()
-            today = date.today()
-
-            if today >= expiry_date:
-                carried = float(df.at[idx, 'Leaves_Carried_Forward'])
-                taken = float(df.at[idx, 'Leaves_This_Year'])
-                
-                if carried > 0:
-                    # How many carried leaves were NOT used?
-                    # If they used 5 and had 10 carried, 5 expire.
-                    # If they used 15 and had 10 carried, 0 expire.
-                    unused_carried = max(0, carried - taken)
+        today = date.today()
+        if today >= expiry_date:
+            carried = float(emp.get('LEAVES_CARRIED_FORWARD') or 0)
+            taken = float(emp.get('LEAVES_THIS_YEAR') or 0)
+            
+            if carried > 0:
+                unused_carried = max(0, carried - taken)
+                if unused_carried > 0:
+                    new_carried = carried - unused_carried
+                    total = float(emp.get('TOTAL_LEAVES') or 0)
+                    new_remaining = total + new_carried - taken
                     
-                    if unused_carried > 0:
-                        print(f"[EXPIRY] Employee {emp_id}: {unused_carried} carried leaves expired on {expiry_date}")
-                        df.at[idx, 'Leaves_Carried_Forward'] = carried - unused_carried
-                        # We also need to update Remaining_Leaves display
-                        total = float(df.at[idx, 'Total_leaves'])
-                        df.at[idx, 'Remaining_Leaves'] = total + df.at[idx, 'Leaves_Carried_Forward'] - taken
-                    
-                    # Clear expiry date so we don't process it again for this year
-                    df.at[idx, 'Carried_Forward_Expiry'] = ""
-                    df.to_excel(self.emp_data_file, index=False, engine='openpyxl')
-
-        except Exception as e:
-            print(f"Error in check_and_apply_expiry: {str(e)}")
+                    self._execute_query(
+                        "UPDATE ADLABS.AHSAN.EMPLOYEES SET LEAVES_CARRIED_FORWARD = %s, REMAINING_LEAVES = %s, CARRIED_FORWARD_EXPIRY = NULL WHERE EMP_ID = %s",
+                        (new_carried, new_remaining, emp_id), commit=True
+                    )
+            
+            self._execute_query("UPDATE ADLABS.AHSAN.EMPLOYEES SET CARRIED_FORWARD_EXPIRY = NULL WHERE EMP_ID = %s", (emp_id,), commit=True)
 
     def get_leave_balance_info(self, emp_id):
-        """
-        Return a dict with rich leave balance details for display:
-        - contract_year_start, contract_year_end (formatted strings)
-        - total_leaves (annual entitlement)
-        - carried_forward (from last year)
-        - total_available (total + carried)
-        - leaves_taken_this_year
-        - half_days_taken
-        - remaining_leaves
-        """
-        try:
-            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
-            for col, default in [('Leaves_This_Year', 0), ('Leaves_Carried_Forward', 0), ('Contract_Year_Start', '')]:
-                if col not in df.columns:
-                    df[col] = default
-
-            emp_row = df[df['emp_id'] == int(emp_id)]
-            if emp_row.empty:
-                return {}
-            row = emp_row.iloc[0]
-
-            contract_start_str = row.get('Contract_Start_Date')
-            year_start, year_end = None, None
-            if contract_start_str and not pd.isna(contract_start_str):
-                year_start, year_end = self.get_contract_year_window(str(contract_start_str))
-
-            total = float(row.get('Total_leaves') or 0)
-            carried = float(row.get('Leaves_Carried_Forward') or 0)
-            taken_this_year = float(row.get('Leaves_This_Year') or 0)
-            half_days = float(row.get('Half_Day') or 0)
-
-            total_available = total + carried
-            # Real-time calculation to avoid discrepancies with Excel stored value
-            calculated_remaining = total_available - taken_this_year
-
-            return {
-                'contract_year_start': year_start.strftime('%d %b %Y') if year_start else 'N/A',
-                'contract_year_end': year_end.strftime('%d %b %Y') if year_end else 'N/A',
-                'total_leaves': total,
-                'carried_forward': carried,
-                'total_available': total_available,
-                'leaves_taken_this_year': taken_this_year,
-                'half_days_taken': half_days,
-                'remaining_leaves': calculated_remaining,
-            }
-        except Exception as e:
-            print(f"Error in get_leave_balance_info: {str(e)}")
-            return {}
-    
-    def mark_wfh_leave(self, emp_id, emp_name, emp_team, date, request_type, reason, status='Pending', manager_name=''):
-        """
-        Mark WFH or Leave via Snowflake
-        """
-        # Format date for SQL
-        date_str = date.strftime('%Y-%m-%d') if hasattr(date, 'strftime') else str(date)
+        emp = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id,), fetchone=True)
+        if not emp: return {}
         
-        # 1. Save Request to Snowflake
-        success = self.db.mark_request(
-            emp_id=emp_id,
-            req_date=date_str,
-            req_type=request_type,
-            reason=reason,
-            status=status,
-            approved_by=manager_name if status == 'Approved' else None
+        contract_start_str = emp.get('CONTRACT_START_DATE')
+        year_start, year_end = self.get_contract_year_window(str(contract_start_str)) if contract_start_str else (None, None)
+        
+        total = float(emp.get('TOTAL_LEAVES') or 0)
+        carried = float(emp.get('LEAVES_CARRIED_FORWARD') or 0)
+        taken = float(emp.get('LEAVES_THIS_YEAR') or 0)
+        
+        total_available = total + carried
+        calculated_remaining = total_available - taken
+        
+        # Calculate half days by scanning requests dynamically
+        counts = self._execute_query(
+            "SELECT REQUEST_TYPE, COUNT(*) as CNT FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND STATUS = 'Approved' AND REQUEST_DATE >= %s GROUP BY REQUEST_TYPE",
+            (emp_id, year_start.strftime('%Y-%m-%d') if year_start else '1970-01-01')
         )
+        half_days = 0
+        wfh = 0
+        if counts:
+            for count_row in counts:
+                if count_row.get('REQUEST_TYPE') == 'Half Day': half_days = count_row.get('CNT', 0)
+                if count_row.get('REQUEST_TYPE') == 'WFH': wfh = count_row.get('CNT', 0)
         
-        if not success:
-            raise Exception("Failed to save request to Snowflake.")
-
-        # 2. If auto-approved (manager case), update counters in Snowflake
-        if status == 'Approved':
-            self.update_employee_counters(emp_id, request_type)
-            self.log_approval_action(
-                emp_id=emp_id,
-                emp_name=emp_name,
-                request_type=request_type,
-                request_date=date_str,
-                status='Approved',
-                manager_name=manager_name or emp_name
-            )
-        
-        return True
+        return {
+            'contract_year_start': year_start.strftime('%d %b %Y') if year_start else 'N/A',
+            'contract_year_end': year_end.strftime('%d %b %Y') if year_end else 'N/A',
+            'total_leaves': total,
+            'carried_forward': carried,
+            'total_available': total_available,
+            'leaves_taken_this_year': taken,
+            'half_days_taken': half_days,
+            'remaining_leaves': calculated_remaining,
+            'wfh_taken': wfh
+        }
 
     def update_employee_counters(self, emp_id, request_type):
-        """Update counters directly in Snowflake"""
         return self.db.update_employee_counters(emp_id, request_type)
-
+        
     def log_approval_action(self, emp_id, emp_name, request_type, request_date, status, manager_name):
-        """Log approval via Snowflake"""
         return self.db.log_approval_action(emp_id, emp_name, request_type, request_date, status, manager_name)
 
     def refund_employee_counters(self, emp_id, request_type):
-        """Reverse the counters if an approved request is cancelled."""
-        try:
-            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
-            emp_row = df[df['emp_id'] == int(emp_id)]
-            if emp_row.empty:
-                return
-            idx = emp_row.index[0]
-            
-            if request_type == 'WFH':
-                df.at[idx, 'WFH_count'] = max((df.at[idx, 'WFH_count'] - 1) if pd.notna(df.at[idx, 'WFH_count']) else 0, 0)
-            elif request_type == 'Leave':
-                df.at[idx, 'Leaves'] = max((df.at[idx, 'Leaves'] - 1) if pd.notna(df.at[idx, 'Leaves']) else 0, 0)
-                df.at[idx, 'Leaves_This_Year'] = max((df.at[idx, 'Leaves_This_Year'] - 1) if pd.notna(df.at[idx, 'Leaves_This_Year']) else 0, 0)
-                if pd.notna(df.at[idx, 'Remaining_Leaves']):
-                    df.at[idx, 'Remaining_Leaves'] = df.at[idx, 'Remaining_Leaves'] + 1
-            elif request_type == 'Half Day':
-                df.at[idx, 'Half_Day'] = max((df.at[idx, 'Half_Day'] - 1) if pd.notna(df.at[idx, 'Half_Day']) else 0, 0)
-                df.at[idx, 'Leaves_This_Year'] = max((df.at[idx, 'Leaves_This_Year'] - 0.5) if pd.notna(df.at[idx, 'Leaves_This_Year']) else 0, 0)
-                if pd.notna(df.at[idx, 'Remaining_Leaves']):
-                    df.at[idx, 'Remaining_Leaves'] = df.at[idx, 'Remaining_Leaves'] + 0.5
-            
-            df.to_excel(self.emp_data_file, index=False, engine='openpyxl')
-        except Exception as e:
-            print(f"Error refunding counters: {str(e)}")
-            raise Exception(f"Could not refund Emp_data.xlsx. Error: {str(e)}")
-    
+        if request_type == 'WFH':
+            pass # Currently WFH doesn't inherently deduct from a balance in EMPLOYEES table
+        elif request_type == 'Leave':
+            self._execute_query("UPDATE ADLABS.AHSAN.EMPLOYEES SET REMAINING_LEAVES = REMAINING_LEAVES + 1, LEAVES_THIS_YEAR = GREATEST(LEAVES_THIS_YEAR - 1, 0) WHERE EMP_ID = %s", (emp_id,), commit=True)
+        elif request_type == 'Half Day':
+            self._execute_query("UPDATE ADLABS.AHSAN.EMPLOYEES SET REMAINING_LEAVES = REMAINING_LEAVES + 0.5, LEAVES_THIS_YEAR = GREATEST(LEAVES_THIS_YEAR - 0.5, 0) WHERE EMP_ID = %s", (emp_id,), commit=True)
+
+    def mark_wfh_leave(self, emp_id, emp_name, emp_team, date, request_type, reason, status='Pending', manager_name=''):
+        date_str = date.strftime('%Y-%m-%d') if hasattr(date, 'strftime') else str(date)
+        success = self.db.mark_request(emp_id, date_str, request_type, reason, status, manager_name if status == 'Approved' else None)
+        if not success: raise Exception("Failed to save request to Snowflake.")
+        
+        if status == 'Approved':
+            self.update_employee_counters(emp_id, request_type)
+            self.log_approval_action(emp_id, emp_name, request_type, date_str, 'Approved', manager_name or emp_name)
+        return True
 
     def get_notifications(self, filter_date=None, limit=None):
+        if filter_date is None: filter_date = date.today()
+        query = """
+        SELECT r.*, e.EMP_NAME, e.EMP_TEAM 
+        FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS r
+        JOIN ADLABS.AHSAN.EMPLOYEES e ON r.EMP_ID = e.EMP_ID
+        WHERE r.REQUEST_DATE = %s
+        ORDER BY r.SUBMITTED_AT DESC
         """
-        Get WFH/Leave requests for a specific date (default: today)
-        If limit is provided, it's ignored in this new date-based logic 
-        (we show all requests for the day)
-        """
-        notifications = []
+        rows = self._execute_query(query, (filter_date.strftime('%Y-%m-%d'),))
         
-        try:
-            if filter_date is None:
-                filter_date = date.today()
-            
-            # Use helper to get structured path
-            filepath = self.get_daily_filepath(filter_date)
-            
-            if os.path.exists(filepath):
-                try:
-                    wb = load_workbook(filepath, data_only=True)
-                    ws = wb.active
-                    
-                    # Read each row (skip header)
-                    for row_num in range(2, ws.max_row + 1):
-                        emp_id = ws.cell(row=row_num, column=1).value
-                        emp_name = ws.cell(row=row_num, column=2).value
-                        team = ws.cell(row=row_num, column=3).value
-                        request_type = ws.cell(row=row_num, column=4).value
-                        reason = ws.cell(row=row_num, column=5).value
-                        timestamp = ws.cell(row=row_num, column=6).value
-                        status = ws.cell(row=row_num, column=7).value
-                        
-                        # Set default status for older files without the status column
-                        if status is None:
-                            status = 'Approved' 
-                            
-                        if emp_id:
-                            notifications.append({
-                                'date': filter_date.strftime('%d-%b-%Y'),
-                                'emp_id': emp_id,
-                                'emp_name': emp_name,
-                                'team': team,
-                                'type': request_type,
-                                'reason': reason,
-                                'timestamp': timestamp,
-                                'status': status
-                            })
-                            
-                    # Reverse to show newest first for that day
-                    notifications.reverse()
-                    
-                except Exception as e:
-                    print(f"Error reading notification file {filepath}: {str(e)}")
-            
-            return notifications
-            
-        except Exception as e:
-            print(f"Error getting notifications: {str(e)}")
-            return []
+        notifications = []
+        if rows:
+            for row in rows:
+                notifications.append({
+                    'date': row.get('REQUEST_DATE').strftime('%d-%b-%Y') if isinstance(row.get('REQUEST_DATE'), date) else row.get('REQUEST_DATE'),
+                    'emp_id': row.get('EMP_ID'),
+                    'emp_name': row.get('EMP_NAME'),
+                    'team': row.get('EMP_TEAM'),
+                    'type': row.get('REQUEST_TYPE'),
+                    'reason': row.get('REASON'),
+                    'timestamp': row.get('SUBMITTED_AT').strftime('%Y-%m-%d %H:%M:%S') if getattr(row.get('SUBMITTED_AT'), 'strftime', None) else str(row.get('SUBMITTED_AT')),
+                    'status': row.get('STATUS')
+                })
+        return notifications
 
     def get_pending_requests(self, days_back=30, days_forward=365, req_status='Pending'):
-        """Scan recent and future daily files for requests based on req_status"""
+        query = """
+        SELECT r.*, e.EMP_NAME, e.EMP_TEAM 
+        FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS r
+        JOIN ADLABS.AHSAN.EMPLOYEES e ON r.EMP_ID = e.EMP_ID
+        WHERE r.STATUS = %s
+        ORDER BY r.SUBMITTED_AT DESC
+        """
+        rows = self._execute_query(query, (req_status,))
+        
         requests_list = []
-        try:
-            from datetime import timedelta
-            end_date = date.today() + timedelta(days=days_forward)
-            start_date = date.today() - timedelta(days=days_back)
-            
-            current_date = start_date
-            while current_date <= end_date:
-                filepath = self.get_daily_filepath(current_date)
-                
-                if os.path.exists(filepath):
-                    try:
-                        wb = load_workbook(filepath, data_only=True)
-                        ws = wb.active
-                        
-                        for row_num in range(2, ws.max_row + 1):
-                            emp_id = ws.cell(row=row_num, column=1).value
-                            if not emp_id:
-                                continue
-                            status = ws.cell(row=row_num, column=7).value
-                            if req_status == 'Pending':
-                                match = status in ('Pending', None)
-                            else:
-                                match = status == req_status
-                                
-                            if match:
-                                emp_name = ws.cell(row=row_num, column=2).value
-                                team = ws.cell(row=row_num, column=3).value
-                                request_type = ws.cell(row=row_num, column=4).value
-                                reason = ws.cell(row=row_num, column=5).value
-                                timestamp = ws.cell(row=row_num, column=6).value
-                                
-                                requests_list.append({
-                                    'date': current_date.strftime('%Y-%m-%d'),
-                                    'display_date': current_date.strftime('%d-%b-%Y'),
-                                    'emp_id': emp_id,
-                                    'emp_name': emp_name,
-                                    'team': team,
-                                    'type': request_type,
-                                    'reason': reason,
-                                    'timestamp': timestamp,
-                                    'status': status
-                                })
-                    except Exception as e:
-                        print(f"Error reading {filepath}: {str(e)}")
-                
-                current_date += timedelta(days=1)
-                
-            # Sort newest first
-            requests_list.sort(key=lambda x: x['timestamp'], reverse=True)
-            return requests_list
-            
-        except Exception as e:
-            print(f"Error getting pending requests: {str(e)}")
-            return []
-            
+        if rows:
+            for row in rows:
+                req_date = row.get('REQUEST_DATE')
+                req_date_obj = req_date if isinstance(req_date, date) else datetime.strptime(str(req_date).split(' ')[0], '%Y-%m-%d').date()
+                requests_list.append({
+                    'date': req_date_obj.strftime('%Y-%m-%d'),
+                    'display_date': req_date_obj.strftime('%d-%b-%Y'),
+                    'emp_id': row.get('EMP_ID'),
+                    'emp_name': row.get('EMP_NAME'),
+                    'team': row.get('EMP_TEAM'),
+                    'type': row.get('REQUEST_TYPE'),
+                    'reason': row.get('REASON'),
+                    'timestamp': row.get('SUBMITTED_AT').strftime('%Y-%m-%d %H:%M:%S') if getattr(row.get('SUBMITTED_AT'), 'strftime', None) else str(row.get('SUBMITTED_AT')),
+                    'status': row.get('STATUS')
+                })
+        return requests_list
+
     def update_request_status(self, request_date_str, emp_id, request_type, timestamp, new_status, manager_name):
-        """Update a specific request from Pending to Approved or Rejected"""
-        try:
-            req_date = datetime.strptime(request_date_str, '%Y-%m-%d').date()
-            filepath = self.get_daily_filepath(req_date)
-            
-            if not os.path.exists(filepath):
-                raise Exception(f"File not found for date: {request_date_str}")
-                
-            wb = load_workbook(filepath)
-            ws = wb.active
-            
-            updated = False
-            emp_name_found = ''
-            for row_num in range(2, ws.max_row + 1):
-                file_emp_id = ws.cell(row=row_num, column=1).value
-                file_timestamp = ws.cell(row=row_num, column=6).value
-                
-                # Match exactly the right row using employee ID and their unique timestamp
-                if str(file_emp_id) == str(emp_id) and str(file_timestamp) == str(timestamp):
-                    emp_name_found = ws.cell(row=row_num, column=2).value or ''
-                    ws.cell(row=row_num, column=7, value=new_status)
-                    ws.cell(row=row_num, column=8, value=manager_name)
-                    updated = True
-                    break
-                    
-            if not updated:
-                raise Exception("Could not find the specific request to update.")
-                
-            wb.save(filepath)
-            
-            # If approved, deduct from employee counters
+        # We need to find the specific request. Using EMP_ID and SUBMITTED_AT or DATE is best.
+        # SQLite SUBMITTED_AT formatting might differ from Snowflake string format. 
+        # Safest to just match EMP_ID, DATE, and TYPE which is very likely unique.
+        success = self._execute_query(
+            "UPDATE ADLABS.AHSAN.ATTENDANCE_REQUESTS SET STATUS = %s, APPROVED_BY = %s WHERE EMP_ID = %s AND REQUEST_DATE = %s AND REQUEST_TYPE = %s AND STATUS = 'Pending'",
+            (new_status, manager_name, emp_id, request_date_str, request_type), commit=True
+        )
+        if success:
             if new_status == 'Approved':
                 self.update_employee_counters(emp_id, request_type)
-            
-            # Log the action for admin notifications
-            self.log_approval_action(
-                emp_id=emp_id,
-                emp_name=emp_name_found,
-                request_type=request_type,
-                request_date=request_date_str,
-                status=new_status,
-                manager_name=manager_name
-            )
-                
+            # Find emp name
+            emp_name = self._execute_query("SELECT EMP_NAME FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id,), fetchone=True)
+            self.log_approval_action(emp_id, emp_name.get('EMP_NAME') if emp_name else str(emp_id), request_type, request_date_str, new_status, manager_name)
             return True
-        except Exception as e:
-            print(f"Error updating request status: {str(e)}")
-            raise Exception(f"Failed to update status: {str(e)}")
+        raise Exception("Could not find the specific request to update.")
 
     def cancel_request(self, request_date_str, emp_id, timestamp, cancelled_by):
-        """Cancel an existing request (pending or approved), refund counters if it was approved."""
-        try:
-            req_date = datetime.strptime(request_date_str, '%Y-%m-%d').date()
-            filepath = self.get_daily_filepath(req_date)
+        # Find current status
+        # Note: If there are multiple requests on same day, this picks chronologically latest or limits 1. Let's rely on date + id + timestamp if available. 
+        # For snowflake matching exact timestamps can be flaky via string. Using DATE + ID
+        req = self._execute_query(
+            "SELECT STATUS, REQUEST_TYPE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND REQUEST_DATE = %s AND STATUS IN ('Approved', 'Pending') LIMIT 1",
+            (emp_id, request_date_str), fetchone=True
+        )
+        if not req:
+            raise Exception("Could not find the specific request to cancel.")
             
-            if not os.path.exists(filepath):
-                raise Exception(f"File not found for date: {request_date_str}")
-                
-            wb = load_workbook(filepath)
-            ws = wb.active
+        current_status = req.get('STATUS')
+        request_type = req.get('REQUEST_TYPE')
+        
+        if current_status == 'Approved':
+            self.refund_employee_counters(emp_id, request_type)
             
-            updated = False
-            for row_num in range(2, ws.max_row + 1):
-                file_emp_id = ws.cell(row=row_num, column=1).value
-                file_timestamp = ws.cell(row=row_num, column=6).value
-                
-                if str(file_emp_id) == str(emp_id) and str(file_timestamp) == str(timestamp):
-                    current_status = ws.cell(row=row_num, column=7).value
-                    request_type = ws.cell(row=row_num, column=4).value
-                    
-                    if current_status == 'Approved':
-                        self.refund_employee_counters(emp_id, request_type)
-                        
-                    ws.cell(row=row_num, column=7, value='Cancelled')
-                    ws.cell(row=row_num, column=8, value=cancelled_by)
-                    updated = True
-                    break
-                    
-            if not updated:
-                raise Exception("Could not find the specific request to cancel.")
-                
-            wb.save(filepath)
-            return True
-            
-        except Exception as e:
-            print(f"Error cancelling request: {str(e)}")
-            raise Exception(f"Failed to cancel request: {str(e)}")
-
-    def log_approval_action(self, emp_id, emp_name, request_type, request_date, status, manager_name):
-        """Append an approved/rejected action entry to approved_log.json"""
-        log_path = os.path.join(self.base_path, 'approved_log.json')
-        try:
-            if os.path.exists(log_path):
-                with open(log_path, 'r', encoding='utf-8') as f:
-                    log = json.load(f)
-            else:
-                log = []
-            
-            log.insert(0, {
-                'emp_id': emp_id,
-                'emp_name': emp_name,
-                'request_type': request_type,
-                'request_date': request_date,
-                'status': status,
-                'manager_name': manager_name,
-                'actioned_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            })
-            
-            # Keep only the latest 200 entries
-            log = log[:200]
-            
-            with open(log_path, 'w', encoding='utf-8') as f:
-                json.dump(log, f, indent=2)
-        except Exception as e:
-            print(f"Error writing approval log: {str(e)}")
+        self._execute_query(
+            "UPDATE ADLABS.AHSAN.ATTENDANCE_REQUESTS SET STATUS = 'Cancelled', APPROVED_BY = %s WHERE EMP_ID = %s AND REQUEST_DATE = %s",
+            (cancelled_by, emp_id, request_date_str), commit=True
+        )
+        return True
 
     def get_approval_log(self, limit=50):
-        """Return recent approved/rejected actions for admin notifications"""
-        log_path = os.path.join(self.base_path, 'approved_log.json')
-        try:
-            if not os.path.exists(log_path):
-                return []
-            with open(log_path, 'r', encoding='utf-8') as f:
-                log = json.load(f)
-            return log[:limit]
-        except Exception as e:
-            print(f"Error reading approval log: {str(e)}")
-            return []
+        rows = self._execute_query("SELECT * FROM ADLABS.AHSAN.APPROVAL_LOGS ORDER BY ACTIONED_AT DESC LIMIT %s", (limit,))
+        logs = []
+        if rows:
+            for row in rows:
+                logs.append({
+                    'emp_id': row.get('EMP_ID'),
+                    'emp_name': row.get('EMP_NAME'),
+                    'request_type': row.get('REQUEST_TYPE'),
+                    'request_date': row.get('REQUEST_DATE').strftime('%Y-%m-%d') if getattr(row.get('REQUEST_DATE'), 'strftime', None) else str(row.get('REQUEST_DATE')),
+                    'status': row.get('STATUS'),
+                    'manager_name': row.get('MANAGER_NAME'),
+                    'actioned_at': row.get('ACTIONED_AT').strftime('%Y-%m-%d %H:%M:%S') if getattr(row.get('ACTIONED_AT'), 'strftime', None) else str(row.get('ACTIONED_AT'))
+                })
+        return logs
 
     def get_employee_records(self, emp_id, start_date, end_date):
-        """Get all WFH/Leave records for an employee within date range"""
+        rows = self._execute_query(
+            "SELECT * FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND REQUEST_DATE >= %s AND REQUEST_DATE <= %s ORDER BY REQUEST_DATE ASC",
+            (emp_id, start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
+        )
         records = []
-        
-        try:
-            current_date = start_date
-            while current_date <= end_date:
-                # Use helper to get structured path
-                filepath = self.get_daily_filepath(current_date)
+        if rows:
+            for row in rows:
+                req_date = row.get('REQUEST_DATE')
+                req_date_obj = req_date if isinstance(req_date, date) else datetime.strptime(str(req_date).split(' ')[0], '%Y-%m-%d').date()
                 
-                if os.path.exists(filepath):
-                    try:
-                        wb = load_workbook(filepath, data_only=True)
-                        ws = wb.active
-                        
-                        for row_num in range(2, ws.max_row + 1):
-                            file_emp_id = ws.cell(row=row_num, column=1).value
-                            
-                            # Determine if this row belongs to the employee
-                            if str(file_emp_id) == str(emp_id):
-                                status = ws.cell(row=row_num, column=7).value
-                                if status is None:
-                                    status = 'Approved' # Legacy default
-                                    
-                                records.append({
-                                    'date': current_date.strftime('%d-%b-%Y'),
-                                    'raw_date': current_date.strftime('%Y-%m-%d'),
-                                    'type': ws.cell(row=row_num, column=4).value,
-                                    'reason': ws.cell(row=row_num, column=5).value,
-                                    'timestamp': ws.cell(row=row_num, column=6).value,
-                                    'status': status
-                                })
-                    except:
-                        pass
-                
-                # Move to next day
-                from datetime import timedelta
-                current_date += timedelta(days=1)
-            
-            return records
-            
-        except Exception as e:
-            print(f"Error getting employee records: {str(e)}")
-            return []
+                records.append({
+                    'date': req_date_obj.strftime('%d-%b-%Y'),
+                    'raw_date': req_date_obj.strftime('%Y-%m-%d'),
+                    'type': row.get('REQUEST_TYPE'),
+                    'reason': row.get('REASON'),
+                    'timestamp': row.get('SUBMITTED_AT').strftime('%Y-%m-%d %H:%M:%S') if getattr(row.get('SUBMITTED_AT'), 'strftime', None) else str(row.get('SUBMITTED_AT')),
+                    'status': row.get('STATUS')
+                })
+        return records
 
     def add_employee(self, emp_name, emp_team, is_admin, is_manager, contract_type, contract_start_date, contract_end_date, total_leaves, password='SecurePass2026!'):
-        """Add a new employee to Emp_data.xlsx"""
-        try:
-            if not os.path.exists(self.emp_data_file):
-                raise FileNotFoundError("Employee data file not found")
+        """Add new employee to Snowflake"""
+        max_id_row = self._execute_query("SELECT MAX(EMP_ID) as M FROM ADLABS.AHSAN.EMPLOYEES", fetchone=True)
+        new_id = (max_id_row.get('M') or 0) + 1 if max_id_row else 1
+        
+        year_start = None
+        if contract_start_date:
+            try:
+                ys, _ = self.get_contract_year_window(contract_start_date)
+                year_start = ys.strftime('%Y-%m-%d') if ys else None
+            except: pass
             
-            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
-
-            # Ensure contract-year columns exist
-            for col, default in [('Leaves_This_Year', 0), ('Leaves_Carried_Forward', 0), ('Contract_Year_Start', '')]:
-                if col not in df.columns:
-                    df[col] = default
-            
-            # Generate new emp_id (max + 1)
-            new_id = int(df['emp_id'].max() + 1) if not df.empty else 1
-
-            # Compute the initial contract-year start for display
-            year_start_str = ''
-            if contract_start_date:
-                try:
-                    ys, _ = self.get_contract_year_window(contract_start_date)
-                    if ys:
-                        year_start_str = ys.strftime('%Y-%m-%d')
-                except Exception:
-                    pass
-            
-            new_emp = {
-                'emp_id': new_id,
-                'emp_name': emp_name,
-                'emp_team': emp_team,
-                'Total_leaves': total_leaves,
-                'Half_Day': 0,
-                'Leaves': 0,
-                'Leaves_This_Year': 0,
-                'Leaves_Carried_Forward': 0,
-                'Present': 0,
-                'Remaining_Leaves': total_leaves,
-                'is_admin': 1 if is_admin else 0,
-                'is_manager': 1 if is_manager else 0,
-                'WFH_count': 0,
-                'password': password,
-                'Contract_Type': contract_type,
-                'Contract_Start_Date': contract_start_date,
-                'Contract_End_Date': contract_end_date,
-                'Contract_Year_Start': year_start_str,
-            }
-            
-            # Append new row
-            df = pd.concat([df, pd.DataFrame([new_emp])], ignore_index=True)
-            
-            df.to_excel(self.emp_data_file, index=False, engine='openpyxl')
-            return new_id
-            
-        except Exception as e:
-            print(f"Error adding employee: {str(e)}")
-            raise Exception(f"Could not add employee: {str(e)}")
+        sql = """INSERT INTO ADLABS.AHSAN.EMPLOYEES (
+            EMP_ID, EMP_NAME, EMP_TEAM, PASSWORD, IS_ADMIN, IS_MANAGER, 
+            CONTRACT_START_DATE, TOTAL_LEAVES, REMAINING_LEAVES, LEAVES_THIS_YEAR, 
+            LEAVES_CARRIED_FORWARD, PHONE, CONTRACT_TYPE, CONTRACT_END_DATE, CONTRACT_YEAR_START
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+        
+        self._execute_query(sql, (
+            new_id, emp_name, emp_team, password, is_admin, is_manager, 
+            contract_start_date, total_leaves, total_leaves, 0, 
+            0, '', contract_type, contract_end_date, year_start
+        ), commit=True)
+        return new_id
 
     def update_employee(self, emp_id, emp_name, emp_team, is_admin, is_manager, contract_type, contract_start_date, contract_end_date, total_leaves, carried_forward=None, phone=None):
-        """Update an existing employee in Emp_data.xlsx"""
-        try:
-            if not os.path.exists(self.emp_data_file):
-                raise FileNotFoundError("Employee data file not found")
+        emp = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id,), fetchone=True)
+        if not emp: raise Exception("Employee not found")
+        
+        # Trigger recalculation of contract year if contract start date changed
+        old_csd = str(emp.get('CONTRACT_START_DATE') or '').strip()
+        new_csd = str(contract_start_date).strip() if contract_start_date else ''
+        year_start_nullify = ""
+        if new_csd != old_csd:
+            year_start_nullify = ", CONTRACT_YEAR_START = NULL"
             
-            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
-            
-            # Ensure contract-year columns exist
-            for col, default in [('Leaves_This_Year', 0), ('Leaves_Carried_Forward', 0), ('Contract_Year_Start', '')]:
-                if col not in df.columns:
-                    df[col] = default
-
-            # Find the row index
-            emp_idx = df.index[df['emp_id'] == int(emp_id)].tolist()
-            if not emp_idx:
-                raise Exception(f"Employee with ID {emp_id} not found")
-            
-            idx = emp_idx[0]
-            
-            # Prevent dtype crashing if empty excel columns were read as float64
-            for col in ['Contract_Type', 'Contract_Start_Date', 'Contract_End_Date', 'Contract_Year_Start']:
-                if col in df.columns and df[col].dtype == 'float64':
-                    df[col] = df[col].astype(object)
-            
-            df.at[idx, 'emp_name'] = str(emp_name) if emp_name else df.at[idx, 'emp_name']
-            df.at[idx, 'emp_team'] = str(emp_team) if emp_team else df.at[idx, 'emp_team']
-            df.at[idx, 'is_admin'] = 1 if is_admin else 0
-            df.at[idx, 'is_manager'] = 1 if is_manager else 0
-            df.at[idx, 'Contract_Type'] = str(contract_type) if contract_type else df.at[idx, 'Contract_Type']
-            
-            # If contract start date changed, we should reset the internal 'Contract_Year_Start'
-            # trigger so the system re-calculates the current contract year and rollover.
-            old_csd = str(df.at[idx, 'Contract_Start_Date']).strip()
-            new_csd = str(contract_start_date).strip() if contract_start_date else ''
-            
-            if contract_start_date: 
-                df.at[idx, 'Contract_Start_Date'] = new_csd
-                if new_csd != old_csd:
-                    # Date changed -> clear the calc'd year start to trigger re-rollover check
-                    df.at[idx, 'Contract_Year_Start'] = ''
-
-            if contract_end_date: df.at[idx, 'Contract_End_Date'] = str(contract_end_date)
-            
-            # Manual update of carried forward leaves
-            if carried_forward is not None:
-                df.at[idx, 'Leaves_Carried_Forward'] = float(carried_forward)
-
-            # Recalculate remaining leaves
-            # Remaining = (New Total + New Carried) - (Leaves Taken This Year)
-            old_total = df.at[idx, 'Total_leaves']
-            df.at[idx, 'Total_leaves'] = float(total_leaves)
-            
-            taken_this_year = float(df.at[idx, 'Leaves_This_Year']) if pd.notna(df.at[idx, 'Leaves_This_Year']) else 0
-            current_carried = float(df.at[idx, 'Leaves_Carried_Forward']) if pd.notna(df.at[idx, 'Leaves_Carried_Forward']) else 0
-            
-            # Ensure phone column exists
-            if 'phone' not in df.columns:
-                df['phone'] = ''
-
-            if 'phone' in df.columns and df['phone'].dtype == 'float64':
-                df['phone'] = df['phone'].astype(object)
-
-            df.at[idx, 'Remaining_Leaves'] = (float(total_leaves) + current_carried) - taken_this_year
-
-            # Save phone number if provided
-            if phone is not None:
-                df.at[idx, 'phone'] = str(phone).strip()
-
-            df.to_excel(self.emp_data_file, index=False, engine='openpyxl')
-            return True
-            
-        except Exception as e:
-            print(f"Error updating employee: {str(e)}")
-            raise Exception(f"Could not update employee: {str(e)}")
+        old_taken = float(emp.get('LEAVES_THIS_YEAR') or 0)
+        curr_carried = float(emp.get('LEAVES_CARRIED_FORWARD') or 0)
+        if carried_forward is not None:
+             curr_carried = float(carried_forward)
+             
+        new_rem = (float(total_leaves) + curr_carried) - old_taken
+        
+        sql = f"""UPDATE ADLABS.AHSAN.EMPLOYEES SET 
+            EMP_NAME = %s, EMP_TEAM = %s, IS_ADMIN = %s, IS_MANAGER = %s,
+            CONTRACT_TYPE = %s, CONTRACT_START_DATE = %s, CONTRACT_END_DATE = %s,
+            TOTAL_LEAVES = %s, LEAVES_CARRIED_FORWARD = %s, REMAINING_LEAVES = %s,
+            PHONE = COALESCE(%s, PHONE)
+            {year_start_nullify}
+            WHERE EMP_ID = %s
+        """
+        self._execute_query(sql, (
+            emp_name, emp_team, is_admin, is_manager, contract_type, contract_start_date, contract_end_date,
+            total_leaves, curr_carried, new_rem, phone, emp_id
+        ), commit=True)
+        return True
 
     def delete_employee(self, emp_id):
-        """Delete an employee from Emp_data.xlsx"""
-        try:
-            if not os.path.exists(self.emp_data_file):
-                raise FileNotFoundError("Employee data file not found")
-            
-            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
-            
-            # Remove employee row
-            df = df[df['emp_id'] != int(emp_id)]
-            
-            df.to_excel(self.emp_data_file, index=False, engine='openpyxl')
-            return True
-            
-        except Exception as e:
-            print(f"Error deleting employee: {str(e)}")
-            raise Exception(f"Could not delete employee: {str(e)}")
-
-    # ── WhatsApp / notification helpers ──────────────────────────────────────
+        self._execute_query("DELETE FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id,), commit=True)
+        return True
 
     def get_manager_for_team(self, team_name: str) -> dict:
-        """
-        Return the manager row for the given team as a dict, or {}.
-        The dict includes 'emp_name', 'phone' (if set), etc.
-        If the team has no dedicated manager the first admin is returned as fallback.
-        """
-        try:
-            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
-            # Ensure phone column exists
-            if 'phone' not in df.columns:
-                df['phone'] = ''
-
-            # 1. Look for a manager in the same team
-            team_managers = df[
-                (df['emp_team'].str.strip().str.lower() == str(team_name).strip().lower()) &
-                (df['is_manager'] == 1)
-            ]
-            if not team_managers.empty:
-                return team_managers.iloc[0].to_dict()
-
-            # 2. Fallback: any admin
-            admins = df[df['is_admin'] == 1]
-            if not admins.empty:
-                return admins.iloc[0].to_dict()
-
-            return {}
-        except Exception as e:
-            print(f"Error in get_manager_for_team: {e}")
-            return {}
-
+        mgr = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_TEAM = %s AND IS_MANAGER = TRUE LIMIT 1", (team_name,), fetchone=True)
+        if mgr: return self._map_employee(mgr)
+        
+        admin = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE IS_ADMIN = TRUE LIMIT 1", fetchone=True)
+        if admin: return self._map_employee(admin)
+        
+        return {}
+        
     def get_employee_phone(self, emp_id) -> str:
-        """Return the phone number stored for an employee, or empty string."""
-        try:
-            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
-            if 'phone' not in df.columns:
-                return ''
-            emp_row = df[df['emp_id'] == int(emp_id)]
-            if emp_row.empty:
-                return ''
-            phone = emp_row.iloc[0].get('phone', '')
-            return str(phone) if phone and not pd.isna(phone) else ''
-        except Exception as e:
-            print(f"Error in get_employee_phone: {e}")
-            return ''
+        emp = self._execute_query("SELECT PHONE FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id,), fetchone=True)
+        return str(emp.get('PHONE', '')) if emp else ''
 
     def get_all_managers(self) -> list:
-        """Return list of dicts for all managers (is_manager=1) with phone numbers."""
-        try:
-            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
-            if 'phone' not in df.columns:
-                df['phone'] = ''
-            managers = df[df['is_manager'] == 1]
-            return managers.to_dict('records')
-        except Exception as e:
-            print(f"Error in get_all_managers: {e}")
-            return []
+        rows = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE IS_MANAGER = TRUE")
+        return [self._map_employee(r) for r in rows] if rows else []
 
     def get_daily_attendance_summary(self, summary_date):
-        """
-        Build a per-team attendance summary for the given date.
-        Returns: {
-            'team_name': {
-                'wfh': [emp_name, ...],
-                'leave': [emp_name, ...],
-                'half_day': [emp_name, ...],
-                'no_request': [emp_name, ...]   # employees with no entry for the day
-            }, ...
-        }
-        """
-        try:
-            df = pd.read_excel(self.emp_data_file, engine='openpyxl')
-            filepath = self.get_daily_filepath(summary_date)
-
-            # Build a set of emp_ids who filed something for this date
-            filed_requests = {}   # emp_id → {'type': ..., 'status': ...}
-            if os.path.exists(filepath):
-                wb = load_workbook(filepath, data_only=True)
-                ws = wb.active
-                for row_num in range(2, ws.max_row + 1):
-                    emp_id = ws.cell(row=row_num, column=1).value
-                    if not emp_id:
-                        continue
-                    req_type = ws.cell(row=row_num, column=4).value
-                    status = ws.cell(row=row_num, column=7).value or 'Approved'
-                    # Only count non-cancelled / non-rejected requests
-                    if status in ('Approved', 'Pending'):
-                        filed_requests[str(emp_id)] = {
-                            'type': req_type,
-                            'status': status
-                        }
-
-            # Group employees by team
-            teams = {}
-            for _, row in df.iterrows():
-                team = str(row.get('emp_team', 'Unknown')).strip()
-                emp_id = str(row.get('emp_id', ''))
-                emp_name = str(row.get('emp_name', ''))
-                is_manager = row.get('is_manager', 0)
-                is_admin = row.get('is_admin', 0)
-
-                if team not in teams:
-                    teams[team] = {'wfh': [], 'leave': [], 'half_day': [], 'no_request': []}
-
-                if emp_id in filed_requests:
-                    req = filed_requests[emp_id]
-                    rtype = req['type']
-                    if rtype == 'WFH':
-                        teams[team]['wfh'].append(emp_name)
-                    elif rtype == 'Leave':
-                        teams[team]['leave'].append(emp_name)
-                    elif rtype == 'Half Day':
-                        teams[team]['half_day'].append(emp_name)
-                # If no request filed and it's a weekday, mark as no_request
-                # (Skip managers/admins from the "no request" list — they self-approve)
-                elif summary_date.weekday() < 5:
-                    # Don't flag managers/admins as absent
-                    if not is_manager and not is_admin:
-                        teams[team]['no_request'].append(emp_name)
-
-            return teams
-        except Exception as e:
-            print(f"Error in get_daily_attendance_summary: {e}")
-            return {}
-
+        teams = {}
+        all_emps = self.get_employees()
+        
+        # Initialize
+        for e in all_emps:
+            team = e.get('emp_team', 'Unknown')
+            if team not in teams:
+                teams[team] = {'wfh': [], 'leave': [], 'half_day': [], 'no_request': []}
+                
+        # Get requests for today
+        reqs = self._execute_query("SELECT EMP_ID, REQUEST_TYPE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE REQUEST_DATE = %s AND STATUS IN ('Approved', 'Pending')", (summary_date.strftime('%Y-%m-%d'),))
+        filed_by_emp = {}
+        if reqs:
+            for r in reqs:
+                filed_by_emp[str(r.get('EMP_ID'))] = r.get('REQUEST_TYPE')
+                
+        for e in all_emps:
+            team = e.get('emp_team', 'Unknown')
+            emp_id_str = str(e.get('emp_id'))
+            emp_name = e.get('emp_name')
+            is_mgr_adm = e.get('is_manager', 0) or e.get('is_admin', 0)
+            
+            if emp_id_str in filed_by_emp:
+                rtype = filed_by_emp[emp_id_str]
+                if rtype == 'WFH': teams[team]['wfh'].append(emp_name)
+                elif rtype == 'Leave': teams[team]['leave'].append(emp_name)
+                elif rtype == 'Half Day': teams[team]['half_day'].append(emp_name)
+            elif summary_date.weekday() < 5 and not is_mgr_adm:
+                teams[team]['no_request'].append(emp_name)
+                
+        return teams

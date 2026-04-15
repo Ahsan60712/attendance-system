@@ -1,266 +1,229 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
+{% block title %}Admin Dashboard - Adlab Solutions{% endblock %}
 
-<body>
-    <div class="dashboard-container">
-        <nav class="navbar">
-            <div class="nav-brand">Admin Portal</div>
-            <div class="nav-user">
-                <span>Admin: {{ admin_name }}</span>
-                <a href="{{ url_for('change_password') }}" class="btn btn-sm">Change Password</a>
-                <a href="{{ url_for('logout') }}" class="btn btn-sm">Logout</a>
-            </div>
-        </nav>
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 animate-in">
+    <h2 style="font-size: 1.5rem;">Welcome, <strong>Admin {{ admin_name }}</strong> 🛡️</h2>
+    <a href="{{ url_for('change_password') }}" class="btn btn-secondary btn-sm">
+        <i data-lucide="key" style="width:16px;height:16px;"></i> Change Password
+    </a>
+</div>
 
-        <div class="dashboard-content">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            {% for category, message in messages %}
-            <div class="alert alert-{{ category }}">{{ message }}</div>
-            {% endfor %}
-            {% endif %}
-            {% endwith %}
-
-            <div class="card">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h2>📢 Notifications for {{ current_date }}</h2>
-                    <div class="header-actions">
-                        <a href="{{ url_for('admin_whatsapp_settings') }}" class="btn btn-warning mr-2">📱 WhatsApp Settings</a>
-                        <a href="{{ url_for('add_employee_route') }}" class="btn btn-secondary mr-2">➕ Add Employee</a>
-                        <a href="{{ url_for('manage_employees_route') }}" class="btn btn-danger mr-2">🗑️ Remove
-                            Employee</a>
-                        <a href="{{ url_for('admin_performance_report') }}" class="btn btn-primary">🏆 View Performance
-                            Report</a>
-                    </div>
-                </div>
-
-                <form method="GET" class="filter-bar mb-3" style="display: inline-block;">
-                    <div class="form-row align-items-end">
-                        <div class="form-group mb-0">
-                            <label class="small-label">Select Date</label>
-                            <div class="d-flex">
-                                <input type="date" name="date" value="{{ current_date }}" class="form-control-sm mr-2">
-                                <button type="submit" class="btn btn-primary btn-sm">Go</button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-
-                {% if notifications %}
-                <div class="notifications-list">
-                    {% for notif in notifications %}
-                    <div class="notification-item">
-                        <div class="notif-header">
-                            <span class="badge badge-{{ notif.type.lower() }}">{{ notif.type }}</span>
-                            <span class="notif-date">{{ notif.date }}</span>
-                            {% if notif.status == 'Approved' %}
-                            <span style="margin-left:8px; color:#38a169; font-weight:600; font-size:0.8rem;">&#10004;
-                                Approved</span>
-                            {% elif notif.status == 'Rejected' %}
-                            <span style="margin-left:8px; color:#e53e3e; font-weight:600; font-size:0.8rem;">&#10006;
-                                Rejected</span>
-                            {% else %}
-                            <span style="margin-left:8px; color:#d97706; font-weight:600; font-size:0.8rem;">&#8987;
-                                Pending</span>
-                            {% endif %}
-                        </div>
-                        <div class="notif-body">
-                            <strong>{{ notif.emp_name }}</strong> ({{ notif.team }})
-                            <p>{{ notif.reason }}</p>
-                            <small>Submitted: {{ notif.timestamp }}</small>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <p class="text-muted">No recent notifications.</p>
-                {% endif %}
-            </div>
-
-            <!-- ===== APPROVALS LOG (Approved only) ===== -->
-            <div class="card mt-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h2>&#9989; Approved Requests</h2>
-                    <span class="text-muted small">Requests approved by Managers</span>
-                </div>
-
-                {% set approved_only = approval_log | selectattr('status', 'equalto', 'Approved') | list %}
-                {% if approved_only %}
-                <div class="table-responsive">
-                    <table class="table" style="font-size:0.92rem;">
-                        <thead>
-                            <tr>
-                                <th>Actioned At</th>
-                                <th>Employee</th>
-                                <th>Type</th>
-                                <th>For Date</th>
-                                <th>Manager</th>
-                                <th class="text-center">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for entry in approved_only %}
-                            <tr style="background:#f0fff4;">
-                                <td class="text-muted small">{{ entry.actioned_at }}</td>
-                                <td><strong>{{ entry.emp_name }}</strong></td>
-                                <td>
-                                    <span class="badge badge-{{ entry.request_type.lower() }}">{{ entry.request_type
-                                        }}</span>
-                                </td>
-                                <td>{{ entry.request_date }}</td>
-                                <td>{{ entry.manager_name }}</td>
-                                <td class="text-center">
-                                    <span style="color:#38a169; font-weight:700;">&#10004; Approved</span>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div style="text-align:center; padding:2rem; color:#718096;">
-                    <p style="font-size:1.5rem;">&#128203;</p>
-                    <p>No manager actions yet. Approved or rejected requests will appear here.</p>
-                </div>
-                {% endif %}
-            </div>
-
-            <div class="card mt-4">
-                <h2>View Employee Records</h2>
-                <form method="GET" action="" class="filter-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Select Employee</label>
-                            <select id="employee-select" onchange="updateEmployeeView()">
-                                <option value="">-- Select Employee --</option>
-                                {% for emp in employees %}
-                                <option value="{{ emp.emp_id }}">{{ emp.emp_name }} ({{ emp.emp_team }})</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                </form>
-
-                <div id="filter-options" class="mt-3" style="display:none;">
-                    <div class="filter-tabs">
-                        <button class="filter-tab active" onclick="showFilter('custom')">Custom Dates</button>
-                        <button class="filter-tab" onclick="showFilter('monthly')">Monthly</button>
-                        <button class="filter-tab" onclick="showFilter('yearly')">Yearly</button>
-                    </div>
-
-                    <div id="custom-filter" class="filter-panel">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>From Date</label>
-                                <input type="date" id="start-date" value="">
-                            </div>
-                            <div class="form-group">
-                                <label>To Date</label>
-                                <input type="date" id="end-date" value="">
-                            </div>
-                            <button class="btn btn-primary" onclick="applyFilter('custom')">View Records</button>
-                        </div>
-                    </div>
-
-                    <div id="monthly-filter" class="filter-panel" style="display:none;">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Month</label>
-                                <select id="month-select">
-                                    <option value="1">January</option>
-                                    <option value="2">February</option>
-                                    <option value="3">March</option>
-                                    <option value="4">April</option>
-                                    <option value="5">May</option>
-                                    <option value="6">June</option>
-                                    <option value="7">July</option>
-                                    <option value="8">August</option>
-                                    <option value="9">September</option>
-                                    <option value="10">October</option>
-                                    <option value="11">November</option>
-                                    <option value="12">December</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Year</label>
-                                <input type="number" id="year-monthly" value="2026" min="2020" max="2030">
-                            </div>
-                            <button class="btn btn-primary" onclick="applyFilter('monthly')">View Records</button>
-                        </div>
-                    </div>
-
-                    <div id="yearly-filter" class="filter-panel" style="display:none;">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Year</label>
-                                <input type="number" id="year-yearly" value="2026" min="2020" max="2030">
-                            </div>
-                            <button class="btn btn-primary" onclick="applyFilter('yearly')">View Records</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="card animate-in" style="animation-delay: 0.1s;">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-4">
+        <h2 class="mb-0 d-flex align-items-center gap-2"><i data-lucide="bell"></i> Notifications ({{ current_date }})</h2>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('admin_whatsapp_settings') }}" class="btn btn-secondary btn-sm"><i data-lucide="message-circle" style="width:16px;height:16px;"></i> WhatsApp Settings</a>
+            <a href="{{ url_for('add_employee_route') }}" class="btn btn-primary btn-sm"><i data-lucide="user-plus" style="width:16px;height:16px;"></i> Add Employee</a>
+            <a href="{{ url_for('manage_employees_route') }}" class="btn btn-danger btn-sm"><i data-lucide="user-minus" style="width:16px;height:16px;"></i> Remove Employee</a>
+            <a href="{{ url_for('admin_performance_report') }}" class="btn btn-secondary btn-sm"><i data-lucide="bar-chart-2" style="width:16px;height:16px;"></i> Performance Report</a>
         </div>
     </div>
 
-    <script>
-        function updateEmployeeView() {
-            const select = document.getElementById('employee-select');
-            const empId = select.value;
-            const filterOptions = document.getElementById('filter-options');
+    <form method="GET" class="mb-4 p-3" style="background: var(--light); border-radius: 12px; border: 1px solid var(--border); display: inline-block;">
+        <div class="d-flex align-items-end gap-2">
+            <div class="form-group mb-0">
+                <label class="text-muted small">Select Date</label>
+                <input type="date" name="date" value="{{ current_date }}" class="form-control-sm">
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Go</button>
+        </div>
+    </form>
 
-            if (empId) {
-                filterOptions.style.display = 'block';
-                // Set default dates
-                const today = new Date().toISOString().split('T')[0];
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                document.getElementById('start-date').value = thirtyDaysAgo.toISOString().split('T')[0];
-                document.getElementById('end-date').value = today;
-            } else {
-                filterOptions.style.display = 'none';
-            }
+    {% if notifications %}
+    <div class="notifications-list gap-2">
+        {% for notif in notifications %}
+        <div class="notification-item" style="border-left: 4px solid {% if notif.status == 'Approved' %}var(--success){% elif notif.status == 'Rejected' %}var(--danger){% else %}var(--warning){% endif %};">
+            <div class="notif-header">
+                <div>
+                    <span class="badge badge-{{ notif.type.lower().replace(' ', '-') }}">{{ notif.type }}</span>
+                    {% if notif.status == 'Approved' %}
+                    <span class="badge badge-approved" style="margin-left: 8px;">Approved</span>
+                    {% elif notif.status == 'Rejected' %}
+                    <span class="badge badge-rejected" style="margin-left: 8px;">Rejected</span>
+                    {% else %}
+                    <span class="badge badge-pending" style="margin-left: 8px;">Pending</span>
+                    {% endif %}
+                </div>
+                <span class="notif-date text-muted">{{ notif.date }}</span>
+            </div>
+            <div class="notif-body">
+                <div class="mb-2"><strong>{{ notif.emp_name }}</strong> <span class="text-muted small">({{ notif.team }})</span></div>
+                <p class="mb-2" style="background: var(--light); padding: 0.5rem 1rem; border-radius: 8px;">{{ notif.reason }}</p>
+                <small class="text-muted"><i data-lucide="clock" style="width: 12px; height: 12px; display: inline; vertical-align: middle;"></i> Submitted: {{ notif.timestamp }}</small>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="p-4 text-center text-muted" style="background: var(--light); border-radius: 12px;">
+        <i data-lucide="bell-off" style="width: 32px; height: 32px; opacity: 0.5; margin-bottom: 0.5rem;"></i>
+        <p>No recent notifications for this date.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- APPROVALS LOG -->
+<div class="card animate-in" style="animation-delay: 0.2s;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0 d-flex align-items-center gap-2"><i data-lucide="check-square"></i> Manager Actions (Approved)</h2>
+    </div>
+
+    {% set approved_only = approval_log | selectattr('status', 'equalto', 'Approved') | list %}
+    {% if approved_only %}
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Actioned At</th>
+                    <th>Employee</th>
+                    <th>Type</th>
+                    <th>For Date</th>
+                    <th>Manager</th>
+                    <th class="text-center">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in approved_only %}
+                <tr>
+                    <td class="text-muted small">{{ entry.actioned_at }}</td>
+                    <td><strong>{{ entry.emp_name }}</strong></td>
+                    <td><span class="badge badge-{{ entry.request_type.lower().replace(' ', '-') }}">{{ entry.request_type }}</span></td>
+                    <td>{{ entry.request_date }}</td>
+                    <td>{{ entry.manager_name }}</td>
+                    <td class="text-center"><span class="badge badge-approved"><i data-lucide="check" style="width:12px;height:12px;margin-right:4px;"></i> Approved</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="p-4 text-center text-muted" style="background: var(--light); border-radius: 12px;">
+        <i data-lucide="clipboard-list" style="width: 32px; height: 32px; opacity: 0.5; margin-bottom: 0.5rem;"></i>
+        <p>No manager actions yet. Approved requests will appear here.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Employee Records -->
+<div class="card animate-in" style="animation-delay: 0.3s;">
+    <h2 class="mb-4 d-flex align-items-center gap-2"><i data-lucide="users"></i> View Employee Records</h2>
+    <form method="GET" action="" class="filter-form">
+        <div class="form-group" style="max-width: 400px;">
+            <label>Select Employee</label>
+            <select id="employee-select" onchange="updateEmployeeView()" class="w-full">
+                <option value="">-- Select Employee --</option>
+                {% for emp in employees %}
+                <option value="{{ emp.emp_id }}">{{ emp.emp_name }} ({{ emp.emp_team }})</option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+
+    <div id="filter-options" class="mt-4" style="display:none; background: rgba(241, 245, 249, 0.5); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border);">
+        <div class="d-flex gap-2 mb-4">
+            <button class="btn btn-secondary btn-sm filter-tab active" onclick="showFilter('custom', event)">Custom Dates</button>
+            <button class="btn btn-secondary btn-sm filter-tab" onclick="showFilter('monthly', event)">Monthly</button>
+            <button class="btn btn-secondary btn-sm filter-tab" onclick="showFilter('yearly', event)">Yearly</button>
+        </div>
+
+        <div id="custom-filter" class="filter-panel">
+            <div class="d-flex gap-2 align-items-end flex-wrap">
+                <div class="form-group mb-0">
+                    <label class="small text-muted">From Date</label>
+                    <input type="date" id="start-date" value="" class="form-control-sm">
+                </div>
+                <div class="form-group mb-0">
+                    <label class="small text-muted">To Date</label>
+                    <input type="date" id="end-date" value="" class="form-control-sm">
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="applyFilter('custom')"><i data-lucide="search" style="width:14px;height:14px;"></i> View Records</button>
+            </div>
+        </div>
+
+        <div id="monthly-filter" class="filter-panel" style="display:none;">
+            <div class="d-flex gap-2 align-items-end">
+                <div class="form-group mb-0">
+                    <label class="small text-muted">Month</label>
+                    <select id="month-select" class="form-control-sm">
+                        <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+                        <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+                        <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+                        <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                    </select>
+                </div>
+                <div class="form-group mb-0">
+                    <label class="small text-muted">Year</label>
+                    <input type="number" id="year-monthly" value="2026" min="2020" max="2030" class="form-control-sm" style="width:80px;">
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="applyFilter('monthly')"><i data-lucide="search" style="width:14px;height:14px;"></i> View Records</button>
+            </div>
+        </div>
+
+        <div id="yearly-filter" class="filter-panel" style="display:none;">
+            <div class="d-flex gap-2 align-items-end">
+                <div class="form-group mb-0">
+                    <label class="small text-muted">Year</label>
+                    <input type="number" id="year-yearly" value="2026" min="2020" max="2030" class="form-control-sm">
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="applyFilter('yearly')"><i data-lucide="search" style="width:14px;height:14px;"></i> View Records</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateEmployeeView() {
+        const select = document.getElementById('employee-select');
+        const empId = select.value;
+        const filterOptions = document.getElementById('filter-options');
+
+        if (empId) {
+            filterOptions.style.display = 'block';
+            const today = new Date().toISOString().split('T')[0];
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            document.getElementById('start-date').value = thirtyDaysAgo.toISOString().split('T')[0];
+            document.getElementById('end-date').value = today;
+        } else {
+            filterOptions.style.display = 'none';
+        }
+    }
+
+    function showFilter(type, event) {
+        document.querySelectorAll('.filter-panel').forEach(p => p.style.display = 'none');
+        document.querySelectorAll('.filter-tab').forEach(t => {
+            t.classList.remove('btn-primary'); 
+            t.classList.add('btn-secondary');
+        });
+        
+        document.getElementById(type + '-filter').style.display = 'block';
+        if(event) {
+            event.target.classList.remove('btn-secondary');
+            event.target.classList.add('btn-primary');
+        }
+    }
+
+    function applyFilter(type) {
+        const empId = document.getElementById('employee-select').value;
+        if (!empId) return;
+
+        let url = `/admin/view-employee/${empId}?filter_type=${type}`;
+        if (type === 'custom') {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            url += `&start_date=${startDate}&end_date=${endDate}`;
+        } else if (type === 'monthly') {
+            const month = document.getElementById('month-select').value;
+            const year = document.getElementById('year-monthly').value;
+            url += `&month=${month}&year=${year}`;
+        } else if (type === 'yearly') {
+            const year = document.getElementById('year-yearly').value;
+            url += `&year=${year}`;
         }
 
-        function showFilter(type) {
-            // Hide all panels
-            document.querySelectorAll('.filter-panel').forEach(p => p.style.display = 'none');
-            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-
-            // Show selected panel
-            document.getElementById(type + '-filter').style.display = 'block';
-            event.target.classList.add('active');
-        }
-
-        function applyFilter(type) {
-            const empId = document.getElementById('employee-select').value;
-            if (!empId) return;
-
-            let url = `/admin/view-employee/${empId}?filter_type=${type}`;
-
-            if (type === 'custom') {
-                const startDate = document.getElementById('start-date').value;
-                const endDate = document.getElementById('end-date').value;
-                url += `&start_date=${startDate}&end_date=${endDate}`;
-            } else if (type === 'monthly') {
-                const month = document.getElementById('month-select').value;
-                const year = document.getElementById('year-monthly').value;
-                url += `&month=${month}&year=${year}`;
-            } else if (type === 'yearly') {
-                const year = document.getElementById('year-yearly').value;
-                url += `&year=${year}`;
-            }
-
-            window.location.href = url;
-        }
-    </script>
-</body>
-
-</html>
+        window.location.href = url;
+    }
+</script>
+{% endblock %}
