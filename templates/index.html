@@ -10,112 +10,128 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .landing-hero h1 {
-            font-size: 3rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            font-size: 3.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #fff 0%, var(--primary) 60%, var(--accent) 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 0.75rem;
+            letter-spacing: -1.5px;
         }
-        .landing-hero p {
-            color: var(--text-muted);
-            font-size: 1.15rem;
-            margin-bottom: 0;
+        
+        /* Ensure the landing page card matches our new design system */
+        .landing-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border-strong);
+            border-radius: var(--radius-xl);
+            padding: 4rem 3rem;
+            width: 100%;
+            max-width: 900px;
+            box-shadow: var(--shadow-lg), 0 0 60px rgba(124, 111, 247, 0.1);
+            animation: fadeSlideUp 0.8s ease both;
         }
+
         .portal-card {
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 2.5rem 2rem;
-            text-decoration: none;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 3rem 1.5rem 2rem;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 1.25rem;
             transition: var(--transition);
-            box-shadow: var(--shadow);
+            text-decoration: none;
             position: relative;
             overflow: hidden;
         }
-        .portal-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            border-radius: 4px 4px 0 0;
-        }
-        .portal-card.employee::before { background: linear-gradient(135deg, #667eea, #764ba2); }
-        .portal-card.manager::before { background: linear-gradient(135deg, #3b82f6, #06b6d4); }
-        .portal-card.admin::before { background: linear-gradient(135deg, #f97316, #ef4444); }
 
         .portal-card:hover {
             transform: translateY(-8px);
-            box-shadow: var(--shadow-lg);
+            border-color: var(--glass-border-strong);
+            box-shadow: var(--shadow-lg), 0 0 30px rgba(124, 111, 247, 0.2);
         }
+
         .portal-icon {
-            width: 72px;
-            height: 72px;
-            border-radius: 20px;
+            width: 80px;
+            height: 80px;
+            border-radius: 22px;
             display: flex;
             align-items: center;
             justify-content: center;
+            margin-bottom: 0.5rem;
+            transition: var(--transition);
         }
-        .portal-icon.emp-icon { background: linear-gradient(135deg, #ede9fe, #e0e7ff); color: #6366f1; }
-        .portal-icon.mgr-icon { background: linear-gradient(135deg, #dbeafe, #cffafe); color: #3b82f6; }
-        .portal-icon.adm-icon { background: linear-gradient(135deg, #ffedd5, #fee2e2); color: #f97316; }
 
-        .portal-card-title { font-size: 1.15rem; font-weight: 700; color: var(--dark); }
-        .portal-card-desc { font-size: 0.875rem; color: var(--text-muted); text-align: center; }
-        .portal-arrow {
-            width: 36px; height: 36px; border-radius: 50%;
-            background: var(--light); display: flex; align-items: center; justify-content: center;
-            color: var(--text-muted); transition: var(--transition);
+        .portal-card:hover .portal-icon {
+            transform: scale(1.1) rotate(5deg);
         }
-        .portal-card:hover .portal-arrow { background: var(--primary); color: white; }
+
+        .portal-card-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: 0.5px;
+        }
+
+        .portal-card-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        /* Portal specific glows */
+        .portal-card.employee:hover { border-color: rgba(124, 111, 247, 0.5); box-shadow: 0 0 40px rgba(124, 111, 247, 0.25); }
+        .portal-card.manager:hover { border-color: rgba(59, 130, 246, 0.5); box-shadow: 0 0 40px rgba(59, 130, 246, 0.25); }
+        .portal-card.admin:hover { border-color: rgba(6, 214, 160, 0.5); box-shadow: 0 0 40px rgba(6, 214, 160, 0.25); }
     </style>
 </head>
 
 <body>
     <div class="landing-container">
-        <div class="landing-card">
+        <div class="landing-card animate-in">
             <div class="landing-hero">
                 <h1>Adlab Solutions</h1>
-                <p>Attendance Management System</p>
+                <p>Modern Attendance Management System</p>
             </div>
 
             <div class="portal-buttons">
                 <a href="{{ url_for('employee_login') }}" class="portal-card employee">
                     <div class="portal-icon emp-icon">
-                        <i data-lucide="user" style="width:32px;height:32px;"></i>
+                        <i data-lucide="user" style="width:36px;height:36px;"></i>
                     </div>
                     <span class="portal-card-title">Employee Portal</span>
-                    <span class="portal-card-desc">Submit leave, WFH & half-day requests</span>
-                    <span class="portal-arrow"><i data-lucide="arrow-right" style="width:18px;height:18px;"></i></span>
+                    <span class="portal-card-desc">Log in to submit leaves, WFH, and track your attendance history.</span>
+                    <span class="portal-arrow"><i data-lucide="arrow-right" style="width:20px;height:20px;"></i></span>
                 </a>
 
                 <a href="{{ url_for('manager_login') }}" class="portal-card manager">
                     <div class="portal-icon mgr-icon">
-                        <i data-lucide="briefcase" style="width:32px;height:32px;"></i>
+                        <i data-lucide="briefcase" style="width:36px;height:36px;"></i>
                     </div>
                     <span class="portal-card-title">Manager Portal</span>
-                    <span class="portal-card-desc">Approve requests & view team history</span>
-                    <span class="portal-arrow"><i data-lucide="arrow-right" style="width:18px;height:18px;"></i></span>
+                    <span class="portal-card-desc">Review team requests, approve leaves, and monitor team performance.</span>
+                    <span class="portal-arrow"><i data-lucide="arrow-right" style="width:20px;height:20px;"></i></span>
                 </a>
 
                 <a href="{{ url_for('admin_login') }}" class="portal-card admin">
                     <div class="portal-icon adm-icon">
-                        <i data-lucide="settings" style="width:32px;height:32px;"></i>
+                        <i data-lucide="shield" style="width:36px;height:36px;"></i>
                     </div>
                     <span class="portal-card-title">Admin Portal</span>
-                    <span class="portal-card-desc">Manage employees & system settings</span>
-                    <span class="portal-arrow"><i data-lucide="arrow-right" style="width:18px;height:18px;"></i></span>
+                    <span class="portal-card-desc">Manage employee data, system settings, and generate global reports.</span>
+                    <span class="portal-arrow"><i data-lucide="arrow-right" style="width:20px;height:20px;"></i></span>
                 </a>
             </div>
         </div>
     </div>
-    <script>lucide.createIcons();</script>
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 
 </html>

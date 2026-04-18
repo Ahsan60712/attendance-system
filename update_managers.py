@@ -12,7 +12,7 @@ else:
     managers_data = [
         {'id': 5, 'name': 'Hafiz Zohaib', 'phone': '03365111740', 'team': 'Overstock'},
         {'id': 9, 'name': 'Sajeel Fasihi', 'phone': '03245494440', 'team': 'Poppi'},
-        {'id': 11, 'name': 'Hatif Javed', 'phone': '03365404410', 'team': 'LHM'}
+        {'id': 11, 'name': 'Hatif Javaid', 'phone': '03365404410', 'team': 'LHM'}
     ]
     
     # Ensure phone column is string type
