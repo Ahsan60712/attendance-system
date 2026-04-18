@@ -123,7 +123,7 @@ class SnowflakeDatabase:
         try:
             cur = conn.cursor()
             if request_type == 'WFH':
-                cur.execute("UPDATE ADLABS.AHSAN.EMPLOYEES SET TOTAL_LEAVES = TOTAL_LEAVES WHERE EMP_ID = %s", (emp_id,)) # Placeholder for WFH specific count if needed
+                cur.execute("UPDATE ADLABS.AHSAN.EMPLOYEES SET WFH_COUNT = COALESCE(WFH_COUNT, 0) + 1 WHERE EMP_ID = %s", (emp_id,))
             elif request_type == 'Leave':
                 cur.execute("UPDATE ADLABS.AHSAN.EMPLOYEES SET REMAINING_LEAVES = REMAINING_LEAVES - 1, LEAVES_THIS_YEAR = LEAVES_THIS_YEAR + 1 WHERE EMP_ID = %s", (emp_id,))
             elif request_type == 'Half Day':

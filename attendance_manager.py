@@ -234,7 +234,7 @@ class WFHLeaveManager:
 
     def refund_employee_counters(self, emp_id, request_type):
         if request_type == 'WFH':
-            pass # Currently WFH doesn't inherently deduct from a balance in EMPLOYEES table
+            self._execute_query("UPDATE ADLABS.AHSAN.EMPLOYEES SET WFH_COUNT = GREATEST(WFH_COUNT - 1, 0) WHERE EMP_ID = %s", (emp_id,), commit=True)
         elif request_type == 'Leave':
             self._execute_query("UPDATE ADLABS.AHSAN.EMPLOYEES SET REMAINING_LEAVES = REMAINING_LEAVES + 1, LEAVES_THIS_YEAR = GREATEST(LEAVES_THIS_YEAR - 1, 0) WHERE EMP_ID = %s", (emp_id,), commit=True)
         elif request_type == 'Half Day':
