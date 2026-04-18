@@ -1,114 +1,149 @@
 {% extends "base.html" %}
 
-{% block title %}WhatsApp Settings - Adlab Solutions{% endblock %}
+{% block title %}WhatsApp Controls - Adlab Solutions{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 animate-in">
-    <h2 style="font-size: 1.5rem;" class="d-flex align-items-center gap-2">
-        <i data-lucide="message-circle" style="width: 24px; height: 24px;"></i> WhatsApp Cloud API Controls
-    </h2>
-    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">
-        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back to Dashboard
-    </a>
-</div>
-
-<div class="stats-grid mb-4 animate-in" style="animation-delay: 0.1s;">
-    <!-- API CONFIGURATION -->
-    <div class="card w-full mb-0" style="padding-bottom: 2rem;">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="mb-0 d-flex align-items-center gap-2"><i data-lucide="settings"></i> API Configuration</h3>
-            <span class="badge {{ 'badge-approved' if enabled else 'badge-rejected' }}">
-                {{ 'ENABLED' if enabled else 'DISABLED' }}
-            </span>
+<div class="page-container">
+    <div class="header" style="margin-bottom: 2rem; border-radius: 12px; border: 1px solid var(--border);">
+        <h2 class="header-brand" style="margin: 0; display: flex; align-items: center; gap: 0.75rem;">
+            <i data-lucide="message-circle" size="24" style="color: #25d366;"></i> WhatsApp Cloud API Controls
+        </h2>
+        <div class="btn-group">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline">
+                <i data-lucide="arrow-left" size="18"></i> Back to Dashboard
+            </a>
         </div>
-        
-        <div class="d-flex flex-column gap-2 mb-4">
-            <div class="d-flex justify-content-between align-items-center p-3" style="background: var(--light); border-radius: 8px; border: 1px solid var(--border);">
-                <span class="font-weight-600 text-muted">Access Token</span>
-                <span class="font-family-mono badge {{ 'badge-approved' if token_set else 'badge-rejected' }}">{{ 'Configured' if token_set else 'Missing' }}</span>
-            </div>
-            <div class="d-flex justify-content-between align-items-center p-3" style="background: var(--light); border-radius: 8px; border: 1px solid var(--border);">
-                <span class="font-weight-600 text-muted">Phone Number ID</span>
-                <span class="font-family-mono badge {{ 'badge-approved' if phone_id_set else 'badge-rejected' }}">{{ 'Configured' if phone_id_set else 'Missing' }}</span>
-            </div>
-            <div class="d-flex justify-content-between align-items-center p-3" style="background: var(--light); border-radius: 8px; border: 1px solid var(--border);">
-                <span class="font-weight-600 text-muted">API Version</span>
-                <span class="font-family-mono badge badge-pending">{{ api_version }}</span>
-            </div>
-        </div>
-        <p class="text-muted small"><i data-lucide="info" style="width: 14px; height: 14px; vertical-align: middle;"></i> Update these values in your <code>.env</code> file.</p>
     </div>
 
-    <!-- SCHEDULED JOBS -->
-    <div class="card w-full mb-0" style="padding-bottom: 2rem;">
-        <h3 class="mb-4 d-flex align-items-center gap-2"><i data-lucide="clock"></i> Automation Schedule</h3>
-        
-        {% if scheduled_jobs %}
-            <div class="d-flex flex-column gap-3 mb-4">
-            {% for job in scheduled_jobs %}
-                <div class="p-3" style="background: #f8fafc; border-radius: 12px; border-left: 4px solid var(--primary);">
-                    <strong class="d-block mb-1">{{ job.name }}</strong>
-                    <div class="text-muted small mb-2"><i data-lucide="calendar" style="width: 12px; height: 12px; display: inline;"></i> Next Run: {{ job.next_run }}</div>
-                    <div class="badge badge-pending">{{ job.trigger }}</div>
+    <div class="dashboard-grid">
+        <!-- API CONFIGURATION CARD -->
+        <div class="card">
+            <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.5rem;">
+                <h3 class="card-title" style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.25rem;">
+                    <i data-lucide="settings" size="20"></i> API Configuration
+                </h3>
+                <span class="badge {{ 'badge-success' if enabled else 'badge-danger' }}">
+                    {{ 'ACTIVE' if enabled else 'INACTIVE' }}
+                </span>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <div style="padding: 1rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Access Token</div>
+                    <span class="badge {{ 'badge-success' if token_set else 'badge-danger' }}">{{ 'Configured' if token_set else 'Missing' }}</span>
                 </div>
-            {% endfor %}
+                <div style="padding: 1rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Phone Number ID</div>
+                    <span class="badge {{ 'badge-success' if phone_id_set else 'badge-danger' }}">{{ 'Configured' if phone_id_set else 'Missing' }}</span>
+                </div>
+                <div style="padding: 1rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">API Version</div>
+                    <span class="badge badge-primary">{{ api_version }}</span>
+                </div>
             </div>
-        {% else %}
-            <div class="p-4 text-center text-muted mb-4" style="background: var(--light); border-radius: 12px;">
-                <i data-lucide="calendar-x" style="width: 24px; height: 24px; opacity: 0.5; margin-bottom: 0.25rem;"></i>
-                <p>No active background jobs.</p>
-            </div>
-        {% endif %}
+            <p style="margin-top: 1.5rem; font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem;">
+                <i data-lucide="help-circle" size="14"></i> Configuration values are loaded from the environment file.
+            </p>
+        </div>
 
-        <div class="d-flex gap-2">
-            <form action="{{ url_for('admin_send_daily_summary') }}" method="POST" style="flex: 1; margin: 0;">
-                <button type="submit" class="btn btn-primary w-full"><i data-lucide="send" style="width: 16px; height: 16px;"></i> Trigger Summary Now</button>
-            </form>
-            <form action="{{ url_for('admin_send_absent_alert') }}" method="POST" style="flex: 1; margin: 0;">
-                <button type="submit" class="btn btn-danger w-full"><i data-lucide="alert-triangle" style="width: 16px; height: 16px;"></i> Trigger Absent Alert</button>
-            </form>
+        <!-- AUTOMATION SCHEDULE CARD -->
+        <div class="card">
+            <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.5rem;">
+                <h3 class="card-title" style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.25rem;">
+                    <i data-lucide="calendar-clock" size="20"></i> Automation Schedule
+                </h3>
+            </div>
+            
+            {% if scheduled_jobs %}
+                <div style="display: flex; flex-direction: column; gap: 1.25rem; margin-bottom: 2rem;">
+                {% for job in scheduled_jobs %}
+                    <div style="padding: 1.25rem; border: 1px solid var(--border); border-radius: 12px; background: white; border-left: 4px solid var(--primary); box-shadow: var(--shadow-sm);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                            <strong style="color: var(--text-main); font-size: 0.95rem;">{{ job.name }}</strong>
+                            <span class="badge badge-info" style="font-size: 0.7rem;">{{ job.trigger }}</span>
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i data-lucide="play-circle" size="14" style="color: var(--success);"></i> Next Run: <span style="font-weight: 600; color: var(--text-main);">{{ job.next_run }}</span>
+                        </div>
+                    </div>
+                {% endfor %}
+                </div>
+            {% else %}
+                <div style="padding: 3rem 1rem; text-align: center; background: #f8fafc; border: 1px dashed var(--border); border-radius: 12px; margin-bottom: 2rem;">
+                    <i data-lucide="calendar-x" size="24" style="opacity: 0.4; margin-bottom: 0.5rem;"></i>
+                    <p style="color: var(--text-muted); font-size: 0.85rem;">No active automation routines</p>
+                </div>
+            {% endif %}
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <form action="{{ url_for('admin_send_daily_summary') }}" method="POST" style="margin: 0;">
+                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; font-size: 0.8rem;">
+                        <i data-lucide="zap" size="14"></i> Force Summary
+                    </button>
+                </form>
+                <form action="{{ url_for('admin_send_absent_alert') }}" method="POST" style="margin: 0;">
+                    <button type="submit" class="btn btn-outline" style="width: 100%; justify-content: center; font-size: 0.8rem; border-color: #fca5a5; color: #b91c1c;">
+                        <i data-lucide="alert-octagon" size="14"></i> Trigger Alerts
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 
-<div class="card animate-in" style="animation-delay: 0.2s;">
-    <h3 class="mb-2 d-flex align-items-center gap-2"><i data-lucide="smartphone"></i> Manager Phone Directory</h3>
-    <p class="text-muted mb-4">These managers will receive the daily summaries and alerts for their respective teams.</p>
-    
-    <div class="stats-grid">
-        <div style="background: var(--light); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border);">
-            <h4 class="mb-3 d-flex align-items-center gap-2 text-success">
-                <i data-lucide="check-circle-2"></i> Configured ({{ managers_with_phone|length }})
-            </h4>
-            <div class="d-flex flex-column gap-2" style="max-height: 300px; overflow-y: auto; padding-right: 0.5rem;">
-                {% for mgr in managers_with_phone %}
-                    <div class="d-flex justify-content-between align-items-center p-3" style="background: white; border-radius: 8px; box-shadow: var(--shadow-sm);">
-                        <div>
-                            <strong>{{ mgr.emp_name }}</strong> <br>
-                            <small class="text-muted">{{ mgr.emp_team }}</small>
-                        </div>
-                        <span class="badge" style="background: #e0e7ff; color: #4338ca; font-family: monospace;">{{ mgr.phone }}</span>
-                    </div>
-                {% endfor %}
-            </div>
+    <!-- MANAGER DIRECTORY CARD -->
+    <div class="card" style="margin-top: 1rem;">
+        <div class="card-header" style="border: none; padding: 0; margin-bottom: 0.5rem;">
+            <h3 class="card-title" style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.25rem;">
+                <i data-lucide="users" size="20"></i> Manager Notification Directory
+            </h3>
         </div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 2.5rem;">Managers below will receive automatic summaries and attendance alerts for their teams via WhatsApp.</p>
         
-        <div style="background: var(--light); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border);">
-            <h4 class="mb-3 d-flex align-items-center gap-2 text-danger">
-                <i data-lucide="x-circle"></i> Missing Phone ({{ managers_without_phone|length }})
-            </h4>
-            <div class="d-flex flex-column gap-2" style="max-height: 300px; overflow-y: auto; padding-right: 0.5rem;">
-                {% for mgr in managers_without_phone %}
-                    <div class="d-flex justify-content-between align-items-center p-3" style="background: white; border-radius: 8px; box-shadow: var(--shadow-sm);">
-                        <div>
-                            <strong>{{ mgr.emp_name }}</strong> <br>
-                            <small class="text-muted">{{ mgr.emp_team }}</small>
+        <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; align-items: start;">
+            <!-- CONFIGURED -->
+            <div>
+                <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--success); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.4rem;">
+                    <i data-lucide="check-circle" size="16"></i> Active Receivers ({{ managers_with_phone|length }})
+                </h4>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    {% if managers_with_phone %}
+                        {% for mgr in managers_with_phone %}
+                        <div style="padding: 1rem; background: white; border: 1px solid var(--border); border-radius: 10px; display: flex; justify-content: space-between; align-items: center; transition: var(--transition);" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+                            <div>
+                                <div style="font-weight: 700; color: var(--text-main); font-size: 0.9rem;">{{ mgr.emp_name }}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ mgr.emp_team }} Team</div>
+                            </div>
+                            <span class="badge badge-outline" style="font-family: monospace; background: #f8fafc; border: 1px solid var(--border);">{{ mgr.phone }}</span>
                         </div>
-                        <a href="{{ url_for('edit_employee_route', emp_id=mgr.emp_id) }}" class="btn btn-sm btn-secondary">
-                            <i data-lucide="edit" style="width: 14px; height: 14px;"></i> Add Phone
-                        </a>
-                    </div>
-                {% endfor %}
+                        {% endfor %}
+                    {% else %}
+                        <div style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">No managers configured yet.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- MISSING -->
+            <div>
+                <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--danger); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.4rem;">
+                    <i data-lucide="alert-circle" size="16"></i> Missing Details ({{ managers_without_phone|length }})
+                </h4>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    {% if managers_without_phone %}
+                        {% for mgr in managers_without_phone %}
+                        <div style="padding: 1rem; background: #fff1f2; border: 1px solid #fecaca; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: 700; color: #991b1b; font-size: 0.9rem;">{{ mgr.emp_name }}</div>
+                                <div style="font-size: 0.75rem; color: #b91c1c;">{{ mgr.emp_team }} Team</div>
+                            </div>
+                            <a href="{{ url_for('edit_employee_route', emp_id=mgr.emp_id) }}" class="btn btn-outline" style="padding: 0.4rem 0.75rem; font-size: 0.75rem; background: white; border-color: #fca5a5; color: #b91c1c;">
+                                Update
+                            </a>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">All managers are configured.</div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
