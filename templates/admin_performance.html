@@ -3,61 +3,65 @@
 {% block title %}Performance Report - Adlab Solutions{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 animate-in">
-    <h2 style="font-size: 1.5rem;" class="d-flex align-items-center gap-2">
-        <i data-lucide="bar-chart-2" style="width: 24px; height: 24px;"></i> Employee Performance Report
-    </h2>
-    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">
-        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back to Dashboard
-    </a>
-</div>
+<div class="page-container">
+    <div class="header" style="margin-bottom: 2rem; border-radius: 12px; border: 1px solid var(--border);">
+        <h2 class="header-brand" style="margin: 0; display: flex; align-items: center; gap: 0.75rem;">
+            <i data-lucide="bar-chart-2"></i> Employee Performance Report
+        </h2>
+        <div class="btn-group">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline">
+                <i data-lucide="arrow-left" size="18"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
 
-<div class="card animate-in" style="animation-delay: 0.1s;">
-    <p class="text-muted mb-4 d-flex align-items-center gap-2">
-        <i data-lucide="info" style="width: 16px; height: 16px;"></i> Overview of WFH and Leave statistics for all employees to help identify top performers and track utilization.
-    </p>
+    <div class="card">
+        <p class="text-secondary" style="font-size: 0.95rem; margin-bottom: 2rem;">
+            Detailed overview of WFH and Leave statistics for all employees to track utilization and policy compliance.
+        </p>
 
-    <div class="table-container mt-4">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Employee Name</th>
-                    <th>Team</th>
-                    <th class="text-center">WFH Days</th>
-                    <th class="text-center">Allowed</th>
-                    <th class="text-center">Carried</th>
-                    <th class="text-center">Taken</th>
-                    <th class="text-center">Remaining</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for emp in employees %}
-                <tr>
-                    <td><strong>{{ emp.emp_name }}</strong></td>
-                    <td><span class="badge" style="background: var(--light); color: var(--text);">{{ emp.emp_team }}</span></td>
-                    <td class="text-center">
-                        <span class="badge" style="background: #e0e7ff; color: #4338ca;">{{ emp.WFH_count|default(0) }}</span>
-                    </td>
-                    <td class="text-center">
-                        <span class="badge" style="background: #f1f5f9; color: #475569;">{{ emp.Total_leaves|default(14) }}</span>
-                    </td>
-                    <td class="text-center">
-                        <span class="badge" style="color: var(--success); background: #dcfce7;">{{ emp.Leaves_Carried_Forward|default(0) }}</span>
-                    </td>
-                    <td class="text-center">
-                        <span class="badge" style="{% if emp.Leaves_This_Year > 10 %}background: #fee2e2; color: #991b1b;{% else %}background: #f1f5f9; color: #475569;{% endif %}">
-                            {{ emp.Leaves_This_Year|default(0) }}
-                        </span>
-                    </td>
-                    <td class="text-center">
-                        <span class="badge" style="{% if emp.Remaining_Leaves > 10 %}background: #dcfce7; color: #166534;{% else %}background: #fef08a; color: #854d0e;{% endif %}">
-                            {{ emp.Remaining_Leaves|default(0) }}
-                        </span>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee Name</th>
+                        <th>Team</th>
+                        <th style="text-align: center;">WFH Days</th>
+                        <th style="text-align: center;">Allowed</th>
+                        <th style="text-align: center;">Carried</th>
+                        <th style="text-align: center;">Taken</th>
+                        <th style="text-align: center;">Remaining</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in employees %}
+                    <tr>
+                        <td style="font-weight: 600;">{{ emp.emp_name }}</td>
+                        <td><span class="badge badge-outline">{{ emp.emp_team }}</span></td>
+                        <td style="text-align: center;">
+                            <span class="badge badge-primary">{{ emp.WFH_count|default(0) }}</span>
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="badge badge-info">{{ emp.Total_leaves|default(14) }}</span>
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="badge badge-success">{{ emp.Leaves_Carried_Forward|default(0) }}</span>
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="badge {% if emp.Leaves_This_Year > 10 %}badge-danger{% else %}badge-outline{% endif %}">
+                                {{ emp.Leaves_This_Year|default(0) }}
+                            </span>
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="badge {% if emp.Remaining_Leaves > 10 %}badge-success{% elif emp.Remaining_Leaves > 5 %}badge-warning{% else %}badge-danger{% endif %}">
+                                {{ emp.Remaining_Leaves|default(0) }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}

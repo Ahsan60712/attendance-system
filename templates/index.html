@@ -5,126 +5,83 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Adlab Solutions - Attendance Management</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=2.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=3.0">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        .landing-hero h1 {
-            font-size: 3.5rem;
-            font-weight: 900;
-            background: linear-gradient(135deg, #fff 0%, var(--primary) 60%, var(--accent) 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.75rem;
-            letter-spacing: -1.5px;
-        }
-        
-        /* Ensure the landing page card matches our new design system */
-        .landing-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
-            border: 1px solid var(--glass-border-strong);
-            border-radius: var(--radius-xl);
-            padding: 4rem 3rem;
-            width: 100%;
-            max-width: 900px;
-            box-shadow: var(--shadow-lg), 0 0 60px rgba(124, 111, 247, 0.1);
-            animation: fadeSlideUp 0.8s ease both;
-        }
-
-        .portal-card {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--radius-lg);
-            padding: 3rem 1.5rem 2rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1.25rem;
-            transition: var(--transition);
-            text-decoration: none;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .portal-card:hover {
-            transform: translateY(-8px);
-            border-color: var(--glass-border-strong);
-            box-shadow: var(--shadow-lg), 0 0 30px rgba(124, 111, 247, 0.2);
-        }
-
-        .portal-icon {
-            width: 80px;
-            height: 80px;
-            border-radius: 22px;
+        .landing-container {
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 0.5rem;
-            transition: var(--transition);
+            padding: 2rem;
+            background-color: #f1f5f9;
         }
-
-        .portal-card:hover .portal-icon {
-            transform: scale(1.1) rotate(5deg);
+        .portal-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 3rem;
         }
-
-        .portal-card-title {
-            font-size: 1.25rem;
-            font-weight: 800;
-            color: var(--text-primary);
-            letter-spacing: 0.5px;
+        .portal-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: inherit;
         }
-
-        .portal-card-desc {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            text-align: center;
-            line-height: 1.5;
+        .portal-icon-wrapper {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            transition: all 0.2s ease;
         }
-
-        /* Portal specific glows */
-        .portal-card.employee:hover { border-color: rgba(124, 111, 247, 0.5); box-shadow: 0 0 40px rgba(124, 111, 247, 0.25); }
-        .portal-card.manager:hover { border-color: rgba(59, 130, 246, 0.5); box-shadow: 0 0 40px rgba(59, 130, 246, 0.25); }
-        .portal-card.admin:hover { border-color: rgba(6, 214, 160, 0.5); box-shadow: 0 0 40px rgba(6, 214, 160, 0.25); }
+        .portal-item:hover .portal-icon-wrapper {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+        .emp-bg { background-color: #eef2ff; color: #4f46e5; }
+        .mgr-bg { background-color: #f0fdf4; color: #10b981; }
+        .adm-bg { background-color: #fff7ed; color: #f97316; }
+        
+        .portal-title { font-weight: 700; font-size: 1.1rem; }
+        .portal-subtitle { font-size: 0.85rem; color: #64748b; text-align: center; margin-top: 0.5rem; }
     </style>
 </head>
 
 <body>
     <div class="landing-container">
-        <div class="landing-card animate-in">
-            <div class="landing-hero">
-                <h1>Adlab Solutions</h1>
-                <p>Modern Attendance Management System</p>
-            </div>
+        <div class="landing-card">
+            <h1>Adlab Solutions</h1>
+            <p style="color: #64748b; font-size: 1.1rem;">Attendance & Leave Management Portal</p>
 
-            <div class="portal-buttons">
-                <a href="{{ url_for('employee_login') }}" class="portal-card employee">
-                    <div class="portal-icon emp-icon">
-                        <i data-lucide="user" style="width:36px;height:36px;"></i>
+            <div class="portal-grid">
+                <a href="{{ url_for('employee_login') }}" class="portal-item">
+                    <div class="portal-icon-wrapper emp-bg">
+                        <i data-lucide="users" size="32"></i>
                     </div>
-                    <span class="portal-card-title">Employee Portal</span>
-                    <span class="portal-card-desc">Log in to submit leaves, WFH, and track your attendance history.</span>
-                    <span class="portal-arrow"><i data-lucide="arrow-right" style="width:20px;height:20px;"></i></span>
+                    <span class="portal-title">Employee</span>
+                    <span class="portal-subtitle">Apply for WFH & Leaves</span>
                 </a>
 
-                <a href="{{ url_for('manager_login') }}" class="portal-card manager">
-                    <div class="portal-icon mgr-icon">
-                        <i data-lucide="briefcase" style="width:36px;height:36px;"></i>
+                <a href="{{ url_for('manager_login') }}" class="portal-item">
+                    <div class="portal-icon-wrapper mgr-bg">
+                        <i data-lucide="briefcase" size="32"></i>
                     </div>
-                    <span class="portal-card-title">Manager Portal</span>
-                    <span class="portal-card-desc">Review team requests, approve leaves, and monitor team performance.</span>
-                    <span class="portal-arrow"><i data-lucide="arrow-right" style="width:20px;height:20px;"></i></span>
+                    <span class="portal-title">Manager</span>
+                    <span class="portal-subtitle">Approve team requests</span>
                 </a>
 
-                <a href="{{ url_for('admin_login') }}" class="portal-card admin">
-                    <div class="portal-icon adm-icon">
-                        <i data-lucide="shield" style="width:36px;height:36px;"></i>
+                <a href="{{ url_for('admin_login') }}" class="portal-item">
+                    <div class="portal-icon-wrapper adm-bg">
+                        <i data-lucide="shield-check" size="32"></i>
                     </div>
-                    <span class="portal-card-title">Admin Portal</span>
-                    <span class="portal-card-desc">Manage employee data, system settings, and generate global reports.</span>
-                    <span class="portal-arrow"><i data-lucide="arrow-right" style="width:20px;height:20px;"></i></span>
+                    <span class="portal-title">Administrator</span>
+                    <span class="portal-subtitle">System settings & Users</span>
                 </a>
             </div>
         </div>

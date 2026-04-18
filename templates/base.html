@@ -5,54 +5,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Adlab Solutions{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=2.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=3.0">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .flash-messages {
+            max-width: 1280px;
+            margin: 1rem auto 0;
+            padding: 0 2rem;
+        }
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .alert-success { background-color: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .alert-danger { background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    </style>
 </head>
 
 <body>
-    <div class="container">
-        {% if session.get('logged_in') %}
-        <header class="header">
-            <div class="header-content">
-                <a href="/" class="logo">
-                    <i data-lucide="clipboard-check"></i>
-                    <span>Adlab Solutions</span>
-                </a>
-                <div class="nav-user">
-                    <span class="username">
-                        <i data-lucide="user"></i>
-                        {{ session.get('username') }}
-                    </span>
-                    <a href="{{ url_for('logout') }}" class="btn btn-danger btn-sm">
-                        <i data-lucide="log-out"></i>
-                        Logout
-                    </a>
-                </div>
+    {% if session.get('logged_in') %}
+    <header class="header">
+        <a href="/" class="header-brand" style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="clipboard-check"></i>
+            <span>Adlab Solutions</span>
+        </a>
+        <div class="btn-group">
+            <div style="font-size: 0.875rem; font-weight: 600; color: var(--text-secondary); margin-right: 1rem; display: flex; align-items: center; gap: 0.4rem;">
+                <i data-lucide="user" size="16"></i> {{ session.get('emp_name') }}
             </div>
-        </header>
+            <a href="{{ url_for('logout') }}" class="btn btn-outline" style="color: var(--danger); border-color: #fecaca;">
+                <i data-lucide="log-out" size="16"></i> Logout
+            </a>
+        </div>
+    </header>
+    {% endif %}
+
+    <div class="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+            {{ message }}
+        </div>
+        {% endfor %}
         {% endif %}
-
-        <main class="main-content">
-            <div class="dashboard-content">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                {% for category, message in messages %}
-                <div class="alert alert-{{ category }} animate-in">
-                    {{ message }}
-                </div>
-                {% endfor %}
-                {% endif %}
-                {% endwith %}
-
-                {% block content %}{% endblock %}
-            </div>
-        </main>
-
-        <footer class="footer" style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.875rem;">
-            <p>&copy; 2026 Adlab Solutions • Attendance Management System</p>
-        </footer>
+        {% endwith %}
     </div>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer style="text-align: center; padding: 3rem; color: #94a3b8; font-size: 0.85rem; border-top: 1px solid #e2e8f0; margin-top: 4rem;">
+        <p>&copy; 2026 Adlab Solutions • Attendance Management System</p>
+    </footer>
+
     <script>
         lucide.createIcons();
     </script>
