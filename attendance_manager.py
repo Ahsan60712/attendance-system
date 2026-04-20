@@ -321,12 +321,12 @@ class WFHLeaveManager:
 
     def get_pending_requests(self, days_back=30, days_forward=365, req_status='Pending'):
         query = """
-        SELECT r.*, e.EMP_NAME, e.EMP_TEAM 
-        FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS r
-        JOIN ADLABS.AHSAN.EMPLOYEES e ON r.EMP_ID = e.EMP_ID
-        WHERE r.STATUS = %s
-        ORDER BY r.SUBMITTED_AT DESC
-        """
+                SELECT r.*, e.EMP_NAME, e.EMP_TEAM as team
+                FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS r
+                JOIN ADLABS.AHSAN.EMPLOYEES e ON r.EMP_ID = e.EMP_ID
+                WHERE r.STATUS = 'Pending'
+                ORDER BY r.REQUEST_ID DESC
+                """
         rows = self._execute_query(query, (req_status,))
         
         requests_list = []

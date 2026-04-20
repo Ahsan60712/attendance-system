@@ -298,21 +298,34 @@ def mark_request():
             flash('Reason is required', 'error')
             return redirect(url_for(redirect_target))
         
+        # --- DEEP DEBUG ---
+        print(f"[DEBUG] Raw Date: {start_date_str}, Raw End Date: {end_date_str}")
+        
         start_date = date.fromisoformat(start_date_str)
         today = date.today()
         
         # --- PAST DATE RESTRICTION ---
         if start_date < today:
-            flash('Error: You cannot apply for a past date.', 'error')
+            flash(f'Error: Date {start_date_str} is in the past.', 'error')
             return redirect(url_for(redirect_target))
             
-        if end_date_str and end_date_str.strip() and end_date_str != start_date_str:
-            end_date = date.fromisoformat(end_date_str)
-            if end_date < start_date:
-                flash(f'Error: End date ({end_date_str}) is before Start date ({start_date_str})', 'error')
-                return redirect(url_for(redirect_target))
+        # Determine end_date safely
+        if end_date_str and len(end_date_str.strip()) > 5:
+            try:
+                end_date = date.fromisoformat(end_date_str)
+                if end_date < start_date:
+                    # Only flash if it's really a range and really wrong
+                    if request_type == 'Leave': 
+                        flash(f'Error: End date ({end_date_str}) cannot be before {start_date_str}', 'error')
+                        return redirect(url_for(redirect_target))
+                    else:
+                        end_date = start_date # Ignore for HD/WFH
+            except:
+                end_date = start_date
         else:
             end_date = start_date
+
+        print(f"[DEBUG] Final Range: {start_date} to {end_date}")
 
         # Handle date range
         dates_to_mark = []
