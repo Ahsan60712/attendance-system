@@ -302,30 +302,30 @@ def mark_request():
         print(f"[DEBUG] Raw Date: {start_date_str}, Raw End Date: {end_date_str}")
         
         start_date = date.fromisoformat(start_date_str)
-        today = date.today()
+        
+        # --- TIMEZONE FIX: Use UTC+5 for Today's Date (Pakistan/User Time) ---
+        from datetime import timezone
+        today = (datetime.now(timezone.utc) + timedelta(hours=5)).date()
         
         # --- PAST DATE RESTRICTION ---
         if start_date < today:
-            flash(f'Error: Date {start_date_str} is in the past.', 'error')
+            print(f"[DEBUG] Blocking Past Date: Start {start_date} < Today {today}")
+            flash(f'Error: You cannot apply for a past date. Today is {today.strftime("%d %b %Y")}.', 'error')
             return redirect(url_for(redirect_target))
             
-        # Determine end_date safely
+        # Determine end_date safely with auto-correction
         if end_date_str and len(end_date_str.strip()) > 5:
             try:
                 end_date = date.fromisoformat(end_date_str)
+                # Auto-correction instead of error!
                 if end_date < start_date:
-                    # Only flash if it's really a range and really wrong
-                    if request_type == 'Leave': 
-                        flash(f'Error: End date ({end_date_str}) cannot be before {start_date_str}', 'error')
-                        return redirect(url_for(redirect_target))
-                    else:
-                        end_date = start_date # Ignore for HD/WFH
+                    end_date = start_date
             except:
                 end_date = start_date
         else:
             end_date = start_date
 
-        print(f"[DEBUG] Final Range: {start_date} to {end_date}")
+        print(f"[DEBUG] Range Accepted: {start_date} to {end_date} (Today is {today})")
 
         # Handle date range
         dates_to_mark = []
