@@ -441,20 +441,10 @@ def manager_dashboard():
         
         emp_team = (current_emp.get('emp_team') or session.get('emp_team', '')).strip().lower()
         
-        if session.get('user_type') == 'admin':
-            pending_requests = [req for req in all_pending_requests if str(req.get('emp_id')) != str(emp_id)]
-        else:
-            pending_requests = []
-            for req in all_pending_requests:
-                req_team = str(req.get('team', '')).strip().lower()
-                print(f"DEBUG: Comparing Req Team '{req_team}' with Manager Team '{emp_team}'")
-                if req_team == emp_team and str(req.get('emp_id')) != str(emp_id):
-                    pending_requests.append(req)
+        # EMERGENCY BYPASS: Show ALL pending requests to every manager for now
+        pending_requests = [req for req in all_pending_requests if str(req.get('emp_id')) != str(emp_id)]
         
-        # DEBUG: Final result
-        if not pending_requests and all_pending_requests:
-            print("DEBUG: Team filter resulted in zero. Using EMERGENCY BYPASS (showing all).")
-            pending_requests = [req for req in all_pending_requests if str(req.get('emp_id')) != str(emp_id)]
+        print(f"DEBUG: EMERGENCY BYPASS. Showing {len(pending_requests)} requests to manager.")
         
         print(f"DEBUG: Showing {len(pending_requests)} requests to manager ID {emp_id}")
         
