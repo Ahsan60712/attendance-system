@@ -324,7 +324,7 @@ class WFHLeaveManager:
                 SELECT r.*, e.EMP_NAME, e.EMP_TEAM as team
                 FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS r
                 JOIN ADLABS.AHSAN.EMPLOYEES e ON r.EMP_ID = e.EMP_ID
-                WHERE r.STATUS = 'Pending'
+                WHERE r.STATUS = %s
                 ORDER BY r.REQUEST_ID DESC
                 """
         rows = self._execute_query(query, (req_status,))
