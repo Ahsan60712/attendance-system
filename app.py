@@ -306,10 +306,10 @@ def mark_request():
             flash('Error: You cannot apply for a past date.', 'error')
             return redirect(url_for(redirect_target))
             
-        if end_date_str and end_date_str.strip():
+        if end_date_str and end_date_str.strip() and end_date_str != start_date_str:
             end_date = date.fromisoformat(end_date_str)
             if end_date < start_date:
-                flash('End date cannot be before start date', 'error')
+                flash(f'Error: End date ({end_date_str}) is before Start date ({start_date_str})', 'error')
                 return redirect(url_for(redirect_target))
         else:
             end_date = start_date
