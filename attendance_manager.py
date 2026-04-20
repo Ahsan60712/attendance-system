@@ -247,27 +247,39 @@ class WFHLeaveManager:
     def mark_wfh_leave(self, emp_id, emp_name, emp_team, date, request_type, reason, status='Pending', manager_name=''):
         date_str = date.strftime('%Y-%m-%d') if hasattr(date, 'strftime') else str(date)
         
-        # --- OVERWRITE LOGIC: Aggressive Clean ---
+        print(f"[OVERWRITE DEBUG] Checking for {emp_name} (ID: {emp_id}) on {date_str}...")
+        
+        # --- AGGRESSIVE OVERWRITE LOGIC ---
+        # 1. Identify previous entry
         existing = self._execute_query(
-            "SELECT STATUS, REQUEST_TYPE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND REQUEST_DATE = %s AND STATUS IN ('Pending', 'Approved')",
+            "SELECT STATUS, REQUEST_TYPE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND TO_DATE(REQUEST_DATE) = TO_DATE(%s)",
             (emp_id, date_str), fetchone=True
         )
         
         if existing:
-            status_val = existing.get('STATUS')
-            type_val = existing.get('REQUEST_TYPE')
+            # Snowflake columns are usually returned in UPPERCASE
+            status_val = existing.get('STATUS') or existing.get('status')
+            type_val = existing.get('REQUEST_TYPE') or existing.get('request_type')
             
+            print(f"[OVERWRITE DEBUG] Found existing: {type_val} ({status_val}). Refunding and Deleting...")
+            
+            # Refund if it was approved
             if status_val == 'Approved':
                 self.refund_employee_counters(emp_id, type_val)
             
-            # Use a very specific DELETE
-            self._execute_query(
-                "DELETE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND REQUEST_DATE = %s AND STATUS IN ('Pending', 'Approved')",
+            # 2. Delete ALL existing records for this user on this date
+            del_result = self._execute_query(
+                "DELETE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND TO_DATE(REQUEST_DATE) = TO_DATE(%s)",
                 (emp_id, date_str), commit=True
             )
+            print(f"[OVERWRITE DEBUG] Delete result: {del_result}")
+        else:
+            print(f"[OVERWRITE DEBUG] No existing record found for {date_str}")
 
-        # Proceed to save the new request
+        # 3. Proceed to save the new request
         success = self.db.mark_request(emp_id, date_str, request_type, reason, status, manager_name if status == 'Approved' else None)
+        print(f"[OVERWRITE DEBUG] Insert new {request_type} success: {success}")
+        
         if not success: raise Exception("Failed to save request to Snowflake.")
         
         if status == 'Approved':
