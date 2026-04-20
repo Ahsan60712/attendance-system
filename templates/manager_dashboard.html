@@ -3,86 +3,140 @@
 {% block title %}Manager Dashboard - Adlab Solutions{% endblock %}
 
 {% block content %}
-<div style="background: red; color: white; padding: 1rem; text-align: center; font-weight: 800; border-radius: 8px; margin-bottom: 2rem;">
-    !!! SERVER-CODE-LINKED [V1.0] !!!
-</div>
 <div class="card" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; margin-bottom: 2rem;">
     <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Manager Portal: {{ manager_name }}</h1>
-    <p style="opacity: 0.9;">Team <strong>{{ emp_data.emp_team }}</strong> • Requests Overview</p>
+    <p style="opacity: 0.9;">Team <strong>{{ emp_data.emp_team }}</strong> • System Management</p>
 </div>
 
-<!-- SIMPLE STATS -->
-<div class="stats-grid">
-    <div class="stat-card">
-        <span class="value">{{ requests|length }}</span>
-        <span class="label">Pending Now</span>
-    </div>
-    <div class="stat-card">
-        <span class="value">{{ emp_data.emp_team }}</span>
-        <span class="label">Team</span>
-    </div>
-    <div class="stat-card">
-        <span class="value">{{ leave_balance.remaining_leaves }}</span>
-        <span class="label">My Balance</span>
-    </div>
+<!-- Tabs Navigation -->
+<div style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
+    <button onclick="showTab('requests-tab')" class="tab-btn active-tab" id="btn-requests">
+        <i data-lucide="users" size="18"></i> Every Request ({{ requests|length }})
+    </button>
+    <button onclick="showTab('apply-tab')" class="tab-btn" id="btn-apply">
+        <i data-lucide="plus-circle" size="18"></i> Personal Apply
+    </button>
 </div>
 
-<!-- DATA TABLE (DIRECT) -->
-<div class="card">
-    <h3 style="margin-bottom: 1.5rem;"><i data-lucide="inbox"></i> Team Pending Requests</h3>
-    <div class="table-wrapper">
-        {% if requests %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Employee</th>
-                    <th>Balance</th>
-                    <th>Type</th>
-                    <th>Date</th>
-                    <th style="text-align: center;">Decision</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for req in requests %}
-                <tr>
-                    <td style="font-weight: 700;">{{ req.emp_name }}</td>
-                    <td><span class="badge" style="background: #e0f2fe; color: #0369a1;">{{ req.emp_balance }} Remaining</span></td>
-                    <td>{{ req.type }}</td>
-                    <td>{{ req.display_date }}</td>
-                    <td style="text-align: center;">
-                        <div style="display: flex; gap: 0.5rem; justify-content: center;">
-                            <form method="POST" action="{{ url_for('action_request') }}" style="margin: 0;">
-                                <input type="hidden" name="emp_id" value="{{ req.emp_id }}"><input type="hidden" name="date" value="{{ req.date }}"><input type="hidden" name="type" value="{{ req.type }}"><input type="hidden" name="timestamp" value="{{ req.timestamp }}"><input type="hidden" name="action" value="Approve">
-                                <button type="submit" class="badge badge-approved" style="border: none; cursor: pointer;">Approve</button>
-                            </form>
-                            <form method="POST" action="{{ url_for('action_request') }}" style="margin: 0;">
-                                <input type="hidden" name="emp_id" value="{{ req.emp_id }}"><input type="hidden" name="date" value="{{ req.date }}"><input type="hidden" name="type" value="{{ req.type }}"><input type="hidden" name="timestamp" value="{{ req.timestamp }}"><input type="hidden" name="action" value="Reject">
-                                <button type="submit" class="badge badge-rejected" style="border: none; cursor: pointer;">Reject</button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <p style="text-align: center; color: var(--text-muted); padding: 2rem;">No pending team requests found.</p>
-        {% endif %}
-    </div>
-</div>
+<style>
+    .tab-btn { border: none; background: transparent; padding: 0.75rem 1.5rem; font-weight: 700; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; border-radius: 8px 8px 0 0; transition: all 0.3s; }
+    .tab-btn:hover { color: var(--primary); background: #f1f5f9; }
+    .active-tab { color: var(--primary); border-bottom: 4px solid var(--primary); margin-bottom: -7px; }
+    .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+</style>
 
-<div class="card">
-    <h3>Apply Personally</h3>
-    <form method="POST" action="{{ url_for('mark_request') }}" style="margin-top: 1rem;">
-        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-            <input type="date" name="date" value="{{ today }}" min="{{ today }}" required style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border);">
-            <select name="request_type" required style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border);">
-                <option value="WFH">WFH</option>
-                <option value="Leave">Leave</option>
-                <option value="Half Day">Half Day</option>
-            </select>
-            <button type="submit" class="btn">Apply</button>
+<!-- TAB 1: TEAM REQUESTS -->
+<div id="requests-tab" class="tab-content" style="display: block;">
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="value">{{ requests|length }}</span>
+            <span class="label">Pending Total</span>
         </div>
-    </form>
+        <div class="stat-card">
+            <span class="value" style="color: #6366f1;">{{ leave_balance.remaining_leaves }}</span>
+            <span class="label">My Balance</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="inbox" size="20"></i> Active Requests List
+        </h3>
+        
+        <div class="table-wrapper">
+            {% if requests %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Team</th>
+                        <th style="background: #eff6ff; color: #1e40af;">Balance</th>
+                        <th>Type</th>
+                        <th>Date</th>
+                        <th style="text-align: center;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in requests %}
+                    <tr>
+                        <td style="font-weight: 700;">{{ req.emp_name }}</td>
+                        <td><span class="badge" style="background:#f1f5f9;">{{ req.team }}</span></td>
+                        <td style="background: #f8fafc;">
+                            <span class="badge" style="background: #dbeafe; color: #1e40af;">
+                                <strong>{{ req.emp_balance }}</strong> left
+                            </span>
+                        </td>
+                        <td>{{ req.type }}</td>
+                        <td>{{ req.display_date }}</td>
+                        <td style="text-align: center;">
+                            <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                                <form method="POST" action="{{ url_for('action_request') }}" style="margin: 0;">
+                                    <input type="hidden" name="emp_id" value="{{ req.emp_id }}"><input type="hidden" name="date" value="{{ req.date }}"><input type="hidden" name="type" value="{{ req.type }}"><input type="hidden" name="timestamp" value="{{ req.timestamp }}"><input type="hidden" name="action" value="Approve">
+                                    <button type="submit" class="badge badge-approved" style="border: none; cursor: pointer; padding: 0.6rem 1rem;">Approve</button>
+                                </form>
+                                <form method="POST" action="{{ url_for('action_request') }}" style="margin: 0;">
+                                    <input type="hidden" name="emp_id" value="{{ req.emp_id }}"><input type="hidden" name="date" value="{{ req.date }}"><input type="hidden" name="type" value="{{ req.type }}"><input type="hidden" name="timestamp" value="{{ req.timestamp }}"><input type="hidden" name="action" value="Reject">
+                                    <button type="submit" class="badge badge-rejected" style="border: none; cursor: pointer; padding: 0.6rem 1rem;">Reject</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                <i data-lucide="check-circle" size="32" style="opacity: 0.4; margin-bottom: 0.5rem;"></i>
+                <p>No pending requests found.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
+
+<!-- TAB 2: APPLY FOR LEAVE/WFH -->
+<div id="apply-tab" class="tab-content">
+    <div class="row">
+        <div class="col-8">
+            <div class="card">
+                <h3 style="margin-bottom: 1.5rem;"><i data-lucide="file-edit" size="20"></i> Apply Personally</h3>
+                <form method="POST" action="{{ url_for('mark_request') }}">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                        <div>
+                            <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">Date</label>
+                            <input type="date" name="date" value="{{ today }}" min="{{ today }}" required style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border);">
+                        </div>
+                        <div>
+                            <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">Type</label>
+                            <select name="request_type" required style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border);">
+                                <option value="WFH">WFH</option>
+                                <option value="Leave">Leave</option>
+                                <option value="Half Day">Half Day</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 2rem;">
+                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">Reason</label>
+                        <textarea name="reason" rows="3" required placeholder="Describe..." style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border); resize: none;"></textarea>
+                    </div>
+                    <button type="submit" class="btn" style="width: 100%; justify-content: center; padding: 1rem;"><i data-lucide="send"></i> Submit Request</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active-tab'));
+        document.getElementById(tabId).style.display = 'block';
+        if(tabId === 'requests-tab') {
+            document.getElementById('btn-requests').classList.add('active-tab');
+        } else {
+            document.getElementById('btn-apply').classList.add('active-tab');
+        }
+    }
+</script>
 {% endblock %}

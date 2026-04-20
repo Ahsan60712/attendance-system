@@ -441,12 +441,8 @@ def manager_dashboard():
         
         emp_team = (current_emp.get('emp_team') or session.get('emp_team', '')).strip().lower()
         
-        # EMERGENCY BYPASS: Show ALL pending requests to every manager for now
+        # Managers can see ALL pending requests from others (No team filtering per user request)
         pending_requests = [req for req in all_pending_requests if str(req.get('emp_id')) != str(emp_id)]
-        
-        print(f"DEBUG: EMERGENCY BYPASS. Showing {len(pending_requests)} requests to manager.")
-        
-        print(f"DEBUG: Showing {len(pending_requests)} requests to manager ID {emp_id}")
         
         # Attach employee balance to each pending request
         for req in pending_requests:
@@ -458,13 +454,7 @@ def manager_dashboard():
             
         # Get approved requests (from others) with date filtering
         all_approved_requests = manager.get_pending_requests(req_status='Approved')
-        
-        # Filter by team first
-        if session.get('user_type') == 'admin':
-            team_approved = [req for req in all_approved_requests if str(req.get('emp_id')) != str(emp_id)]
-        else:
-            emp_team = current_emp.get('emp_team', '')
-            team_approved = [req for req in all_approved_requests if req.get('team') == emp_team and str(req.get('emp_id')) != str(emp_id)]
+        team_approved = [req for req in all_approved_requests if str(req.get('emp_id')) != str(emp_id)]
 
         # Then filter by date range
         approved_requests = []
@@ -474,7 +464,6 @@ def manager_dashboard():
             for req in team_approved:
                 req_date_raw = req.get('date')
                 if req_date_raw:
-                    # Robust parsing: handle both string and date objects
                     if isinstance(req_date_raw, (date, datetime)):
                         req_date = req_date_raw.date() if isinstance(req_date_raw, datetime) else req_date_raw
                     else:
@@ -483,13 +472,11 @@ def manager_dashboard():
                     if sd <= req_date <= ed:
                         approved_requests.append(req)
         except Exception as e:
-            print(f"Filter Error: {e}")
-            approved_requests = team_approved[:20] # Final Fallback
+            approved_requests = team_approved[:20] 
         
         # Get manager's OWN records for history display
         my_records = manager.get_employee_records(emp_id, today - timedelta(days=30), today + timedelta(days=365))
         
-        # Ensure leave_balance is a dictionary and has required keys
         if not isinstance(leave_balance, dict):
             leave_balance = {}
         
