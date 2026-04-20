@@ -196,38 +196,46 @@ class WFHLeaveManager:
         emp = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id,), fetchone=True)
         if not emp: return {}
         
+        current_year = date.today().year
         contract_start_str = emp.get('CONTRACT_START_DATE')
         year_start, year_end = self.get_contract_year_window(str(contract_start_str)) if contract_start_str else (None, None)
         
-        total = float(emp.get('TOTAL_LEAVES') or 0)
-        carried = float(emp.get('LEAVES_CARRIED_FORWARD') or 0)
-        taken = float(emp.get('LEAVES_THIS_YEAR') or 0)
+        # Base Allowance
+        total_allowance = float(emp.get('TOTAL_LEAVES', 14.0) or 14.0)
+        carried = float(emp.get('LEAVES_CARRIED_FORWARD', 0) or 0)
+        total_available = total_allowance + carried
         
-        total_available = total + carried
-        calculated_remaining = total_available - taken
-        
-        # Calculate half days by scanning requests dynamically
+        # LIVE RECOUNT for accuracy
         counts = self._execute_query(
-            "SELECT REQUEST_TYPE, COUNT(*) as CNT FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND STATUS = 'Approved' AND REQUEST_DATE >= %s GROUP BY REQUEST_TYPE",
-            (emp_id, year_start.strftime('%Y-%m-%d') if year_start else '1970-01-01')
+            "SELECT REQUEST_TYPE, COUNT(*) as CNT FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND STATUS = 'Approved' AND YEAR(CAST(REQUEST_DATE AS DATE)) = %s GROUP BY REQUEST_TYPE",
+            (emp_id, current_year)
         )
+        
+        full_leaves = 0
         half_days = 0
         wfh = 0
+        
         if counts:
-            for count_row in counts:
-                if count_row.get('REQUEST_TYPE') == 'Half Day': half_days = count_row.get('CNT', 0)
-                if count_row.get('REQUEST_TYPE') == 'WFH': wfh = count_row.get('CNT', 0)
+            for row in counts:
+                rtype = row.get('REQUEST_TYPE') or row.get('request_type')
+                cnt = float(row.get('CNT') or row.get('cnt') or 0)
+                if rtype == 'Leave': full_leaves = cnt
+                elif rtype == 'Half Day': half_days = cnt
+                elif rtype == 'WFH': wfh = cnt
+                
+        total_taken = (full_leaves * 1.0) + (half_days * 0.5)
+        calculated_remaining = total_available - total_taken
         
         return {
             'contract_year_start': year_start.strftime('%d %b %Y') if year_start else 'N/A',
             'contract_year_end': year_end.strftime('%d %b %Y') if year_end else 'N/A',
-            'total_leaves': total,
+            'total_leaves': total_allowance,
             'carried_forward': carried,
             'total_available': total_available,
-            'leaves_taken_this_year': taken,
-            'half_days_taken': half_days,
+            'leaves_taken_this_year': total_taken,
+            'half_days_taken': int(half_days),
             'remaining_leaves': calculated_remaining,
-            'wfh_taken': wfh
+            'wfh_taken': int(wfh)
         }
 
     def update_employee_counters(self, emp_id):
