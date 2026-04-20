@@ -230,53 +230,65 @@ class WFHLeaveManager:
             'wfh_taken': wfh
         }
 
-    def update_employee_counters(self, emp_id, request_type):
-        return self.db.update_employee_counters(emp_id, request_type)
-        
+    def update_employee_counters(self, emp_id):
+        """Full recount and sync of employee balances based on approved requests"""
+        try:
+            emp_id_int = int(emp_id)
+            # 1. Get current employee base data
+            emp = self._execute_query("SELECT CARRIED_FORWARD FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id_int,), fetchone=True)
+            carried = float(emp.get('CARRIED_FORWARD', 0) or 0)
+            base_allowance = 14.0 + carried
+            
+            # 2. Count Approved Leaves (1.0 each)
+            leaves = self._execute_query("SELECT COUNT(*) as cnt FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND STATUS = 'Approved' AND REQUEST_TYPE = 'Leave'", (emp_id_int,), fetchone=True)
+            # 3. Count Approved Half Days (0.5 each)
+            hds = self._execute_query("SELECT COUNT(*) as cnt FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND STATUS = 'Approved' AND REQUEST_TYPE = 'Half Day'", (emp_id_int,), fetchone=True)
+            # 4. Count Approved WFH
+            wfhs = self._execute_query("SELECT COUNT(*) as cnt FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND STATUS = 'Approved' AND REQUEST_TYPE = 'WFH'", (emp_id_int,), fetchone=True)
+            
+            taken_leaves = float(leaves.get('CNT', 0) or 0)
+            taken_hds = float(hds.get('CNT', 0) or 0) * 0.5
+            total_taken = taken_leaves + taken_hds
+            total_wfh = int(wfhs.get('CNT', 0) or 0)
+            
+            new_remaining = base_allowance - total_taken
+            
+            # Sync back to EMPLOYEES table
+            self._execute_query(
+                "UPDATE ADLABS.AHSAN.EMPLOYEES SET REMAINING_LEAVES = %s, LEAVES_THIS_YEAR = %s, WFH_COUNT = %s WHERE EMP_ID = %s",
+                (new_remaining, total_taken, total_wfh, emp_id_int), commit=True
+            )
+            return True
+        except Exception as e:
+            print(f"[SYNC ERROR] {e}")
+            return False
+
+    def refund_employee_counters(self, emp_id, request_type=None):
+        # With recount logic, we just sync everything
+        return self.update_employee_counters(emp_id)
+
     def log_approval_action(self, emp_id, emp_name, request_type, request_date, status, manager_name):
         return self.db.log_approval_action(emp_id, emp_name, request_type, request_date, status, manager_name)
 
-    def refund_employee_counters(self, emp_id, request_type):
-        if request_type == 'WFH':
-            self._execute_query("UPDATE ADLABS.AHSAN.EMPLOYEES SET WFH_COUNT = GREATEST(WFH_COUNT - 1, 0) WHERE EMP_ID = %s", (emp_id,), commit=True)
-        elif request_type == 'Leave':
-            self._execute_query("UPDATE ADLABS.AHSAN.EMPLOYEES SET REMAINING_LEAVES = REMAINING_LEAVES + 1, LEAVES_THIS_YEAR = GREATEST(LEAVES_THIS_YEAR - 1, 0) WHERE EMP_ID = %s", (emp_id,), commit=True)
-        elif request_type == 'Half Day':
-            self._execute_query("UPDATE ADLABS.AHSAN.EMPLOYEES SET REMAINING_LEAVES = REMAINING_LEAVES + 0.5, LEAVES_THIS_YEAR = GREATEST(LEAVES_THIS_YEAR - 0.5, 0) WHERE EMP_ID = %s", (emp_id,), commit=True)
-
     def mark_wfh_leave(self, emp_id, emp_name, emp_team, date, request_type, reason, status='Pending', manager_name=''):
-        # Force integer ID and standard date string
         try: emp_id_int = int(emp_id)
         except: emp_id_int = emp_id
         
         date_str = date.strftime('%Y-%m-%d') if hasattr(date, 'strftime') else str(date)
         
-        # --- THE IRON OVERWRITE: Kill everything for this date/user first ---
-        # 1. Identify for refunding if approved
-        existing = self._execute_query(
-            "SELECT STATUS, REQUEST_TYPE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND TO_CHAR(REQUEST_DATE, 'YYYY-MM-DD') = %s",
-            (emp_id_int, date_str), fetchone=True
-        )
-        
-        if existing:
-            status_val = str(existing.get('STATUS') or existing.get('status') or '').capitalize()
-            type_val = existing.get('REQUEST_TYPE') or existing.get('request_type')
-            if status_val == 'Approved':
-                self.refund_employee_counters(emp_id_int, type_val)
-
-        # 2. DELETE ANY AND ALL records for this user on this day (Pending, Approved, Rejected - Clean Slate)
+        # 1. KILL any existing record for this date (Absolute Clean)
         self._execute_query(
             "DELETE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND TO_CHAR(REQUEST_DATE, 'YYYY-MM-DD') = %s",
             (emp_id_int, date_str), commit=True
         )
 
-        # 3. Insert the NEW one
+        # 2. Insert new
         success = self.db.mark_request(emp_id_int, date_str, request_type, reason, status, manager_name if status == 'Approved' else None)
         
-        if not success: raise Exception("Snowflake Insert Failed.")
+        # 3. Always Recount/Sync after any change
+        self.update_employee_counters(emp_id_int)
         
         if status == 'Approved':
-            self.update_employee_counters(emp_id_int, request_type)
             self.log_approval_action(emp_id_int, emp_name, request_type, date_str, 'Approved', manager_name or emp_name)
         
         return True
