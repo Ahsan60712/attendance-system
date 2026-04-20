@@ -247,38 +247,35 @@ class WFHLeaveManager:
     def mark_wfh_leave(self, emp_id, emp_name, emp_team, date, request_type, reason, status='Pending', manager_name=''):
         date_str = date.strftime('%Y-%m-%d') if hasattr(date, 'strftime') else str(date)
         
-        print(f"[OVERWRITE DEBUG] Checking for {emp_name} (ID: {emp_id}) on {date_str}...")
-        
-        # --- AGGRESSIVE OVERWRITE LOGIC ---
-        # 1. Identify previous entry
+        # --- OVERWRITE LOGIC: Aggressive Clean ---
+        # 1. Fetch exactly what's there
         existing = self._execute_query(
-            "SELECT STATUS, REQUEST_TYPE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND TO_DATE(REQUEST_DATE) = TO_DATE(%s)",
+            "SELECT * FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND CAST(REQUEST_DATE AS DATE) = %s",
             (emp_id, date_str), fetchone=True
         )
         
         if existing:
-            # Snowflake columns are usually returned in UPPERCASE
-            status_val = existing.get('STATUS') or existing.get('status')
-            type_val = existing.get('REQUEST_TYPE') or existing.get('request_type')
+            # DEBUG: Print keys to see exactly what Snowflake returns
+            print(f"[OVERWRITE] Keys found: {list(existing.keys())}")
             
-            print(f"[OVERWRITE DEBUG] Found existing: {type_val} ({status_val}). Refunding and Deleting...")
+            # Match keys case-insensitively just in case
+            status_val = str(existing.get('STATUS') or existing.get('status') or '').capitalize()
+            type_val = existing.get('REQUEST_TYPE') or existing.get('request_type')
             
             # Refund if it was approved
             if status_val == 'Approved':
+                print(f"[OVERWRITE] Refunding {type_val} for {emp_name}")
                 self.refund_employee_counters(emp_id, type_val)
             
             # 2. Delete ALL existing records for this user on this date
-            del_result = self._execute_query(
-                "DELETE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND TO_DATE(REQUEST_DATE) = TO_DATE(%s)",
+            self._execute_query(
+                "DELETE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND CAST(REQUEST_DATE AS DATE) = %s",
                 (emp_id, date_str), commit=True
             )
-            print(f"[OVERWRITE DEBUG] Delete result: {del_result}")
-        else:
-            print(f"[OVERWRITE DEBUG] No existing record found for {date_str}")
+            print(f"[OVERWRITE] Deleted old record for {date_str}")
 
         # 3. Proceed to save the new request
         success = self.db.mark_request(emp_id, date_str, request_type, reason, status, manager_name if status == 'Approved' else None)
-        print(f"[OVERWRITE DEBUG] Insert new {request_type} success: {success}")
         
         if not success: raise Exception("Failed to save request to Snowflake.")
         

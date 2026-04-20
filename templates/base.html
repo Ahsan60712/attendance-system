@@ -25,6 +25,13 @@
         .badge-approved { background: #dcfce7; color: #166534; }
         .badge-pending { background: #fef9c3; color: #854d0e; }
         .badge-rejected { background: #fee2e2; color: #991b1b; }
+        
+        /* Alert Styles */
+        .alert { padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.75rem; font-weight: 600; animation: slideIn 0.3s ease-out; transition: opacity 0.5s; }
+        .alert-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .alert-error, .alert-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .alert-info { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+        @keyframes slideIn { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -51,6 +58,25 @@
             {% endif %}
         </nav>
         {% endif %}
+
+        <!-- Flash Messages (Popups) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}" id="flash-message">
+                <i data-lucide="{% if category == 'success' %}check-circle{% elif category == 'error' or category == 'danger' %}alert-circle{% else %}info{% endif %}" size="18"></i>
+                {{ message }}
+              </div>
+            {% endfor %}
+            <script>
+                setTimeout(() => {
+                    const flash = document.getElementById('flash-message');
+                    if(flash) flash.style.opacity = '0';
+                    setTimeout(() => flash?.remove(), 500);
+                }, 4000);
+            </script>
+          {% endif %}
+        {% endwith %}
 
         {% block content %}{% endblock %}
     </main>
