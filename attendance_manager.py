@@ -18,23 +18,27 @@ class WFHLeaveManager:
             return None
         try:
             cur = conn.cursor()
-            cur.execute(query, params or ())
-            
-            if commit:
-                conn.commit()
-                return True
+            try:
+                if params: cur.execute(query, params)
+                else: cur.execute(query)
                 
-            if cur.description:
-                columns = [col[0] for col in cur.description]
-                if fetchone:
-                    row = cur.fetchone()
-                    return dict(zip(columns, row)) if row else None
-                else:
-                    return [dict(zip(columns, row)) for row in cur.fetchall()]
-            return True
-        except Exception as e:
-            print(f"Snowflake Query Error: {e} - Query: {query}")
-            return None
+                if commit:
+                    conn.commit()
+                    return True
+                
+                if cur.description:
+                    columns = [col[0] for col in cur.description]
+                    if fetchone:
+                        row = cur.fetchone()
+                        return dict(zip(columns, row)) if row else None
+                    else:
+                        rows = cur.fetchall()
+                        return [dict(zip(columns, r)) for r in rows]
+                return None
+            except Exception as e:
+                print(f"Snowflake Query Error: {e} - Query: {query}")
+                if commit: conn.rollback()
+                return None
         finally:
             conn.close()
 
@@ -243,18 +247,20 @@ class WFHLeaveManager:
     def mark_wfh_leave(self, emp_id, emp_name, emp_team, date, request_type, reason, status='Pending', manager_name=''):
         date_str = date.strftime('%Y-%m-%d') if hasattr(date, 'strftime') else str(date)
         
-        # --- OVERWRITE LOGIC: Check for existing request on this day ---
+        # --- OVERWRITE LOGIC: Aggressive Clean ---
         existing = self._execute_query(
             "SELECT STATUS, REQUEST_TYPE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND REQUEST_DATE = %s AND STATUS IN ('Pending', 'Approved')",
             (emp_id, date_str), fetchone=True
         )
         
         if existing:
-            # If it was already approved, refund the counters first
-            if existing.get('STATUS') == 'Approved':
-                self.refund_employee_counters(emp_id, existing.get('REQUEST_TYPE'))
+            status_val = existing.get('STATUS')
+            type_val = existing.get('REQUEST_TYPE')
             
-            # Delete the old record so it's replaced by the new one
+            if status_val == 'Approved':
+                self.refund_employee_counters(emp_id, type_val)
+            
+            # Use a very specific DELETE
             self._execute_query(
                 "DELETE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND REQUEST_DATE = %s AND STATUS IN ('Pending', 'Approved')",
                 (emp_id, date_str), commit=True
