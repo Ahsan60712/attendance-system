@@ -289,19 +289,24 @@ def mark_request():
     redirect_target = 'manager_dashboard' if user_type == 'manager' else 'employee_dashboard'
     
     try:
-        request_type = request.form.get('request_type')  # 'WFH' or 'Leave' or 'Half Day'
+        request_type = request.form.get('request_type')
         reason = request.form.get('reason')
         start_date_str = request.form.get('date', date.today().strftime('%Y-%m-%d'))
-        end_date_str = request.form.get('end_date') # Optional end date
+        end_date_str = request.form.get('end_date')
         
         if not reason or not reason.strip():
             flash('Reason is required', 'error')
             return redirect(url_for(redirect_target))
         
         start_date = date.fromisoformat(start_date_str)
+        today = date.today()
         
-        # Determine date range
-        if end_date_str and request_type == 'Leave':
+        # --- PAST DATE RESTRICTION ---
+        if start_date < today:
+            flash('Error: You cannot apply for a past date.', 'error')
+            return redirect(url_for(redirect_target))
+            
+        if end_date_str:
             end_date = date.fromisoformat(end_date_str)
             if end_date < start_date:
                 flash('End date cannot be before start date', 'error')
@@ -309,30 +314,24 @@ def mark_request():
         else:
             end_date = start_date
 
-        # Iterate through dates
-        current_date = start_date
-        count = 0
-        while current_date <= end_date:
-            try:
-                manager.mark_wfh_leave(
-                    emp_id=session.get('emp_id'),
-                    emp_name=session.get('emp_name'),
-                    emp_team=session.get('emp_team'),
-                    date=current_date,
-                    request_type=request_type,
-                    reason=reason,
-                    status=status,
-                    manager_name=manager_name
-                )
-                count += 1
-            except Exception as e:
-                flash(f'Error on {current_date.strftime("%Y-%m-%d")}: {str(e)}', 'danger')
-                return redirect(url_for(redirect_target))
-            
-            current_date += timedelta(days=1)
-            
-        success_msg = f'{request_type} request submitted successfully for {count} day(s)!'
-        if user_type == 'manager':
+        # Handle date range
+        dates_to_mark = []
+        current = start_date
+        while current <= end_date:
+            dates_to_mark.append(current)
+            current += timedelta(days=1)
+        
+        for d in dates_to_mark:
+            manager.mark_wfh_leave(
+                emp_id=session.get('emp_id'),
+                emp_name=session.get('emp_name'),
+                emp_team=session.get('emp_team'),
+                date=d,
+                request_type=request_type,
+                reason=reason,
+                status=status,
+                manager_name=manager_name
+            )
             success_msg = f'{request_type} applied successfully (Auto-Approved)!'
 
         # ── WhatsApp: notify the team manager about the new request ──────────
