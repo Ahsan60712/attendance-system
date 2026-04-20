@@ -14,7 +14,7 @@
 <!-- SIMPLE STATS -->
 <div class="stats-grid">
     <div class="stat-card">
-        <span class="value">{{ pending_requests|length }}</span>
+        <span class="value">{{ requests|length }}</span>
         <span class="label">Pending Now</span>
     </div>
     <div class="stat-card">
@@ -31,7 +31,7 @@
 <div class="card">
     <h3 style="margin-bottom: 1.5rem;"><i data-lucide="inbox"></i> Team Pending Requests</h3>
     <div class="table-wrapper">
-        {% if pending_requests %}
+        {% if requests %}
         <table>
             <thead>
                 <tr>
@@ -43,7 +43,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for req in pending_requests %}
+                {% for req in requests %}
                 <tr>
                     <td style="font-weight: 700;">{{ req.emp_name }}</td>
                     <td><span class="badge" style="background: #e0f2fe; color: #0369a1;">{{ req.emp_balance }} Remaining</span></td>
