@@ -9,20 +9,24 @@
 </div>
 
 <!-- Stats Grid -->
-<div class="stats-grid">
+<div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
     <div class="stat-card">
-        <span class="value">{{ emp_data.WFH_count|default(0) }}</span>
+        <span class="value" style="color: #6366f1;">{{ leave_balance.carried_forward|default(0) }}</span>
+        <span class="label">Carried Forward</span>
+    </div>
+    <div class="stat-card">
+        <span class="value" style="color: #10b981;">{{ leave_balance.wfh_count|default(0) }}</span>
         <span class="label">Total WFH</span>
     </div>
     <div class="stat-card">
-        <span class="value">{{ leave_balance.half_days_taken|default(0) }}</span>
+        <span class="value" style="color: #f59e0b;">{{ leave_balance.half_days_taken|default(0) }}</span>
         <span class="label">Half Days</span>
     </div>
     <div class="stat-card">
         <span class="value" style="color: #ef4444;">{{ leave_balance.leaves_taken_this_year|default(0) }}</span>
         <span class="label">Leaves Taken</span>
     </div>
-    <div class="stat-card" style="border-top: 4px solid #10b981;">
+    <div class="stat-card" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
         <span class="value" style="color: #10b981;">{{ leave_balance.remaining_leaves|default(0) }}</span>
         <span class="label">Remaining Leaves</span>
     </div>
