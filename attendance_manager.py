@@ -242,12 +242,32 @@ class WFHLeaveManager:
 
     def mark_wfh_leave(self, emp_id, emp_name, emp_team, date, request_type, reason, status='Pending', manager_name=''):
         date_str = date.strftime('%Y-%m-%d') if hasattr(date, 'strftime') else str(date)
+        
+        # --- OVERWRITE LOGIC: Check for existing request on this day ---
+        existing = self._execute_query(
+            "SELECT STATUS, REQUEST_TYPE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND REQUEST_DATE = %s AND STATUS IN ('Pending', 'Approved')",
+            (emp_id, date_str), fetchone=True
+        )
+        
+        if existing:
+            # If it was already approved, refund the counters first
+            if existing.get('STATUS') == 'Approved':
+                self.refund_employee_counters(emp_id, existing.get('REQUEST_TYPE'))
+            
+            # Delete the old record so it's replaced by the new one
+            self._execute_query(
+                "DELETE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND REQUEST_DATE = %s AND STATUS IN ('Pending', 'Approved')",
+                (emp_id, date_str), commit=True
+            )
+
+        # Proceed to save the new request
         success = self.db.mark_request(emp_id, date_str, request_type, reason, status, manager_name if status == 'Approved' else None)
         if not success: raise Exception("Failed to save request to Snowflake.")
         
         if status == 'Approved':
             self.update_employee_counters(emp_id, request_type)
             self.log_approval_action(emp_id, emp_name, request_type, date_str, 'Approved', manager_name or emp_name)
+        
         return True
 
     def get_notifications(self, filter_date=None, limit=None):
