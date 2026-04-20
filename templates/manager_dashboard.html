@@ -3,131 +3,74 @@
 {% block title %}Manager Dashboard - Adlab Solutions{% endblock %}
 
 {% block content %}
-<div class="welcome-hero" style="padding: 2.5rem; margin-bottom: 2rem; background: linear-gradient(135deg, #10b981, #059669);">
-    <h1>Manager Dashboard</h1>
-    <p style="opacity: 0.9;">Team <strong>{{ emp_data.emp_team }}</strong> • Review and approve employee requests below.</p>
+<div class="card" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none;">
+    <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Manager: {{ manager_name }}</h1>
+    <p style="opacity: 0.9;">Team <strong>{{ emp_data.emp_team }}</strong> • Approval Dashboard</p>
 </div>
 
-<!-- Manager Stats Grid -->
 <div class="stats-grid">
     <div class="stat-card">
-        <div class="stat-info">
-            <h4>Team Name</h4>
-            <div class="value" style="font-size: 1.5rem; color: #10b981;">{{ emp_data.emp_team }}</div>
-        </div>
-        <div style="background: #ecfdf5; color: #10b981; padding: 1rem; border-radius: 12px;"><i data-lucide="users"></i></div>
+        <span class="value">{{ requests|length }}</span>
+        <span class="label">Pending Requests</span>
     </div>
-    
     <div class="stat-card">
-        <div class="stat-info">
-            <h4>Pending Requests</h4>
-            <div class="value">{{ requests|length }}</div>
-        </div>
-        <div style="background: #fff7ed; color: #f97316; padding: 1rem; border-radius: 12px;"><i data-lucide="clock"></i></div>
+        <span class="value">{{ total_allotted }}</span>
+        <span class="label">Annual Entitlement</span>
     </div>
-
     <div class="stat-card">
-        <div class="stat-info">
-            <h4>Annual Allowance</h4>
-            <div class="value">{{ total_allotted }}</div>
-        </div>
-        <div style="background: #eef2ff; color: #4f46e5; padding: 1rem; border-radius: 12px;"><i data-lucide="award"></i></div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-info">
-            <h4>Personal Remaining</h4>
-            <div class="value">{{ remaining_leaves }}</div>
-        </div>
-        <div style="background: #f0fdf4; color: #10b981; padding: 1rem; border-radius: 12px;"><i data-lucide="heart"></i></div>
+        <span class="value" style="color: #10b981;">{{ remaining_leaves }}</span>
+        <span class="label">My Remaining</span>
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
-    <!-- Left Column: Pending Table -->
-    <div class="card">
-        <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.5rem;">
-            <i data-lucide="inbox" size="20"></i> Pending Team Approvals
-        </h3>
-
-        {% if requests %}
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Employee</th>
-                        <th>Type</th>
-                        <th>Date</th>
-                        <th style="text-align: center;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for req in requests %}
-                    <tr>
-                        <td style="font-weight: 600;">{{ req.emp_name }}</td>
-                        <td><span class="badge badge-outline">{{ req.type }}</span></td>
-                        <td>{{ req.display_date }}</td>
-                        <td style="text-align: center;">
-                            <div style="display: flex; gap: 0.5rem; justify-content: center;">
-                                <form method="POST" action="{{ url_for('action_request') }}" style="margin: 0;">
-                                    <input type="hidden" name="emp_id" value="{{ req.emp_id }}">
-                                    <input type="hidden" name="date" value="{{ req.date }}">
-                                    <input type="hidden" name="type" value="{{ req.type }}">
-                                    <input type="hidden" name="timestamp" value="{{ req.timestamp }}">
-                                    <input type="hidden" name="action" value="Approve">
-                                    <button type="submit" class="btn badge-approved" style="border: none; padding: 0.4rem 0.8rem; cursor: pointer;">Approve</button>
-                                </form>
-                                <form method="POST" action="{{ url_for('action_request') }}" style="margin: 0;">
-                                    <input type="hidden" name="emp_id" value="{{ req.emp_id }}">
-                                    <input type="hidden" name="date" value="{{ req.date }}">
-                                    <input type="hidden" name="type" value="{{ req.type }}">
-                                    <input type="hidden" name="timestamp" value="{{ req.timestamp }}">
-                                    <input type="hidden" name="action" value="Reject">
-                                    <button type="submit" class="btn badge-rejected" style="border: none; padding: 0.4rem 0.8rem; cursor: pointer;">Reject</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="row">
+    <div class="col-8">
+        <div class="card">
+            <h3 style="margin-bottom: 1.5rem;"><i data-lucide="inbox" size="20" style="vertical-align: middle;"></i> Action Required</h3>
+            <div class="table-wrapper">
+                {% if requests %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Type</th>
+                            <th>Date</th>
+                            <th style="text-align: center;">Decision</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in requests %}
+                        <tr>
+                            <td style="font-weight: 600;">{{ req.emp_name }}</td>
+                            <td>{{ req.type }}</td>
+                            <td>{{ req.display_date }}</td>
+                            <td style="text-align: center;">
+                                <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                                    <form method="POST" action="{{ url_for('action_request') }}" style="margin: 0;">
+                                        <input type="hidden" name="emp_id" value="{{ req.emp_id }}"><input type="hidden" name="date" value="{{ req.date }}"><input type="hidden" name="type" value="{{ req.type }}"><input type="hidden" name="timestamp" value="{{ req.timestamp }}"><input type="hidden" name="action" value="Approve">
+                                        <button type="submit" class="badge badge-approved" style="border: none; cursor: pointer; padding: 0.5rem 1rem;">Approve</button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('action_request') }}" style="margin: 0;">
+                                        <input type="hidden" name="emp_id" value="{{ req.emp_id }}"><input type="hidden" name="date" value="{{ req.date }}"><input type="hidden" name="type" value="{{ req.type }}"><input type="hidden" name="timestamp" value="{{ req.timestamp }}"><input type="hidden" name="action" value="Reject">
+                                        <button type="submit" class="badge badge-rejected" style="border: none; cursor: pointer; padding: 0.5rem 1rem;">Reject</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p style="text-align: center; color: var(--text-muted); padding: 2rem;">No pending requests.</p>
+                {% endif %}
+            </div>
         </div>
-        {% else %}
-        <div style="text-align: center; padding: 4rem 1rem; color: var(--text-muted); background: #f8fafc; border-radius: 12px; border: 1px dashed var(--border);">
-            <i data-lucide="check-circle" size="32" style="opacity: 0.4; margin-bottom: 1rem;"></i>
-            <p>No pending requests for your team.</p>
-        </div>
-        {% endif %}
     </div>
 
-    <!-- Right Column: Manager Action Cards -->
-    <div style="display: flex; flex-direction: column; gap: 2rem;">
+    <div class="col-4">
         <div class="card" style="background: #f8fafc;">
-            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">Apply Personal</h3>
-            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Mark your own absence here. Manager requests are automatically tracked.</p>
-            
-            <form method="POST" action="{{ url_for('mark_request') }}">
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.4rem;">Date</label>
-                    <input type="date" name="date" value="{{ today }}" min="{{ today }}" required style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border);">
-                </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.4rem;">Type</label>
-                    <select name="request_type" required style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border);">
-                        <option value="WFH">WFH</option>
-                        <option value="Leave">Leave</option>
-                        <option value="Half Day">Half Day</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; font-size: 0.85rem;">Submit My Request</button>
-            </form>
-        </div>
-
-        <div class="card">
-            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">Admin Navigation</h3>
-            <a href="{{ url_for('admin_performance_report') }}" class="btn btn-outline" style="width: 100%; justify-content: center; border: 1px solid var(--border); background: white;">
-                <i data-lucide="bar-chart-2"></i> View Performance
-            </a>
+            <h4 style="margin-bottom: 1rem;">Quick Tools</h4>
+            <a href="{{ url_for('admin_performance_report') }}" class="btn" style="width: 100%; justify-content: center; background: white; color: var(--text-main); border: 1px solid var(--border);">Performance Report</a>
         </div>
     </div>
 </div>

@@ -3,101 +3,61 @@
 {% block title %}Employee Dashboard - Adlab Solutions{% endblock %}
 
 {% block content %}
-<div class="welcome-hero" style="padding: 2.5rem; margin-bottom: 2rem;">
-    <h1>Welcome back, {{ emp_name }} 👋</h1>
-    <p style="opacity: 0.9;">Manage your attendance requests and track your leave balances.</p>
+<div class="card" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; border: none;">
+    <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Welcome back, {{ emp_name }} 👋</h1>
+    <p style="opacity: 0.9;">System ID: {{ emp_data.emp_id }} • Team: {{ emp_data.emp_team }}</p>
 </div>
 
-<!-- Quick Stats Grid -->
+<!-- Stats Grid -->
 <div class="stats-grid">
     <div class="stat-card">
-        <div class="stat-info">
-            <h4>Total WFH</h4>
-            <div class="value">{{ emp_data.WFH_count|default(0) }}</div>
-        </div>
-        <div style="background: #eef2ff; color: #4f46e5; padding: 1rem; border-radius: 12px;"><i data-lucide="home"></i></div>
+        <span class="value">{{ emp_data.WFH_count|default(0) }}</span>
+        <span class="label">Total WFH</span>
     </div>
-    
     <div class="stat-card">
-        <div class="stat-info">
-            <h4>Half Days</h4>
-            <div class="value">{{ leave_balance.half_days_taken|default(0) }}</div>
-        </div>
-        <div style="background: #fff7ed; color: #f97316; padding: 1rem; border-radius: 12px;"><i data-lucide="clock"></i></div>
+        <span class="value">{{ leave_balance.half_days_taken|default(0) }}</span>
+        <span class="label">Half Days</span>
     </div>
-
     <div class="stat-card">
-        <div class="stat-info">
-            <h4>Leaves Taken</h4>
-            <div class="value">{{ leave_balance.leaves_taken_this_year|default(0) }}</div>
-        </div>
-        <div style="background: #fee2e2; color: #dc2626; padding: 1rem; border-radius: 12px;"><i data-lucide="calendar-x"></i></div>
+        <span class="value" style="color: #ef4444;">{{ leave_balance.leaves_taken_this_year|default(0) }}</span>
+        <span class="label">Leaves Taken</span>
     </div>
-
-    <div class="stat-card" style="border-left: 4px solid #10b981;">
-        <div class="stat-info">
-            <h4>Remaining</h4>
-            <div class="value" style="color: #10b981;">{{ leave_balance.remaining_leaves|default(0) }}</div>
-        </div>
-        <div style="background: #f0fdf4; color: #10b981; padding: 1rem; border-radius: 12px;"><i data-lucide="check-circle"></i></div>
+    <div class="stat-card" style="border-top: 4px solid #10b981;">
+        <span class="value" style="color: #10b981;">{{ leave_balance.remaining_leaves|default(0) }}</span>
+        <span class="label">Remaining Leaves</span>
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 2rem;">
-    <!-- Left Column: Submit & History -->
-    <div style="display: flex; flex-direction: column; gap: 2rem;">
-        
-        <!-- Submit Request Form -->
+<div class="row">
+    <!-- Submit Request Column -->
+    <div class="col-8">
         <div class="card">
-            <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                <i data-lucide="send" size="20"></i> Submit New Request
-            </h3>
-            
+            <h3 style="margin-bottom: 1.5rem;"><i data-lucide="send" size="20" style="vertical-align: middle;"></i> Submit New Request</h3>
             <form method="POST" action="{{ url_for('mark_request') }}">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
                     <div>
-                        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">Start Date</label>
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem;">Date</label>
                         <input type="date" name="date" value="{{ today }}" min="{{ today }}" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border);">
                     </div>
-                    <div id="end-date-group" style="display: none;">
-                        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">End Date (Optional)</label>
-                        <input type="date" name="end_date" min="{{ today }}" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border);">
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem;">Type</label>
+                        <select name="request_type" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border);">
+                            <option value="WFH">Work From Home</option>
+                            <option value="Half Day">Half Day</option>
+                            <option value="Leave">Leave</option>
+                        </select>
                     </div>
                 </div>
-
                 <div style="margin-bottom: 1.5rem;">
-                    <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">Request Type</label>
-                    <div style="display: flex; gap: 1rem; background: #f8fafc; padding: 1rem; border-radius: 10px; border: 1px solid var(--border);">
-                        <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; cursor: pointer;">
-                            <input type="radio" name="request_type" value="WFH" onchange="toggleEndDate()" required> WFH
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; cursor: pointer;">
-                            <input type="radio" name="request_type" value="Half Day" onchange="toggleEndDate()" required> Half Day
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; cursor: pointer;">
-                            <input type="radio" name="request_type" value="Leave" onchange="toggleEndDate()" required> Leave
-                        </label>
-                    </div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem;">Reason</label>
+                    <textarea name="reason" rows="3" required placeholder="Describe the reason..." style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); resize: none;"></textarea>
                 </div>
-
-                <div style="margin-bottom: 1.5rem;">
-                    <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">Reason</label>
-                    <textarea name="reason" rows="3" required placeholder="Please provide a brief reason..." style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); resize: none;"></textarea>
-                </div>
-
-                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
-                    <i data-lucide="check-circle" size="18"></i> Submit Request
-                </button>
+                <button type="submit" class="btn" style="width: 100%; justify-content: center;">Submit Application</button>
             </form>
         </div>
 
-        <!-- History Table -->
         <div class="card">
-            <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                <i data-lucide="history" size="20"></i> Request History
-            </h3>
-            
-            {% if records %}
+            <h3 style="margin-bottom: 1.5rem;"><i data-lucide="history" size="20" style="vertical-align: middle;"></i> History</h3>
             <div class="table-wrapper">
                 <table>
                     <thead>
@@ -105,86 +65,36 @@
                             <th>Date</th>
                             <th>Type</th>
                             <th>Status</th>
-                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for record in records %}
                         <tr>
-                            <td style="font-weight: 600;">{{ record.date }}</td>
-                            <td><span class="badge badge-outline">{{ record.type }}</span></td>
+                            <td>{{ record.date }}</td>
+                            <td><span class="badge" style="background: #f1f5f9;">{{ record.type }}</span></td>
                             <td>
                                 <span class="badge {% if record.status == 'Approved' %}badge-approved{% elif record.status == 'Rejected' %}badge-rejected{% else %}badge-pending{% endif %}">
                                     {{ record.status }}
                                 </span>
-                            </td>
-                            <td>
-                                {% if record.status == 'Pending' %}
-                                <form method="POST" action="{{ url_for('cancel_request') }}" style="display: inline;">
-                                    <input type="hidden" name="emp_id" value="{{ emp_data.emp_id }}">
-                                    <input type="hidden" name="date" value="{{ record.raw_date }}">
-                                    <input type="hidden" name="timestamp" value="{{ record.timestamp }}">
-                                    <button type="submit" style="background: none; border: none; color: #ef4444; cursor: pointer; text-decoration: underline; font-size: 0.8rem;">Cancel</button>
-                                </form>
-                                {% else %}
-                                -
-                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            {% else %}
-                <div style="text-align: center; padding: 2rem; color: var(--text-muted);">No records found.</div>
-            {% endif %}
         </div>
     </div>
 
-    <!-- Right Column: Balance Details -->
-    <div style="display: flex; flex-direction: column; gap: 2rem;">
-        <div class="card">
-            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">Leave Details</h3>
-            
-            {% if leave_balance %}
-            <div style="display: flex; flex-direction: column; gap: 1rem;">
-                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
-                    <span style="color: var(--text-muted);">Contract Year Info:</span>
-                    <span style="font-weight: 600;">{{ leave_balance.contract_year_start }}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.9rem; padding-top: 0.5rem; border-top: 1px dashed #eee;">
-                    <span style="color: var(--text-muted);">Annual Entitlement:</span>
-                    <span style="font-weight: 600;">{{ leave_balance.total_leaves }}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
-                    <span style="color: var(--text-muted);">Carried Forward:</span>
-                    <span style="font-weight: 600;">+ {{ leave_balance.carried_forward }}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
-                    <span style="color: var(--text-muted);">Taken:</span>
-                    <span style="font-weight: 600; color: #ef4444;">- {{ leave_balance.leaves_taken_this_year }}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 1.1rem; padding-top: 1rem; border-top: 1px solid var(--border); margin-top: 0.5rem;">
-                    <span style="font-weight: 700;">Remaining:</span>
-                    <span style="font-weight: 800; color: #10b981;">{{ leave_balance.remaining_leaves }}</span>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-
-        <div style="padding: 1.5rem; background: #eef2ff; border-radius: 16px; border: 1px solid #c7d2fe;">
-            <h4 style="color: #4338ca; font-size: 0.9rem; font-weight: 800; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
-                <i data-lucide="info" size="16"></i> Polices
-            </h4>
-            <p style="font-size: 0.8rem; color: #4338ca; line-height: 1.4;">Half day equals 0.5 leaves. WFH requests do not deduct from your leave balance.</p>
+    <!-- Info Column -->
+    <div class="col-4">
+        <div class="card" style="background: #f8fafc;">
+            <h4 style="margin-bottom: 1rem; font-size: 0.9rem;">Policy Info</h4>
+            <ul style="padding-left: 1.2rem; font-size: 0.85rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.75rem;">
+                <li>WFH requests don't deduct leaves.</li>
+                <li>Half Day deducts 0.5 leaves.</li>
+                <li>Managers must approve all requests.</li>
+            </ul>
         </div>
     </div>
 </div>
-
-<script>
-    function toggleEndDate() {
-        const type = document.querySelector('input[name="request_type"]:checked').value;
-        document.getElementById('end-date-group').style.display = (type === 'Leave') ? 'block' : 'none';
-    }
-</script>
 {% endblock %}

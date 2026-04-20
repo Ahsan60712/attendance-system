@@ -1,99 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Adlab Solutions{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=5.0">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=7.0">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        .flash-messages {
-            max-width: 1280px;
-            margin: 1rem auto 0;
-            padding: 0 2rem;
-        }
-        .alert {
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-        .alert-success { background-color: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-        .alert-danger { background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-    </style>
 </head>
-
 <body>
     {% if session.get('logged_in') %}
-    <aside class="sidebar">
-        <div class="logo-container">
-            <h2 style="font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem;">
-                <i data-lucide="shield-check"></i> Adlab Solutions
-            </h2>
-        </div>
-        
-        <nav class="nav-links">
-            {% if session.get('user_type') == 'admin' %}
-                <a href="{{ url_for('admin_dashboard') }}" class="nav-item">
-                    <i data-lucide="layout-dashboard" size="20"></i> Dashboard
-                </a>
-                <a href="{{ url_for('admin_performance') }}" class="nav-item">
-                    <i data-lucide="bar-chart-2" size="20"></i> Performance
-                </a>
-                <a href="{{ url_for('admin_whatsapp_settings') }}" class="nav-item">
-                    <i data-lucide="message-circle" size="20"></i> WhatsApp API
-                </a>
-            {% elif session.get('user_type') == 'manager' %}
-                <a href="{{ url_for('manager_dashboard') }}" class="nav-item">
-                    <i data-lucide="layout-dashboard" size="20"></i> Team Dashboard
-                </a>
-            {% else %}
-                <a href="{{ url_for('employee_dashboard') }}" class="nav-item">
-                    <i data-lucide="home" size="20"></i> Home Dashboard
-                </a>
-            {% endif %}
-            
-            <div style="margin-top: auto; padding-top: 2rem;">
-                <div style="padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 12px; margin-bottom: 1rem;">
-                    <div style="font-size: 0.75rem; color: var(--sidebar-text); text-transform: uppercase; margin-bottom: 0.5rem;">Logged In As</div>
-                    <div style="font-weight: 600; font-size: 0.9rem;">{{ session.get('emp_name') }}</div>
-                </div>
-                <a href="{{ url_for('logout') }}" class="nav-item" style="color: #fca5a5;">
-                    <i data-lucide="log-out" size="20"></i> Logout
-                </a>
+    <header>
+        <a href="/" class="logo">
+            <i data-lucide="shield-check"></i> Adlab Solutions
+        </a>
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-muted);">
+                <i data-lucide="user" size="16" style="vertical-align: middle;"></i> {{ session.get('emp_name') }}
             </div>
-        </nav>
-    </aside>
+            <a href="{{ url_for('logout') }}" class="btn" style="background: #f1f5f9; color: #ef4444; border: 1px solid #fee2e2;">
+                <i data-lucide="log-out" size="16"></i> Logout
+            </a>
+        </div>
+    </header>
     {% endif %}
 
-    <div class="main-wrapper" style="{% if not session.get('logged_in') %} margin-left: 0; display: flex; align-items: center; justify-content: center; {% endif %}">
-        <div class="flash-messages">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            {% for category, message in messages %}
-            <div class="alert alert-{{ category }}" style="padding: 1rem; background: white; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 1.5rem; font-weight: 600;">
-                {{ message }}
-            </div>
-            {% endfor %}
+    <main class="container">
+        <!-- Dashboard Navigation for Logged In Users -->
+        {% if session.get('logged_in') %}
+        <nav style="margin-bottom: 2rem; display: flex; gap: 1rem;">
+            {% if session.get('user_type') == 'admin' %}
+                <a href="{{ url_for('admin_dashboard') }}" class="btn">Dashboard</a>
+                <a href="{{ url_for('admin_performance') }}" class="btn" style="background: white; color: var(--text-main); border: 1px solid var(--border);">Performance</a>
+                <a href="{{ url_for('admin_whatsapp_settings') }}" class="btn" style="background: white; color: var(--text-main); border: 1px solid var(--border);">WhatsApp API</a>
+            {% elif session.get('user_type') == 'manager' %}
+                <a href="{{ url_for('manager_dashboard') }}" class="btn">Team Dashboard</a>
+            {% else %}
+                <a href="{{ url_for('employee_dashboard') }}" class="btn">My Dashboard</a>
             {% endif %}
-            {% endwith %}
+        </nav>
+        {% endif %}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div style="padding: 1rem; background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; border-radius: 8px; margin-bottom: 1.5rem;">
+            {{ message }}
         </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
 
         {% block content %}{% endblock %}
-
-        {% if session.get('logged_in') %}
-        <footer style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 0.85rem; text-align: center;">
-            &copy; 2026 Adlab Solutions • Professional Attendance System
-        </footer>
-        {% endif %}
-    </div>
+    </main>
 
     <script>
         lucide.createIcons();
     </script>
 </body>
-
 </html>
