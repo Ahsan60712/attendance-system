@@ -345,7 +345,7 @@ def mark_request():
                 status=status,
                 manager_name=manager_name
             )
-            success_msg = f'{request_type} applied successfully (Auto-Approved)!'
+            success_msg = f'{request_type} applied successfully!'
 
         # ── WhatsApp: notify the team manager about the new request ──────────
         if user_type == 'employee':

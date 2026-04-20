@@ -246,10 +246,10 @@ class WFHLeaveManager:
             # 4. Count Approved WFH
             wfhs = self._execute_query("SELECT COUNT(*) as cnt FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND STATUS = 'Approved' AND REQUEST_TYPE = 'WFH'", (emp_id_int,), fetchone=True)
             
-            taken_leaves = float(leaves.get('CNT', 0) or 0)
-            taken_hds = float(hds.get('CNT', 0) or 0) * 0.5
+            taken_leaves = float(leaves.get('CNT') or leaves.get('cnt') or 0)
+            taken_hds = float(hds.get('CNT') or hds.get('cnt') or 0) * 0.5
             total_taken = taken_leaves + taken_hds
-            total_wfh = int(wfhs.get('CNT', 0) or 0)
+            total_wfh = int(wfhs.get('CNT') or wfhs.get('cnt') or 0)
             
             new_remaining = base_allowance - total_taken
             
