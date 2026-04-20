@@ -439,8 +439,8 @@ def manager_dashboard():
         if session.get('user_type') == 'admin':
             pending_requests = [req for req in all_pending_requests if str(req.get('emp_id')) != str(emp_id)]
         else:
-            emp_team = current_emp.get('emp_team', '')
-            pending_requests = [req for req in all_pending_requests if req.get('team') == emp_team and str(req.get('emp_id')) != str(emp_id)]
+            emp_team = current_emp.get('emp_team', '').strip().lower()
+            pending_requests = [req for req in all_pending_requests if req.get('team', '').strip().lower() == emp_team and str(req.get('emp_id')) != str(emp_id)]
         
         # Attach employee balance to each pending request
         for req in pending_requests:
