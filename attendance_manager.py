@@ -231,33 +231,48 @@ class WFHLeaveManager:
         }
 
     def update_employee_counters(self, emp_id):
-        """Full recount and sync of employee balances based on approved requests"""
+        """Full recount and sync of employee balances based on approved requests in CURRENT YEAR"""
         try:
             emp_id_int = int(emp_id)
-            # 1. Get current employee base data
-            emp = self._execute_query("SELECT CARRIED_FORWARD FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id_int,), fetchone=True)
-            carried = float(emp.get('CARRIED_FORWARD', 0) or 0)
-            base_allowance = 14.0 + carried
+            current_year = date.today().year # This will be 2026
             
-            # 2. Count Approved Leaves (1.0 each)
-            leaves = self._execute_query("SELECT COUNT(*) as cnt FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND STATUS = 'Approved' AND REQUEST_TYPE = 'Leave'", (emp_id_int,), fetchone=True)
-            # 3. Count Approved Half Days (0.5 each)
-            hds = self._execute_query("SELECT COUNT(*) as cnt FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND STATUS = 'Approved' AND REQUEST_TYPE = 'Half Day'", (emp_id_int,), fetchone=True)
+            # 1. Get employee allowance and carried forward
+            emp = self._execute_query("SELECT TOTAL_LEAVES, LEAVES_CARRIED_FORWARD FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id_int,), fetchone=True)
+            if not emp: return False
+            
+            total_allowance = float(emp.get('TOTAL_LEAVES', 14.0) or 14.0)
+            carried = float(emp.get('LEAVES_CARRIED_FORWARD', 0) or 0)
+            total_base = total_allowance + carried
+            
+            # 2. Count Approved Leaves ONLY in Current Year
+            leaves = self._execute_query(
+                "SELECT COUNT(*) as cnt FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND STATUS = 'Approved' AND REQUEST_TYPE = 'Leave' AND YEAR(CAST(REQUEST_DATE AS DATE)) = %s",
+                (emp_id_int, current_year), fetchone=True
+            )
+            # 3. Count Approved Half Days ONLY in Current Year
+            hds = self._execute_query(
+                "SELECT COUNT(*) as cnt FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND STATUS = 'Approved' AND REQUEST_TYPE = 'Half Day' AND YEAR(CAST(REQUEST_DATE AS DATE)) = %s",
+                (emp_id_int, current_year), fetchone=True
+            )
             # 4. Count Approved WFH
-            wfhs = self._execute_query("SELECT COUNT(*) as cnt FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND STATUS = 'Approved' AND REQUEST_TYPE = 'WFH'", (emp_id_int,), fetchone=True)
+            wfhs = self._execute_query(
+                "SELECT COUNT(*) as cnt FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND STATUS = 'Approved' AND REQUEST_TYPE = 'WFH' AND YEAR(CAST(REQUEST_DATE AS DATE)) = %s",
+                (emp_id_int, current_year), fetchone=True
+            )
             
             taken_leaves = float(leaves.get('CNT') or leaves.get('cnt') or 0)
             taken_hds = float(hds.get('CNT') or hds.get('cnt') or 0) * 0.5
             total_taken = taken_leaves + taken_hds
             total_wfh = int(wfhs.get('CNT') or wfhs.get('cnt') or 0)
             
-            new_remaining = base_allowance - total_taken
+            new_remaining = total_base - total_taken
             
             # Sync back to EMPLOYEES table
             self._execute_query(
                 "UPDATE ADLABS.AHSAN.EMPLOYEES SET REMAINING_LEAVES = %s, LEAVES_THIS_YEAR = %s, WFH_COUNT = %s WHERE EMP_ID = %s",
                 (new_remaining, total_taken, total_wfh, emp_id_int), commit=True
             )
+            print(f"[SYNC SUCCESS] ID {emp_id_int}: Base={total_base}, Taken={total_taken}, Remaining={new_remaining}")
             return True
         except Exception as e:
             print(f"[SYNC ERROR] {e}")
