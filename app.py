@@ -436,11 +436,22 @@ def manager_dashboard():
         
         # Get pending requests for approval (from others)
         all_pending_requests = manager.get_pending_requests(req_status='Pending')
+        # DEBUG: Let's see what's happening
+        print(f"DEBUG: Manager ID: {emp_id}, Team from Session: {session.get('emp_team')}, Team from DB: {current_emp.get('emp_team')}")
+        
+        emp_team = (current_emp.get('emp_team') or session.get('emp_team', '')).strip().lower()
+        
         if session.get('user_type') == 'admin':
             pending_requests = [req for req in all_pending_requests if str(req.get('emp_id')) != str(emp_id)]
         else:
-            emp_team = current_emp.get('emp_team', '').strip().lower()
-            pending_requests = [req for req in all_pending_requests if req.get('team', '').strip().lower() == emp_team and str(req.get('emp_id')) != str(emp_id)]
+            pending_requests = []
+            for req in all_pending_requests:
+                req_team = str(req.get('team', '')).strip().lower()
+                print(f"DEBUG: Comparing Req Team '{req_team}' with Manager Team '{emp_team}'")
+                if req_team == emp_team and str(req.get('emp_id')) != str(emp_id):
+                    pending_requests.append(req)
+        
+        print(f"DEBUG: Found {len(pending_requests)} requests for this manager.")
         
         # Attach employee balance to each pending request
         for req in pending_requests:
