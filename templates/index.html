@@ -1,94 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adlab Solutions - Attendance Management</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=3.0">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Adlab Solutions - Professional Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=4.0">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        .landing-container {
-            min-height: 100vh;
+        body { 
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
-            background-color: #f1f5f9;
+            margin: 0;
         }
-        .portal-grid {
+        .portal-container {
+            width: 100%;
+            max-width: 900px;
+            padding: 2rem;
+            text-align: center;
+        }
+        .portal-header { margin-bottom: 4rem; }
+        .portal-header h1 { font-size: 2.5rem; font-weight: 800; color: #1e293b; margin-bottom: 1rem; }
+        .portal-header p { color: #64748b; font-size: 1.1rem; }
+        
+        .portal-options {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 2rem;
-            margin-top: 3rem;
         }
-        .portal-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        .option-card {
+            background: white;
+            padding: 3rem 2rem;
+            border-radius: 24px;
+            border: 1px solid #e2e8f0;
             text-decoration: none;
-            color: inherit;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
         }
-        .portal-icon-wrapper {
-            width: 80px;
-            height: 80px;
-            border-radius: 20px;
+        .option-card:hover {
+            transform: translateY(-10px);
+            border-color: #4f46e5;
+            box-shadow: 0 20px 25px -5px rgba(79, 70, 229, 0.1);
+        }
+        .icon-box {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 1rem;
-            transition: all 0.2s ease;
+            margin: 0 auto 1.5rem;
         }
-        .portal-item:hover .portal-icon-wrapper {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-        }
-        .emp-bg { background-color: #eef2ff; color: #4f46e5; }
-        .mgr-bg { background-color: #f0fdf4; color: #10b981; }
-        .adm-bg { background-color: #fff7ed; color: #f97316; }
+        .emp-icon { background: #eef2ff; color: #4f46e5; }
+        .mgr-icon { background: #f0fdf4; color: #10b981; }
+        .adm-icon { background: #fff7ed; color: #f97316; }
         
-        .portal-title { font-weight: 700; font-size: 1.1rem; }
-        .portal-subtitle { font-size: 0.85rem; color: #64748b; text-align: center; margin-top: 0.5rem; }
+        .option-title { font-size: 1.25rem; font-weight: 700; color: #1e293b; display: block; margin-bottom: 0.5rem; }
+        .option-desc { font-size: 0.85rem; color: #64748b; }
     </style>
 </head>
-
 <body>
-    <div class="landing-container">
-        <div class="landing-card">
-            <h1>Adlab Solutions</h1>
-            <p style="color: #64748b; font-size: 1.1rem;">Attendance & Leave Management Portal</p>
+    <div class="portal-container">
+        <div class="portal-header">
+            <h1 style="display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
+                <i data-lucide="shield-check" size="48" style="color: #4f46e5;"></i>
+                Adlab Solutions
+            </h1>
+            <p>Select your portal to manage attendance and leaves.</p>
+        </div>
 
-            <div class="portal-grid">
-                <a href="{{ url_for('employee_login') }}" class="portal-item">
-                    <div class="portal-icon-wrapper emp-bg">
-                        <i data-lucide="users" size="32"></i>
-                    </div>
-                    <span class="portal-title">Employee</span>
-                    <span class="portal-subtitle">Apply for WFH & Leaves</span>
-                </a>
+        <div class="portal-options">
+            <a href="{{ url_for('employee_login') }}" class="option-card">
+                <div class="icon-box emp-icon"><i data-lucide="users" size="32"></i></div>
+                <span class="option-title">Employee</span>
+                <span class="option-desc">Mark attendance & request leaves.</span>
+            </a>
 
-                <a href="{{ url_for('manager_login') }}" class="portal-item">
-                    <div class="portal-icon-wrapper mgr-bg">
-                        <i data-lucide="briefcase" size="32"></i>
-                    </div>
-                    <span class="portal-title">Manager</span>
-                    <span class="portal-subtitle">Approve team requests</span>
-                </a>
+            <a href="{{ url_for('manager_login') }}" class="option-card">
+                <div class="icon-box mgr-icon"><i data-lucide="briefcase" size="32"></i></div>
+                <span class="option-title">Manager</span>
+                <span class="option-desc">Review and approve team requests.</span>
+            </a>
 
-                <a href="{{ url_for('admin_login') }}" class="portal-item">
-                    <div class="portal-icon-wrapper adm-bg">
-                        <i data-lucide="shield-check" size="32"></i>
-                    </div>
-                    <span class="portal-title">Administrator</span>
-                    <span class="portal-subtitle">System settings & Users</span>
-                </a>
-            </div>
+            <a href="{{ url_for('admin_login') }}" class="option-card">
+                <div class="icon-box adm-icon"><i data-lucide="lock" size="32"></i></div>
+                <span class="option-title">Admin</span>
+                <span class="option-desc">Manage system users & settings.</span>
+            </a>
+        </div>
+        
+        <div style="margin-top: 5rem; color: #94a3b8; font-size: 0.8rem;">
+            &copy; 2026 Adlab Solutions Attendance Management System
         </div>
     </div>
-    <script>
-        lucide.createIcons();
-    </script>
+    <script>lucide.createIcons();</script>
 </body>
-
 </html>
