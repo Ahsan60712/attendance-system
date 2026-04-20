@@ -1,81 +1,81 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block title %}Manager Dashboard - Adlab Solutions{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 animate-in">
-    <h2 style="font-size: 1.5rem;">Welcome, <strong>Manager {{ manager_name }}</strong> 👋 <span class="text-muted small">({{ emp_data.emp_team }} Team)</span></h2>
-    <a href="{{ url_for('change_password') }}" class="btn btn-secondary btn-sm">
-        <i data-lucide="key" style="width:16px;height:16px;"></i> Change Password
-    </a>
+<div class="welcome-hero" style="padding: 2.5rem; margin-bottom: 2rem; background: linear-gradient(135deg, #10b981, #059669);">
+    <h1>Manager Dashboard</h1>
+    <p style="opacity: 0.9;">Team <strong>{{ emp_data.emp_team }}</strong> • Review and approve employee requests below.</p>
 </div>
 
-<!-- Quick Stats Cards at the Top -->
-<div class="stats-grid animate-in" style="animation-delay: 0.1s;">
-    <div class="stat-card" style="border-left-color: var(--info);">
-        <div class="stat-value" style="color: var(--info);">{{ emp_data.emp_team }}</div>
-        <div class="stat-label">Your Team</div>
-    </div>
-    <div class="stat-card" style="border-left-color: var(--success); background: linear-gradient(135deg, #f0fdf4, #ffffff);">
-        <div class="stat-value" style="color: var(--success);">{{ remaining_leaves }}</div>
-        <div class="stat-label">Remaining Leaves</div>
-        <div class="small text-muted mt-2">From Total {{ total_allotted + carried_forward }}</div>
-    </div>
+<!-- Manager Stats Grid -->
+<div class="stats-grid">
     <div class="stat-card">
-        <div class="stat-value">{{ total_allotted }}</div>
-        <div class="stat-label">Annual Entitlement</div>
-        <div class="small text-muted mt-2">+ {{ carried_forward }} Carried Forward</div>
+        <div class="stat-info">
+            <h4>Team Name</h4>
+            <div class="value" style="font-size: 1.5rem; color: #10b981;">{{ emp_data.emp_team }}</div>
+        </div>
+        <div style="background: #ecfdf5; color: #10b981; padding: 1rem; border-radius: 12px;"><i data-lucide="users"></i></div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-info">
+            <h4>Pending Requests</h4>
+            <div class="value">{{ requests|length }}</div>
+        </div>
+        <div style="background: #fff7ed; color: #f97316; padding: 1rem; border-radius: 12px;"><i data-lucide="clock"></i></div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-info">
+            <h4>Annual Allowance</h4>
+            <div class="value">{{ total_allotted }}</div>
+        </div>
+        <div style="background: #eef2ff; color: #4f46e5; padding: 1rem; border-radius: 12px;"><i data-lucide="award"></i></div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-info">
+            <h4>Personal Remaining</h4>
+            <div class="value">{{ remaining_leaves }}</div>
+        </div>
+        <div style="background: #f0fdf4; color: #10b981; padding: 1rem; border-radius: 12px;"><i data-lucide="heart"></i></div>
     </div>
 </div>
 
-<!-- Main Tabs Layout -->
-<div class="card animate-in" style="animation-delay: 0.2s; padding: 0; overflow: hidden;">
-    <!-- Tabs Buttons -->
-    <div class="mgr-tabs-header m-4" style="display: flex; gap: 0.5rem; background: rgba(241, 245, 249, 0.8); padding: 0.5rem; border-radius: 16px;">
-        <button class="mgr-tab-btn active" onclick="switchTab(event, 'pending-section')" style="flex: 1; border: none; padding: 1rem; border-radius: 12px; font-weight: 600; cursor: pointer; background: white; color: var(--primary); box-shadow: var(--shadow); transition: var(--transition);">
-            <i data-lucide="clock" style="width:18px;height:18px; vertical-align: middle;"></i> Pending Requests
-        </button>
-        <button class="mgr-tab-btn" onclick="switchTab(event, 'apply-section')" style="flex: 1; border: none; padding: 1rem; border-radius: 12px; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-muted); transition: var(--transition);">
-            <i data-lucide="file-plus" style="width:18px;height:18px; vertical-align: middle;"></i> Apply Leave/WFH
-        </button>
-        <button class="mgr-tab-btn" onclick="switchTab(event, 'history-section')" style="flex: 1; border: none; padding: 1rem; border-radius: 12px; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-muted); transition: var(--transition);">
-            <i data-lucide="check-circle" style="width:18px;height:18px; vertical-align: middle;"></i> Team History
-        </button>
-    </div>
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+    <!-- Left Column: Pending Table -->
+    <div class="card">
+        <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="inbox" size="20"></i> Pending Team Approvals
+        </h3>
 
-    <!-- TAB 1: PENDING -->
-    <div id="pending-section" class="mgr-tab-content active p-4">
-        <h3 class="mb-4 d-flex align-items-center gap-2"><i data-lucide="inbox"></i> {{ emp_data.emp_team }} Pending Approval</h3>
         {% if requests %}
-        <div class="table-container">
-            <table class="table">
+        <div class="table-wrapper">
+            <table>
                 <thead>
                     <tr>
                         <th>Employee</th>
-                        <th>Current Balance</th>
-                        <th>Date</th>
                         <th>Type</th>
-                        <th class="text-center">Action</th>
+                        <th>Date</th>
+                        <th style="text-align: center;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for req in requests %}
                     <tr>
-                        <td><strong>{{ req.emp_name }}</strong></td>
-                        <td>
-                            <span class="badge" style="background: #e0e7ff; color: #4338ca;">{{ req.emp_balance }} / {{ req.total_allotted }}</span>
-                        </td>
+                        <td style="font-weight: 600;">{{ req.emp_name }}</td>
+                        <td><span class="badge badge-outline">{{ req.type }}</span></td>
                         <td>{{ req.display_date }}</td>
-                        <td><span class="badge badge-{{ req.type.lower().replace(' ', '-') }}">{{ req.type }}</span></td>
-                        <td class="text-center">
-                            <div class="d-flex justify-content-center gap-2">
+                        <td style="text-align: center;">
+                            <div style="display: flex; gap: 0.5rem; justify-content: center;">
                                 <form method="POST" action="{{ url_for('action_request') }}" style="margin: 0;">
                                     <input type="hidden" name="emp_id" value="{{ req.emp_id }}">
                                     <input type="hidden" name="date" value="{{ req.date }}">
                                     <input type="hidden" name="type" value="{{ req.type }}">
                                     <input type="hidden" name="timestamp" value="{{ req.timestamp }}">
                                     <input type="hidden" name="action" value="Approve">
-                                    <button type="submit" class="btn btn-sm" style="background: #10b981; color: white;"><i data-lucide="check" style="width:14px;height:14px;"></i> Approve</button>
+                                    <button type="submit" class="btn badge-approved" style="border: none; padding: 0.4rem 0.8rem; cursor: pointer;">Approve</button>
                                 </form>
                                 <form method="POST" action="{{ url_for('action_request') }}" style="margin: 0;">
                                     <input type="hidden" name="emp_id" value="{{ req.emp_id }}">
@@ -83,7 +83,7 @@
                                     <input type="hidden" name="type" value="{{ req.type }}">
                                     <input type="hidden" name="timestamp" value="{{ req.timestamp }}">
                                     <input type="hidden" name="action" value="Reject">
-                                    <button type="submit" class="btn btn-sm" style="background: #ef4444; color: white;"><i data-lucide="x" style="width:14px;height:14px;"></i> Reject</button>
+                                    <button type="submit" class="btn badge-rejected" style="border: none; padding: 0.4rem 0.8rem; cursor: pointer;">Reject</button>
                                 </form>
                             </div>
                         </td>
@@ -93,146 +93,42 @@
             </table>
         </div>
         {% else %}
-        <div class="p-4 text-center text-muted" style="background: var(--light); border-radius: 12px; margin-top: 1rem;">
-            <i data-lucide="check-circle-2" style="width: 32px; height: 32px; opacity: 0.5; margin-bottom: 0.5rem;"></i>
-            <p>You're all caught up! No pending requests for your team.</p>
+        <div style="text-align: center; padding: 4rem 1rem; color: var(--text-muted); background: #f8fafc; border-radius: 12px; border: 1px dashed var(--border);">
+            <i data-lucide="check-circle" size="32" style="opacity: 0.4; margin-bottom: 1rem;"></i>
+            <p>No pending requests for your team.</p>
         </div>
         {% endif %}
     </div>
 
-    <!-- TAB 2: APPLY -->
-    <div id="apply-section" class="mgr-tab-content p-4" style="display: none;">
-        <h3 class="mb-4 d-flex align-items-center gap-2"><i data-lucide="edit-3"></i> Apply for Personal Absence</h3>
-        <div class="alert" style="background: #fffbeb; color: #b45309; border-left: 4px solid #f59e0b; margin-bottom: 2rem;">
-            <i data-lucide="info" style="width: 16px; height: 16px; vertical-align: text-bottom;"></i> Manager requests are auto-approved and tracked for HR automatically.
+    <!-- Right Column: Manager Action Cards -->
+    <div style="display: flex; flex-direction: column; gap: 2rem;">
+        <div class="card" style="background: #f8fafc;">
+            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">Apply Personal</h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Mark your own absence here. Manager requests are automatically tracked.</p>
+            
+            <form method="POST" action="{{ url_for('mark_request') }}">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.4rem;">Date</label>
+                    <input type="date" name="date" value="{{ today }}" min="{{ today }}" required style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border);">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.4rem;">Type</label>
+                    <select name="request_type" required style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border);">
+                        <option value="WFH">WFH</option>
+                        <option value="Leave">Leave</option>
+                        <option value="Half Day">Half Day</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; font-size: 0.85rem;">Submit My Request</button>
+            </form>
         </div>
-        <form method="POST" action="{{ url_for('mark_request') }}" style="max-width: 600px;">
-            <div class="d-flex gap-4 mb-4" style="flex-wrap: wrap;">
-                <div class="form-group mb-0" style="flex: 1; min-width: 200px;">
-                    <label>Start Date</label>
-                    <input type="date" name="date" value="{{ today }}" min="{{ today }}" required>
-                </div>
-                <div class="form-group mb-0" style="flex: 1; min-width: 200px;">
-                    <label>End Date (Optional)</label>
-                    <input type="date" name="end_date" min="{{ today }}">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Type</label>
-                <select name="request_type" required>
-                    <option value="WFH">Work From Home</option>
-                    <option value="Leave">Leave</option>
-                    <option value="Half Day">Half Day</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Reason</label>
-                <textarea name="reason" rows="3" required placeholder="Provide a brief reason..."></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary w-full"><i data-lucide="send" style="width:18px;height:18px;"></i> Submit Application</button>
-        </form>
-    </div>
 
-    <!-- TAB 3: HISTORY -->
-    <div id="history-section" class="mgr-tab-content p-4" style="display: none;">
-        <h3 class="mb-4 d-flex align-items-center gap-2"><i data-lucide="history"></i> Team Approved History</h3>
-        
-        <form method="GET" action="{{ url_for('manager_dashboard') }}" class="mb-4 p-4" style="background: var(--light); border-radius: 12px; border: 1px solid var(--border);">
-            <input type="hidden" name="tab" value="history-section">
-            <div class="d-flex gap-2 align-items-end flex-wrap">
-                <div class="form-group mb-0 flex-1">
-                    <label class="small text-muted">From</label>
-                    <input type="date" name="start_date" value="{{ start_date }}" class="w-full">
-                </div>
-                <div class="form-group mb-0 flex-1">
-                    <label class="small text-muted">To</label>
-                    <input type="date" name="end_date" value="{{ end_date }}" class="w-full">
-                </div>
-                <button type="submit" class="btn btn-primary"><i data-lucide="search" style="width:16px;height:16px;"></i> Filter</button>
-            </div>
-        </form>
-
-        {% if approved_requests %}
-        <div class="table-container">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Employee</th>
-                        <th>Type</th>
-                        <th class="text-center">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for req in approved_requests %}
-                    <tr>
-                        <td><strong>{{ req.display_date }}</strong></td>
-                        <td>{{ req.emp_name }}</td>
-                        <td><span class="badge badge-{{ req.type.lower().replace(' ', '-') }}">{{ req.type }}</span></td>
-                        <td class="text-center">
-                            <form method="POST" action="{{ url_for('cancel_request') }}" style="margin: 0;">
-                                <input type="hidden" name="emp_id" value="{{ req.emp_id }}">
-                                <input type="hidden" name="date" value="{{ req.date }}">
-                                <input type="hidden" name="timestamp" value="{{ req.timestamp }}">
-                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Cancel this approval?');">
-                                    <i data-lucide="x-circle" style="width:14px;height:14px;"></i> Revoke
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="card">
+            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">Admin Navigation</h3>
+            <a href="{{ url_for('admin_performance_report') }}" class="btn btn-outline" style="width: 100%; justify-content: center; border: 1px solid var(--border); background: white;">
+                <i data-lucide="bar-chart-2"></i> View Performance
+            </a>
         </div>
-        {% else %}
-        <div class="p-4 text-center text-muted" style="background: var(--light); border-radius: 12px; margin-top: 1rem;">
-            <i data-lucide="calendar-x" style="width: 32px; height: 32px; opacity: 0.5; margin-bottom: 0.5rem;"></i>
-            <p>No approved requests found for this period.</p>
-        </div>
-        {% endif %}
     </div>
 </div>
-
-<script>
-    function switchTab(evt, tabId) {
-        // Hide all tab content
-        const contents = document.getElementsByClassName("mgr-tab-content");
-        for (let content of contents) {
-            content.style.display = "none";
-            content.classList.remove("active");
-        }
-        
-        // Reset ALL buttons to unselected state
-        const buttons = document.getElementsByClassName("mgr-tab-btn");
-        for (let btn of buttons) {
-            btn.classList.remove("active");
-            btn.style.background = "transparent";
-            btn.style.color = "var(--text-muted)";
-            btn.style.boxShadow = "none";
-        }
-        
-        // Show current tab
-        const activeTab = document.getElementById(tabId);
-        activeTab.style.display = "block";
-        activeTab.classList.add("active");
-        
-        // Apply active style to the clicked button
-        const activeBtn = evt.currentTarget;
-        activeBtn.classList.add("active");
-        activeBtn.style.background = "white";
-        activeBtn.style.color = "var(--primary)";
-        activeBtn.style.boxShadow = "var(--shadow)";
-    }
-
-    // Initialize first tab
-    document.addEventListener("DOMContentLoaded", function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const activeTabId = urlParams.get('tab') || 'pending-section';
-        
-        const buttons = document.getElementsByClassName("mgr-tab-btn");
-        if (activeTabId === 'history-section') buttons[2].click();
-        else if (activeTabId === 'apply-section') buttons[1].click();
-        else buttons[0].click();
-    });
-</script>
 {% endblock %}

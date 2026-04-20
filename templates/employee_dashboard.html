@@ -3,241 +3,188 @@
 {% block title %}Employee Dashboard - Adlab Solutions{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 animate-in">
-    <h2 style="font-size: 1.5rem;">Welcome back, <strong>{{ emp_name }}</strong> 👋</h2>
-    <a href="{{ url_for('change_password') }}" class="btn btn-secondary btn-sm">
-        <i data-lucide="key" style="width: 16px; height: 16px;"></i> Change Password
-    </a>
+<div class="welcome-hero" style="padding: 2.5rem; margin-bottom: 2rem;">
+    <h1>Welcome back, {{ emp_name }} 👋</h1>
+    <p style="opacity: 0.9;">Manage your attendance requests and track your leave balances.</p>
 </div>
 
-<!-- Stats Grid -->
-<div class="stats-grid animate-in" style="animation-delay: 0.1s;">
+<!-- Quick Stats Grid -->
+<div class="stats-grid">
     <div class="stat-card">
-        <div class="stat-value">{{ emp_data.WFH_count|default(0) }}</div>
-        <div class="stat-label">Total WFH</div>
+        <div class="stat-info">
+            <h4>Total WFH</h4>
+            <div class="value">{{ emp_data.WFH_count|default(0) }}</div>
+        </div>
+        <div style="background: #eef2ff; color: #4f46e5; padding: 1rem; border-radius: 12px;"><i data-lucide="home"></i></div>
     </div>
+    
     <div class="stat-card">
-        <div class="stat-value">{{ leave_balance.half_days_taken|default(emp_data.Half_Day|default(0)) }}</div>
-        <div class="stat-label">Half Days (This Year)</div>
+        <div class="stat-info">
+            <h4>Half Days</h4>
+            <div class="value">{{ leave_balance.half_days_taken|default(0) }}</div>
+        </div>
+        <div style="background: #fff7ed; color: #f97316; padding: 1rem; border-radius: 12px;"><i data-lucide="clock"></i></div>
     </div>
+
     <div class="stat-card">
-        <div class="stat-value">{{ leave_balance.leaves_taken_this_year|default(emp_data.Leaves|default(0)) }}</div>
-        <div class="stat-label">Leaves Taken (This Year)</div>
+        <div class="stat-info">
+            <h4>Leaves Taken</h4>
+            <div class="value">{{ leave_balance.leaves_taken_this_year|default(0) }}</div>
+        </div>
+        <div style="background: #fee2e2; color: #dc2626; padding: 1rem; border-radius: 12px;"><i data-lucide="calendar-x"></i></div>
     </div>
-    <div class="stat-card" style="border-left-color: var(--success); background: linear-gradient(135deg, #f0fdf4, #ffffff);">
-        <div class="stat-value" style="color: var(--success);">{{ leave_balance.remaining_leaves|default(emp_data.Remaining_Leaves|default(0)) }}</div>
-        <div class="stat-label">Remaining Leaves</div>
+
+    <div class="stat-card" style="border-left: 4px solid #10b981;">
+        <div class="stat-info">
+            <h4>Remaining</h4>
+            <div class="value" style="color: #10b981;">{{ leave_balance.remaining_leaves|default(0) }}</div>
+        </div>
+        <div style="background: #f0fdf4; color: #10b981; padding: 1rem; border-radius: 12px;"><i data-lucide="check-circle"></i></div>
     </div>
 </div>
 
-<!-- Leave Balance Panel -->
-{% if leave_balance and leave_balance.contract_year_start != 'N/A' %}
-<div class="leave-balance-panel animate-in" style="animation-delay: 0.2s;">
-    <div class="leave-balance-header">
-        <strong><i data-lucide="calendar" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 4px;"></i> Contract Year: {{ leave_balance.contract_year_start }} &rarr; {{ leave_balance.contract_year_end }}</strong>
-    </div>
-    <div class="leave-balance-body">
-        <div class="lb-item">
-            <span class="lb-label">Annual Entitlement</span>
-            <span class="lb-value">{{ leave_balance.total_leaves | int }}</span>
-        </div>
-        <div class="lb-sep">+</div>
-        <div class="lb-item">
-            <span class="lb-label">Carried Forward</span>
-            <span class="lb-value">{{ leave_balance.carried_forward | int }}</span>
-        </div>
-        <div class="lb-sep">=</div>
-        <div class="lb-item">
-            <span class="lb-label">Total Available</span>
-            <span class="lb-value">{{ leave_balance.total_available | int }}</span>
-        </div>
-        <div class="lb-sep">&minus;</div>
-        <div class="lb-item">
-            <span class="lb-label">Taken This Year</span>
-            <span class="lb-value" style="color: var(--danger);">{{ leave_balance.leaves_taken_this_year }}</span>
-        </div>
-        <div class="lb-sep">=</div>
-        <div class="lb-item highlight-item">
-            <span class="lb-label">Remaining</span>
-            <span class="lb-value">{{ leave_balance.remaining_leaves }}</span>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-<div class="d-flex flex-column gap-4 animate-in" style="animation-delay: 0.3s;">
-    <!-- Request Form -->
-    <div class="card w-full">
-        <h2 class="mb-4 d-flex align-items-center gap-2"><i data-lucide="send"></i> Submit Request</h2>
-        <form method="POST" action="{{ url_for('mark_request') }}" class="request-form">
-            <div class="d-flex gap-4 mb-4" style="flex-wrap: wrap;">
-                <div class="form-group mb-0" style="flex: 1; min-width: 200px;">
-                    <label>From Date</label>
-                    <input type="date" name="date" value="{{ today }}" min="{{ today }}" required>
-                </div>
-                <div class="form-group mb-0" id="end-date-group" style="display: none; flex: 1; min-width: 200px;">
-                    <label>To Date (Optional)</label>
-                    <input type="date" name="end_date" min="{{ today }}">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>Request Type</label>
-                <div class="radio-group" style="background: var(--light); padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
-                    <label class="radio-label">
-                        <input type="radio" name="request_type" value="WFH" onchange="toggleEndDate()" required> Work From Home
-                    </label>
-                    <label class="radio-label">
-                        <input type="radio" name="request_type" value="Half Day" onchange="toggleEndDate()" required> Half Day
-                    </label>
-                    <label class="radio-label">
-                        <input type="radio" name="request_type" value="Leave" onchange="toggleEndDate()" required> Leave
-                    </label>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="reason">Reason (Required)</label>
-                <textarea id="reason" name="reason" rows="3" required placeholder="Please provide a detailed reason..."></textarea>
-            </div>
-
-            <button type="submit" class="btn btn-primary">
-                <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i> Submit Request
-            </button>
-        </form>
-    </div>
-
-    <!-- Request History -->
-    <div class="card w-full">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="d-flex align-items-center gap-2 mb-0"><i data-lucide="history"></i> Request History</h2>
-            <button class="btn btn-secondary btn-sm" onclick="toggleFilters()">
-                <i data-lucide="filter" style="width: 16px; height: 16px;"></i> Filter
-            </button>
-        </div>
+<div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 2rem;">
+    <!-- Left Column: Submit & History -->
+    <div style="display: flex; flex-direction: column; gap: 2rem;">
         
-        <div id="filter-panel" class="mb-4 p-4" style="display: none; background: rgba(241, 245, 249, 0.5); border-radius: 12px; border: 1px solid var(--border);">
-            <form method="GET" class="filter-form">
-                <div class="filter-tabs mb-3">
-                    <label class="radio-inline mr-2"><input type="radio" name="filter_type" value="custom" onchange="this.form.submit()" {% if filter_type=='custom' %}checked{% endif %}> Custom</label>
-                    <label class="radio-inline mr-2"><input type="radio" name="filter_type" value="monthly" onchange="this.form.submit()" {% if filter_type=='monthly' %}checked{% endif %}> Monthly</label>
-                    <label class="radio-inline"><input type="radio" name="filter_type" value="yearly" onchange="this.form.submit()" {% if filter_type=='yearly' %}checked{% endif %}> Yearly</label>
+        <!-- Submit Request Form -->
+        <div class="card">
+            <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="send" size="20"></i> Submit New Request
+            </h3>
+            
+            <form method="POST" action="{{ url_for('mark_request') }}">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">Start Date</label>
+                        <input type="date" name="date" value="{{ today }}" min="{{ today }}" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border);">
+                    </div>
+                    <div id="end-date-group" style="display: none;">
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">End Date (Optional)</label>
+                        <input type="date" name="end_date" min="{{ today }}" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border);">
+                    </div>
                 </div>
 
-                {% if filter_type == 'monthly' %}
-                <div class="d-flex gap-2 align-items-end">
-                    <div class="form-group mb-0">
-                        <label class="text-muted small">Month</label>
-                        <select name="month" class="form-control-sm">
-                            {% for m in range(1, 13) %}<option value="{{ m }}" {% if request.args.get('month')|int==m %}selected{% endif %}>{{ m }}</option>{% endfor %}
-                        </select>
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">Request Type</label>
+                    <div style="display: flex; gap: 1rem; background: #f8fafc; padding: 1rem; border-radius: 10px; border: 1px solid var(--border);">
+                        <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; cursor: pointer;">
+                            <input type="radio" name="request_type" value="WFH" onchange="toggleEndDate()" required> WFH
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; cursor: pointer;">
+                            <input type="radio" name="request_type" value="Half Day" onchange="toggleEndDate()" required> Half Day
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; cursor: pointer;">
+                            <input type="radio" name="request_type" value="Leave" onchange="toggleEndDate()" required> Leave
+                        </label>
                     </div>
-                    <div class="form-group mb-0">
-                        <label class="text-muted small">Year</label>
-                        <input type="number" name="year" value="{{ request.args.get('year', 2026) }}" class="form-control-sm" style="width: 80px;">
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-sm">Go</button>
                 </div>
-                {% elif filter_type == 'yearly' %}
-                <div class="d-flex gap-2 align-items-end">
-                    <div class="form-group mb-0">
-                        <label class="text-muted small">Year</label>
-                        <input type="number" name="year" value="{{ request.args.get('year', 2026) }}" class="form-control-sm" style="width: 100px;">
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-sm">Go</button>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">Reason</label>
+                    <textarea name="reason" rows="3" required placeholder="Please provide a brief reason..." style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); resize: none;"></textarea>
                 </div>
-                {% else %}
-                <div class="d-flex gap-2 align-items-end flex-wrap">
-                    <div class="form-group mb-0">
-                        <label class="text-muted small">From</label>
-                        <input type="date" name="start_date" value="{{ filter_start }}" class="form-control-sm">
-                    </div>
-                    <div class="form-group mb-0">
-                        <label class="text-muted small">To</label>
-                        <input type="date" name="end_date" value="{{ filter_end }}" class="form-control-sm">
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-                </div>
-                {% endif %}
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                    <i data-lucide="check-circle" size="18"></i> Submit Request
+                </button>
             </form>
         </div>
 
-        {% if records %}
-        <div class="table-container">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Type</th>
-                        <th>Reason</th>
-                        <th>Submitted At</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for record in records %}
-                    <tr>
-                        <td><strong>{{ record.date }}</strong></td>
-                        <td>
-                            <span class="badge badge-{{ record.type.lower().replace(' ', '-') }}">{{ record.type }}</span>
-                        </td>
-                        <td>{{ record.reason }}</td>
-                        <td class="text-muted small">{{ record.timestamp }}</td>
-                        <td>
-                            {% if record.status == 'Pending' %}
-                            <span class="badge badge-pending">Pending</span>
-                            {% elif record.status == 'Approved' %}
-                            <span class="badge badge-approved">Approved</span>
-                            {% elif record.status == 'Rejected' %}
-                            <span class="badge badge-rejected">Rejected</span>
-                            {% else %}
-                            <span class="badge badge-approved">{{ record.status|default('Approved') }}</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if record.status == 'Pending' %}
-                            <form method="POST" action="{{ url_for('cancel_request') }}" style="margin: 0;">
-                                <input type="hidden" name="emp_id" value="{{ emp_data.emp_id }}">
-                                <input type="hidden" name="date" value="{{ record.raw_date }}">
-                                <input type="hidden" name="timestamp" value="{{ record.timestamp }}">
-                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Cancel this request?');">
-                                    <i data-lucide="x" style="width:14px;height:14px;"></i> Cancel
-                                </button>
-                            </form>
-                            {% else %}
-                            <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <!-- History Table -->
+        <div class="card">
+            <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="history" size="20"></i> Request History
+            </h3>
+            
+            {% if records %}
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr>
+                            <td style="font-weight: 600;">{{ record.date }}</td>
+                            <td><span class="badge badge-outline">{{ record.type }}</span></td>
+                            <td>
+                                <span class="badge {% if record.status == 'Approved' %}badge-approved{% elif record.status == 'Rejected' %}badge-rejected{% else %}badge-pending{% endif %}">
+                                    {{ record.status }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if record.status == 'Pending' %}
+                                <form method="POST" action="{{ url_for('cancel_request') }}" style="display: inline;">
+                                    <input type="hidden" name="emp_id" value="{{ emp_data.emp_id }}">
+                                    <input type="hidden" name="date" value="{{ record.raw_date }}">
+                                    <input type="hidden" name="timestamp" value="{{ record.timestamp }}">
+                                    <button type="submit" style="background: none; border: none; color: #ef4444; cursor: pointer; text-decoration: underline; font-size: 0.8rem;">Cancel</button>
+                                </form>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+                <div style="text-align: center; padding: 2rem; color: var(--text-muted);">No records found.</div>
+            {% endif %}
         </div>
-        {% else %}
-        <div class="p-4 text-center text-muted" style="background: var(--light); border-radius: 12px;">
-            <i data-lucide="inbox" style="width: 32px; height: 32px; opacity: 0.5; margin-bottom: 0.5rem;"></i>
-            <p>No records found for this period.</p>
+    </div>
+
+    <!-- Right Column: Balance Details -->
+    <div style="display: flex; flex-direction: column; gap: 2rem;">
+        <div class="card">
+            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">Leave Details</h3>
+            
+            {% if leave_balance %}
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                    <span style="color: var(--text-muted);">Contract Year Info:</span>
+                    <span style="font-weight: 600;">{{ leave_balance.contract_year_start }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem; padding-top: 0.5rem; border-top: 1px dashed #eee;">
+                    <span style="color: var(--text-muted);">Annual Entitlement:</span>
+                    <span style="font-weight: 600;">{{ leave_balance.total_leaves }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                    <span style="color: var(--text-muted);">Carried Forward:</span>
+                    <span style="font-weight: 600;">+ {{ leave_balance.carried_forward }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                    <span style="color: var(--text-muted);">Taken:</span>
+                    <span style="font-weight: 600; color: #ef4444;">- {{ leave_balance.leaves_taken_this_year }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 1.1rem; padding-top: 1rem; border-top: 1px solid var(--border); margin-top: 0.5rem;">
+                    <span style="font-weight: 700;">Remaining:</span>
+                    <span style="font-weight: 800; color: #10b981;">{{ leave_balance.remaining_leaves }}</span>
+                </div>
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
+
+        <div style="padding: 1.5rem; background: #eef2ff; border-radius: 16px; border: 1px solid #c7d2fe;">
+            <h4 style="color: #4338ca; font-size: 0.9rem; font-weight: 800; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+                <i data-lucide="info" size="16"></i> Polices
+            </h4>
+            <p style="font-size: 0.8rem; color: #4338ca; line-height: 1.4;">Half day equals 0.5 leaves. WFH requests do not deduct from your leave balance.</p>
+        </div>
     </div>
 </div>
 
 <script>
     function toggleEndDate() {
-        const requestType = document.querySelector('input[name="request_type"]:checked').value;
-        const endDateGroup = document.getElementById('end-date-group');
-        if (requestType === 'Leave') {
-            endDateGroup.style.display = 'block';
-        } else {
-            endDateGroup.style.display = 'none';
-            document.querySelector('input[name="end_date"]').value = '';
-        }
-    }
-
-    function toggleFilters() {
-        const panel = document.getElementById('filter-panel');
-        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        const type = document.querySelector('input[name="request_type"]:checked').value;
+        document.getElementById('end-date-group').style.display = (type === 'Leave') ? 'block' : 'none';
     }
 </script>
 {% endblock %}
