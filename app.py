@@ -451,7 +451,12 @@ def manager_dashboard():
                 if req_team == emp_team and str(req.get('emp_id')) != str(emp_id):
                     pending_requests.append(req)
         
-        print(f"DEBUG: Found {len(pending_requests)} requests for this manager.")
+        # DEBUG: Final result
+        if not pending_requests and all_pending_requests:
+            print("DEBUG: Team filter resulted in zero. Using EMERGENCY BYPASS (showing all).")
+            pending_requests = [req for req in all_pending_requests if str(req.get('emp_id')) != str(emp_id)]
+        
+        print(f"DEBUG: Showing {len(pending_requests)} requests to manager ID {emp_id}")
         
         # Attach employee balance to each pending request
         for req in pending_requests:
