@@ -276,16 +276,17 @@ class WFHLeaveManager:
         
         date_str = date.strftime('%Y-%m-%d') if hasattr(date, 'strftime') else str(date)
         
-        # 1. KILL any existing record for this date (Absolute Clean)
+        # 1. DELETE ANY existing records for this user/day (Super Hard Reset)
+        # Using both TO_DATE and pure string matching to be 100% sure
         self._execute_query(
-            "DELETE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND TO_CHAR(REQUEST_DATE, 'YYYY-MM-DD') = %s",
-            (emp_id_int, date_str), commit=True
+            "DELETE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND (CAST(REQUEST_DATE AS DATE) = %s OR TO_VARCHAR(REQUEST_DATE, 'YYYY-MM-DD') = %s)",
+            (emp_id_int, date_str, date_str), commit=True
         )
 
-        # 2. Insert new
-        success = self.db.mark_request(emp_id_int, date_str, request_type, reason, status, manager_name if status == 'Approved' else None)
+        # 2. Insert the NEW one (This will now be the ONLY one)
+        self.db.mark_request(emp_id_int, date_str, request_type, reason, status, manager_name if status == 'Approved' else None)
         
-        # 3. Always Recount/Sync after any change
+        # 3. CRITICAL: Recalculate balance from SCRATCH to fix 12.5/13.0 issue
         self.update_employee_counters(emp_id_int)
         
         if status == 'Approved':
