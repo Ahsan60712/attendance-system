@@ -245,43 +245,56 @@ class WFHLeaveManager:
             self._execute_query("UPDATE ADLABS.AHSAN.EMPLOYEES SET REMAINING_LEAVES = REMAINING_LEAVES + 0.5, LEAVES_THIS_YEAR = GREATEST(LEAVES_THIS_YEAR - 0.5, 0) WHERE EMP_ID = %s", (emp_id,), commit=True)
 
     def mark_wfh_leave(self, emp_id, emp_name, emp_team, date, request_type, reason, status='Pending', manager_name=''):
+        # Ensure emp_id is an integer
+        try:
+            emp_id_int = int(emp_id)
+        except:
+            emp_id_int = emp_id
+            
         date_str = date.strftime('%Y-%m-%d') if hasattr(date, 'strftime') else str(date)
         
         # --- OVERWRITE LOGIC: Aggressive Clean ---
-        # 1. Fetch exactly what's there
+        # Look for ANY existing Active request (Approved or Pending)
+        print(f"[DATABASE] Checking overwrite for ID {emp_id_int} on {date_str}")
+        
         existing = self._execute_query(
-            "SELECT * FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND CAST(REQUEST_DATE AS DATE) = %s",
-            (emp_id, date_str), fetchone=True
+            "SELECT REQUEST_ID, STATUS, REQUEST_TYPE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND (REQUEST_DATE = %s OR CAST(REQUEST_DATE AS DATE) = %s) AND STATUS IN ('Pending', 'Approved')",
+            (emp_id_int, date_str, date_str), fetchone=True
         )
         
         if existing:
-            # DEBUG: Print keys to see exactly what Snowflake returns
-            print(f"[OVERWRITE] Keys found: {list(existing.keys())}")
-            
-            # Match keys case-insensitively just in case
             status_val = str(existing.get('STATUS') or existing.get('status') or '').capitalize()
             type_val = existing.get('REQUEST_TYPE') or existing.get('request_type')
+            req_id = existing.get('REQUEST_ID') or existing.get('request_id')
             
-            # Refund if it was approved
+            print(f"[DATABASE] Found Existing ID {req_id}: {type_val} ({status_val})")
+            
+            # Refund if it was already approved
             if status_val == 'Approved':
-                print(f"[OVERWRITE] Refunding {type_val} for {emp_name}")
-                self.refund_employee_counters(emp_id, type_val)
+                print(f"[DATABASE] Refunding Approved {type_val}")
+                self.refund_employee_counters(emp_id_int, type_val)
             
-            # 2. Delete ALL existing records for this user on this date
+            # Delete the specific existing record
             self._execute_query(
-                "DELETE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND CAST(REQUEST_DATE AS DATE) = %s",
-                (emp_id, date_str), commit=True
+                "DELETE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE REQUEST_ID = %s",
+                (req_id,), commit=True
             )
-            print(f"[OVERWRITE] Deleted old record for {date_str}")
+            print(f"[DATABASE] Successfully deleted old record ID {req_id}")
 
-        # 3. Proceed to save the new request
-        success = self.db.mark_request(emp_id, date_str, request_type, reason, status, manager_name if status == 'Approved' else None)
+        # Final safety: Delete anyone else on that day just in case
+        self._execute_query(
+            "DELETE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND (REQUEST_DATE = %s OR CAST(REQUEST_DATE AS DATE) = %s) AND STATUS IN ('Pending', 'Approved')",
+            (emp_id_int, date_str, date_str), commit=True
+        )
+
+        # 3. Save the new request (This will be the only one left)
+        success = self.db.mark_request(emp_id_int, date_str, request_type, reason, status, manager_name if status == 'Approved' else None)
         
-        if not success: raise Exception("Failed to save request to Snowflake.")
+        if not success: raise Exception("Failed to save new request to Snowflake.")
         
         if status == 'Approved':
-            self.update_employee_counters(emp_id, request_type)
-            self.log_approval_action(emp_id, emp_name, request_type, date_str, 'Approved', manager_name or emp_name)
+            self.update_employee_counters(emp_id_int, request_type)
+            self.log_approval_action(emp_id_int, emp_name, request_type, date_str, 'Approved', manager_name or emp_name)
         
         return True
 
