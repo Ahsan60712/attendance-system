@@ -670,6 +670,10 @@ def admin_dashboard():
     emp_id = session.get('emp_id')
     today = date.today()
     
+    # Get filter dates from query params (default to today)
+    start_date_str = request.args.get('start_date', today.strftime('%Y-%m-%d'))
+    end_date_str = request.args.get('end_date', today.strftime('%Y-%m-%d'))
+    
     # Get all employees data for the directory/lookup
     employees = manager.get_employees()
     
@@ -691,13 +695,13 @@ def admin_dashboard():
         req['team'] = req_emp_data.get('emp_team', 'N/A')
         pending_requests.append(req)
     
-    # Get recently approved/rejected requests (last 10)
+    # Get approved/rejected requests and filter by date range
     all_approved_requests = manager.get_pending_requests(req_status='Approved')
     all_rejected_requests = manager.get_pending_requests(req_status='Rejected')
     recent_requests = []
     
-    # Combine approved and rejected, sort by date (most recent first)
-    for req in all_approved_requests[-10:] + all_rejected_requests[-10:]:
+    # Combine approved and rejected
+    for req in all_approved_requests + all_rejected_requests:
         if str(req.get('emp_id')) == str(emp_id):
             continue
         req_emp_id = req.get('emp_id')
@@ -705,17 +709,35 @@ def admin_dashboard():
         req['team'] = req_emp_data.get('emp_team', 'N/A')
         recent_requests.append(req)
     
+    # Filter by date range
+    filtered_requests = []
+    try:
+        sd = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        ed = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        for req in recent_requests:
+            req_date_raw = req.get('date')
+            if req_date_raw:
+                if isinstance(req_date_raw, (date, datetime)):
+                    req_date = req_date_raw if isinstance(req_date_raw, date) else req_date_raw.date()
+                else:
+                    req_date = datetime.strptime(str(req_date_raw).split(' ')[0], '%Y-%m-%d').date()
+                if sd <= req_date <= ed:
+                    filtered_requests.append(req)
+    except Exception as e:
+        filtered_requests = recent_requests  # Fallback: show all
+    
     # Sort by date descending
-    recent_requests.sort(key=lambda x: x.get('date', ''), reverse=True)
-    recent_requests = recent_requests[:10]  # Keep only 10 most recent
+    filtered_requests.sort(key=lambda x: x.get('date', ''), reverse=True)
 
     return render_template('ceo_dashboard.html',
                          admin_name=session.get('emp_name'),
                          emp_data={'emp_team': 'Global Administration'},
                          leave_balance=leave_balance,
                          requests=pending_requests,
-                         recent_requests=recent_requests,
+                         recent_requests=filtered_requests,
                          employees=employees,
+                         start_date=start_date_str,
+                         end_date=end_date_str,
                          today=today.strftime('%Y-%m-%d'))
 
 @app.route('/admin/performance-report')

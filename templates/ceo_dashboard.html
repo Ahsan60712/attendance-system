@@ -83,8 +83,28 @@
 <div style="margin-top: 2rem;">
     <div class="card">
         <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-            <i data-lucide="history" size="20"></i> Recent Activity (Last 10)
+            <i data-lucide="history" size="20"></i> Recent Activity
         </h3>
+        
+        <!-- Date Filter -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <label style="font-weight: 600; font-size: 0.9rem;">From:</label>
+                <input type="date" name="start_date" value="{{ start_date }}" 
+                       onchange="filterByDate()" 
+                       style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-family: inherit;">
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <label style="font-weight: 600; font-size: 0.9rem;">To:</label>
+                <input type="date" name="end_date" value="{{ end_date }}" 
+                       onchange="filterByDate()" 
+                       style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-family: inherit;">
+            </div>
+            <button onclick="resetFilter()" 
+                    style="padding: 0.5rem 1rem; background: white; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-weight: 600;">
+                Reset
+            </button>
+        </div>
         
         <div class="table-wrapper">
             {% if recent_requests %}
@@ -121,11 +141,30 @@
             {% else %}
             <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
                 <i data-lucide="clock" size="32" style="opacity: 0.4; margin-bottom: 0.5rem;"></i>
-                <p>No recent activity found.</p>
+                <p>No recent activity found for selected date range.</p>
             </div>
             {% endif %}
         </div>
     </div>
 </div>
+
+<script>
+function filterByDate() {
+    const startDate = document.querySelector('input[name="start_date"]').value;
+    const endDate = document.querySelector('input[name="end_date"]').value;
+    const url = new URL(window.location.href);
+    url.searchParams.set('start_date', startDate);
+    url.searchParams.set('end_date', endDate);
+    window.location.href = url.toString();
+}
+
+function resetFilter() {
+    const today = '{{ today }}';
+    const url = new URL(window.location.href);
+    url.searchParams.set('start_date', today);
+    url.searchParams.set('end_date', today);
+    window.location.href = url.toString();
+}
+</script>
 
 {% endblock %}
