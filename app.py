@@ -423,6 +423,7 @@ def manager_dashboard():
             return redirect(url_for('employee_login'))
         
         emp_id = session.get('emp_id')
+        emp_name = session.get('emp_name', '')
         today = date.today()
 
         # Get filter dates from query params
@@ -449,11 +450,15 @@ def manager_dashboard():
         # Rich leave balance for display
         leave_balance = manager.get_leave_balance_info(emp_id)
         
+        # Check if this is Sajeel_Fasihi (special manager role)
+        is_sajeel = 'sajeel' in emp_name.lower()
+        
         # Get pending requests for approval (from others)
         all_pending_requests = manager.get_pending_requests(req_status='Pending')
         manager_team = (current_emp.get('emp_team') or session.get('emp_team', '')).strip().lower()
         
         # Only include pending requests from the manager's exact team
+        # For Sajeel, show Poppi team requests instead of his own team
         pending_requests = []
         for req in all_pending_requests:
             req_emp_id = req.get('emp_id')
@@ -463,12 +468,16 @@ def manager_dashboard():
             req_emp_data = next((e for e in employees if str(e.get('emp_id')) == str(req_emp_id)), {})
             req_emp_team = (req_emp_data.get('emp_team') or '').strip().lower()
             
-            if req_emp_team == manager_team:
+            # For Sajeel: show Poppi team requests
+            # For others: show their own team requests
+            target_team = 'poppi' if is_sajeel else manager_team
+            
+            if req_emp_team == target_team:
                 req['emp_balance'] = req_emp_data.get('Remaining_Leaves', 'N/A')
                 req['total_allotted'] = req_emp_data.get('Total_leaves', 14)
                 pending_requests.append(req)
                 
-        # Get approved requests (from others in the same team)
+        # Get approved requests (from others)
         all_approved_requests = manager.get_pending_requests(req_status='Approved')
         team_approved = []
         for req in all_approved_requests:
@@ -479,7 +488,9 @@ def manager_dashboard():
             req_emp_data = next((e for e in employees if str(e.get('emp_id')) == str(req_emp_id)), {})
             req_emp_team = (req_emp_data.get('emp_team') or '').strip().lower()
             
-            if req_emp_team == manager_team:
+            # For Sajeel: show all teams' approved requests (admin-like access)
+            # For others: show only their own team approved requests
+            if is_sajeel or req_emp_team == manager_team:
                 team_approved.append(req)
 
         # Then filter approved requests by date range
