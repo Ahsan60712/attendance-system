@@ -19,7 +19,10 @@
 <!-- Tabs Navigation -->
 <div style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
     <button onclick="showTab('requests-tab')" class="tab-btn active-tab" id="btn-requests">
-        <i data-lucide="users" size="18"></i> Every Request ({{ requests|length }})
+        <i data-lucide="users" size="18"></i> Active Requests ({{ requests|length }})
+    </button>
+    <button onclick="showTab('approved-tab')" class="tab-btn" id="btn-approved">
+        <i data-lucide="check-circle" size="18"></i> Approved Requests ({{ approved_requests|length }})
     </button>
     <button onclick="showTab('apply-tab')" class="tab-btn" id="btn-apply">
         <i data-lucide="plus-circle" size="18"></i> Personal Apply
@@ -112,7 +115,66 @@
     </div>
 </div>
 
-<!-- TAB 2: APPLY FOR LEAVE/WFH -->
+<!-- TAB 2: APPROVED REQUESTS -->
+<div id="approved-tab" class="tab-content">
+    <div class="card">
+        <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="check-circle" size="20"></i> Approved Requests
+        </h3>
+        
+        <!-- Date Filter -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <label style="font-weight: 600; font-size: 0.9rem;">From:</label>
+                <input type="date" name="start_date" value="{{ start_date }}" 
+                       onchange="filterApprovedByDate()" 
+                       style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-family: inherit;">
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <label style="font-weight: 600; font-size: 0.9rem;">To:</label>
+                <input type="date" name="end_date" value="{{ end_date }}" 
+                       onchange="filterApprovedByDate()" 
+                       style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-family: inherit;">
+            </div>
+        </div>
+        
+        <div class="table-wrapper">
+            {% if approved_requests %}
+            <table style="border-collapse: separate; border-spacing: 0; width: 100%;">
+                <thead>
+                    <tr>
+                        <th style="background: #f8fafc; padding: 1rem; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">EMPLOYEE</th>
+                        <th style="background: #f8fafc; padding: 1rem; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">TEAM</th>
+                        <th style="background: #f8fafc; padding: 1rem; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">TYPE</th>
+                        <th style="background: #f8fafc; padding: 1rem; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">DATE</th>
+                        <th style="background: #f8fafc; padding: 1rem; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">STATUS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in approved_requests %}
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 1rem; font-weight: 700; color: #1f2937;">{{ req.emp_name }}</td>
+                        <td style="padding: 1rem;"><span class="badge" style="background: #f1f5f9; color: #64748b; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.85rem;">{{ req.team }}</span></td>
+                        <td style="padding: 1rem; color: #475569;">{{ req.type }}</td>
+                        <td style="padding: 1rem; color: #475569;">{{ req.display_date }}</td>
+                        <td style="padding: 1rem;">
+                            <span class="badge" style="background: #dcfce7; color: #166534; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.85rem;">Approved</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                <i data-lucide="clock" size="32" style="opacity: 0.4; margin-bottom: 0.5rem;"></i>
+                <p>No approved requests found for selected date range.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- TAB 3: APPLY FOR LEAVE/WFH -->
 <div id="apply-tab" class="tab-content">
     <div class="row">
         <div class="col-8">
@@ -201,9 +263,20 @@
         document.getElementById(tabId).style.display = 'block';
         if(tabId === 'requests-tab') {
             document.getElementById('btn-requests').classList.add('active-tab');
+        } else if(tabId === 'approved-tab') {
+            document.getElementById('btn-approved').classList.add('active-tab');
         } else {
             document.getElementById('btn-apply').classList.add('active-tab');
         }
+    }
+
+    function filterApprovedByDate() {
+        const startDate = document.querySelector('#approved-tab input[name="start_date"]').value;
+        const endDate = document.querySelector('#approved-tab input[name="end_date"]').value;
+        const url = new URL(window.location.href);
+        url.searchParams.set('start_date', startDate);
+        url.searchParams.set('end_date', endDate);
+        window.location.href = url.toString();
     }
 
     function handleAction(empId, date, type, timestamp, action, button) {
