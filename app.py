@@ -511,7 +511,7 @@ def manager_dashboard():
             approved_requests = team_approved  # Fallback: show all
 
         # Get manager's own records
-        my_records = manager.get_employee_records(emp_id)
+        my_records = manager.get_employee_records(emp_id, start_date_str, end_date_str)
         
         if not isinstance(leave_balance, dict):
             leave_balance = {}
