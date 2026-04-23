@@ -21,64 +21,6 @@
     </a>
 </div>
 
-<!-- TAB 1: TEAM REQUESTS -->
-<div id="requests-tab">
-    <div class="card">
-        <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-            <i data-lucide="inbox" size="20"></i> Active Requests List
-        </h3>
-        
-        <div class="table-wrapper">
-            {% if requests %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Employee</th>
-                        <th>Team</th>
-                        <th style="background: #eff6ff; color: #1e40af;">Balance</th>
-                        <th>Type</th>
-                        <th>Date</th>
-                        <th style="text-align: center;">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for req in requests %}
-                    <tr>
-                        <td style="font-weight: 700;">{{ req.emp_name }}</td>
-                        <td><span class="badge" style="background:#f1f5f9;">{{ req.team }}</span></td>
-                        <td style="background: #f8fafc;">
-                            <span class="badge" style="background: #dbeafe; color: #1e40af;">
-                                <strong>{{ req.emp_balance }}</strong> left
-                            </span>
-                        </td>
-                        <td>{{ req.type }}</td>
-                        <td>{{ req.display_date }}</td>
-                        <td style="text-align: center;">
-                            <div style="display: flex; gap: 0.5rem; justify-content: center;">
-                                <form method="POST" action="{{ url_for('action_request') }}" style="margin: 0;">
-                                    <input type="hidden" name="emp_id" value="{{ req.emp_id }}"><input type="hidden" name="date" value="{{ req.date }}"><input type="hidden" name="type" value="{{ req.type }}"><input type="hidden" name="timestamp" value="{{ req.timestamp }}"><input type="hidden" name="action" value="Approve">
-                                    <button type="submit" class="badge badge-approved" style="border: none; cursor: pointer; padding: 0.6rem 1rem;">Approve</button>
-                                </form>
-                                <form method="POST" action="{{ url_for('action_request') }}" style="margin: 0;">
-                                    <input type="hidden" name="emp_id" value="{{ req.emp_id }}"><input type="hidden" name="date" value="{{ req.date }}"><input type="hidden" name="type" value="{{ req.type }}"><input type="hidden" name="timestamp" value="{{ req.timestamp }}"><input type="hidden" name="action" value="Reject">
-                                    <button type="submit" class="badge badge-rejected" style="border: none; cursor: pointer; padding: 0.6rem 1rem;">Reject</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
-                <i data-lucide="check-circle" size="32" style="opacity: 0.4; margin-bottom: 0.5rem;"></i>
-                <p>No pending requests found.</p>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-</div>
-
 <!-- RECENT REQUESTS SECTION -->
 <div style="margin-top: 2rem;">
     <div class="card">
