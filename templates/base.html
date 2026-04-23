@@ -7,39 +7,45 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        :root { --primary: #4f46e5; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); margin: 0; line-height: 1.5; }
-        .container { max-width: 1100px; margin: 0 auto; padding: 2rem; }
-        header { background: white; padding: 1rem 2rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .logo { font-weight: 800; font-size: 1.5rem; color: var(--primary); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; }
-        .btn { padding: 0.6rem 1.2rem; background: var(--primary); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; }
-        .card { background: white; padding: 2rem; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 2rem; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
-        .stat-card { background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border); text-align: center; }
-        .stat-card .value { font-size: 2.25rem; font-weight: 800; color: var(--primary); display: block; }
-        .stat-card .label { font-size: 0.8rem; color: #64748b; font-weight: 600; text-transform: uppercase; }
-        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-        th { text-align: left; padding: 1rem; background: #f1f5f9; font-size: 0.75rem; text-transform: uppercase; border-bottom: 2px solid var(--border); }
-        td { padding: 1rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-        .badge { padding: 0.3rem 0.8rem; border-radius: 99px; font-size: 0.75rem; font-weight: 700; }
-        .badge-approved { background: #dcfce7; color: #166534; }
-        .badge-pending { background: #fef9c3; color: #854d0e; }
-        .badge-rejected { background: #fee2e2; color: #991b1b; }
-        
-        /* Alert Styles */
-        .alert { padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.75rem; font-weight: 600; animation: slideIn 0.3s ease-out; transition: opacity 0.5s; }
-        .alert-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-        .alert-error, .alert-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-        .alert-info { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
-        @keyframes slideIn { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --bg: #f8fafc;
+            --text: #0f172a;
+            --border: #e2e8f0;
+        }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            margin: 0; 
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container { max-width: 1280px; margin: 0 auto; padding: 1.5rem 2rem; }
+        header { 
+            background: rgba(255, 255, 255, 0.8); 
+            backdrop-filter: blur(12px);
+            padding: 0.75rem 2rem; 
+            border-bottom: 1px solid var(--border); 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .logo { font-weight: 800; font-size: 1.4rem; color: var(--primary-dark); text-decoration: none; display: flex; align-items: center; gap: 0.6rem; letter-spacing: -0.02em; }
+        .btn { padding: 0.6rem 1.25rem; background: var(--primary); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
+        .btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
     </style>
 </head>
 <body>
-    {% if session.get('logged_in') %}
+    {% if session.get('logged_in') or session.get('emp_name') %}
     <header>
         <a href="/" class="logo"><i data-lucide="shield-check"></i> Adlab Solutions</a>
         <div style="display: flex; align-items: center; gap: 1rem;">
-            <span style="font-weight: 600; font-size: 0.9rem;">{{ session.get('emp_name') }}</span>
+            <span style="font-weight: 600; font-size: 0.9rem;">{{ session.get('emp_name') | replace('_', ' ') }}</span>
             <a href="{{ url_for('logout') }}" class="btn" style="background: #f1f5f9; color: #ef4444;">Logout</a>
         </div>
     </header>
@@ -50,11 +56,7 @@
         <nav style="margin-bottom: 2rem; display: flex; gap: 0.5rem; overflow-x: auto;">
             {% if session.get('user_type') == 'admin' %}
                 <a href="{{ url_for('admin_dashboard') }}" class="btn">Dashboard</a>
-                <a href="{{ url_for('admin_performance') }}" class="btn" style="background:white; color:var(--text); border:1px solid var(--border);">Performance</a>
-            {% elif session.get('user_type') == 'manager' %}
-                <a href="{{ url_for('manager_dashboard') }}" class="btn">Team Dashboard</a>
-            {% else %}
-                <a href="{{ url_for('employee_dashboard') }}" class="btn">My Dashboard</a>
+                <a href="{{ url_for('admin_performance_report') }}" class="btn" style="background:white; color:var(--text); border:1px solid var(--border);">Performance</a>
             {% endif %}
         </nav>
         {% endif %}
