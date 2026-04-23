@@ -649,6 +649,7 @@ def admin_login():
             user = manager.authenticate_user(emp_name, password, role='admin')
             
             if user:
+                session['logged_in'] = True
                 session['user_type'] = 'admin'
                 session['emp_id'] = user['emp_id']
                 session['emp_name'] = user['emp_name']
