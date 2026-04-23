@@ -18,29 +18,27 @@ class WFHLeaveManager:
             return None
         try:
             cur = conn.cursor()
-            try:
-                if params: cur.execute(query, params)
-                else: cur.execute(query)
-                
-                if commit:
-                    conn.commit()
-                    return True
-                
-                if cur.description:
-                    columns = [col[0] for col in cur.description]
-                    if fetchone:
-                        row = cur.fetchone()
-                        return dict(zip(columns, row)) if row else None
-                    else:
-                        rows = cur.fetchall()
-                        return [dict(zip(columns, r)) for r in rows]
-                return None
-            except Exception as e:
-                print(f"Snowflake Query Error: {e} - Query: {query}")
-                if commit: conn.rollback()
-                return None
-        finally:
-            conn.close()
+            if params: cur.execute(query, params)
+            else: cur.execute(query)
+            
+            if commit:
+                conn.commit()
+                return True
+            
+            if cur.description:
+                columns = [col[0] for col in cur.description]
+                if fetchone:
+                    row = cur.fetchone()
+                    return dict(zip(columns, row)) if row else None
+                else:
+                    rows = cur.fetchall()
+                    return [dict(zip(columns, r)) for r in rows]
+            return None
+        except Exception as e:
+            print(f"Snowflake Query Error: {e} - Query: {query}")
+            if commit: conn.rollback()
+            return None
+        # Don't close connection - let it be reused
 
     def authenticate_user(self, emp_name, password=None, role='employee'):
         try:
@@ -319,23 +317,36 @@ class WFHLeaveManager:
 
     def get_notifications(self, filter_date=None, limit=None):
         if filter_date is None: filter_date = date.today()
+        # Admin should see ALL pending requests + anything submitted on the selected date
         query = """
-        SELECT r.*, e.EMP_NAME, e.EMP_TEAM 
+        SELECT r.*, e.EMP_NAME, e.EMP_TEAM, e.REMAINING_LEAVES
         FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS r
         JOIN ADLABS.AHSAN.EMPLOYEES e ON r.EMP_ID = e.EMP_ID
-        WHERE r.REQUEST_DATE = %s
-        ORDER BY r.SUBMITTED_AT DESC
+        WHERE r.STATUS = 'Pending' 
+           OR CAST(r.SUBMITTED_AT AS DATE) = %s
+        ORDER BY CASE WHEN r.STATUS = 'Pending' THEN 0 ELSE 1 END, r.SUBMITTED_AT DESC
         """
         rows = self._execute_query(query, (filter_date.strftime('%Y-%m-%d'),))
         
         notifications = []
         if rows:
             for row in rows:
+                req_date = row.get('REQUEST_DATE')
+                if isinstance(req_date, (datetime, date)):
+                    req_date_obj = req_date.date() if isinstance(req_date, datetime) else req_date
+                else:
+                    try:
+                        req_date_obj = datetime.strptime(str(req_date).split(' ')[0], '%Y-%m-%d').date()
+                    except:
+                        req_date_obj = date.today()
+
                 notifications.append({
-                    'date': row.get('REQUEST_DATE').strftime('%d-%b-%Y') if isinstance(row.get('REQUEST_DATE'), date) else row.get('REQUEST_DATE'),
+                    'date': req_date_obj.strftime('%Y-%m-%d'),
+                    'display_date': req_date_obj.strftime('%d-%b-%Y'),
                     'emp_id': row.get('EMP_ID'),
                     'emp_name': row.get('EMP_NAME'),
                     'team': row.get('EMP_TEAM'),
+                    'emp_balance': row.get('REMAINING_LEAVES'),
                     'type': row.get('REQUEST_TYPE'),
                     'reason': row.get('REASON'),
                     'timestamp': row.get('SUBMITTED_AT').strftime('%Y-%m-%d %H:%M:%S') if getattr(row.get('SUBMITTED_AT'), 'strftime', None) else str(row.get('SUBMITTED_AT')),
@@ -371,20 +382,72 @@ class WFHLeaveManager:
                 })
         return requests_list
 
+    def get_all_requests(self, statuses=None):
+        """Get requests for multiple statuses in a single query"""
+        if statuses is None:
+            statuses = ['Pending', 'Approved']
+        
+        placeholders = ', '.join(['%s'] * len(statuses))
+        query = f"""
+                SELECT r.*, e.EMP_NAME, e.EMP_TEAM as team
+                FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS r
+                JOIN ADLABS.AHSAN.EMPLOYEES e ON r.EMP_ID = e.EMP_ID
+                WHERE r.STATUS IN ({placeholders})
+                ORDER BY r.REQUEST_ID DESC
+                """
+        rows = self._execute_query(query, tuple(statuses))
+        
+        requests_list = []
+        if rows:
+            for row in rows:
+                req_date = row.get('REQUEST_DATE')
+                req_date_obj = req_date if isinstance(req_date, date) else datetime.strptime(str(req_date).split(' ')[0], '%Y-%m-%d').date()
+                requests_list.append({
+                    'date': req_date_obj.strftime('%Y-%m-%d'),
+                    'display_date': req_date_obj.strftime('%d-%b-%Y'),
+                    'emp_id': row.get('EMP_ID'),
+                    'emp_name': row.get('EMP_NAME'),
+                    'team': row.get('EMP_TEAM'),
+                    'type': row.get('REQUEST_TYPE'),
+                    'reason': row.get('REASON'),
+                    'timestamp': row.get('SUBMITTED_AT').strftime('%Y-%m-%d %H:%M:%S') if getattr(row.get('SUBMITTED_AT'), 'strftime', None) else str(row.get('SUBMITTED_AT')),
+                    'status': row.get('STATUS')
+                })
+        return requests_list
+
     def update_request_status(self, request_date_str, emp_id, request_type, timestamp, new_status, manager_name):
+        import time
+        import threading
+        start = time.time()
+        print(f"[DEBUG] update_request_status started")
+        
         # We need to find the specific request. Using EMP_ID and SUBMITTED_AT or DATE is best.
         # SQLite SUBMITTED_AT formatting might differ from Snowflake string format. 
         # Safest to just match EMP_ID, DATE, and TYPE which is very likely unique.
+        print(f"[DEBUG] Executing UPDATE query at {time.time() - start:.2f}s")
         success = self._execute_query(
             "UPDATE ADLABS.AHSAN.ATTENDANCE_REQUESTS SET STATUS = %s, APPROVED_BY = %s WHERE EMP_ID = %s AND REQUEST_DATE = %s AND REQUEST_TYPE = %s AND STATUS = 'Pending'",
             (new_status, manager_name, emp_id, request_date_str, request_type), commit=True
         )
+        print(f"[DEBUG] UPDATE query completed at {time.time() - start:.2f}s")
+        
         if success:
             if new_status == 'Approved':
-                self.update_employee_counters(emp_id, request_type)
-            # Find emp name
-            emp_name = self._execute_query("SELECT EMP_NAME FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id,), fetchone=True)
-            self.log_approval_action(emp_id, emp_name.get('EMP_NAME') if emp_name else str(emp_id), request_type, request_date_str, new_status, manager_name)
+                print(f"[DEBUG] Updating employee counters at {time.time() - start:.2f}s")
+                self.update_employee_counters(emp_id)
+                print(f"[DEBUG] Employee counters updated at {time.time() - start:.2f}s")
+            
+            # Move logging to background thread to speed up response
+            def log_action_background():
+                try:
+                    # Find emp name
+                    emp_name = self._execute_query("SELECT EMP_NAME FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id,), fetchone=True)
+                    self.log_approval_action(emp_id, emp_name.get('EMP_NAME') if emp_name else str(emp_id), request_type, request_date_str, new_status, manager_name)
+                except Exception as e:
+                    print(f"[DEBUG] Background logging error: {e}")
+            
+            threading.Thread(target=log_action_background, daemon=True).start()
+            print(f"[DEBUG] update_request_status completed at {time.time() - start:.2f}s")
             return True
         raise Exception("Could not find the specific request to update.")
 

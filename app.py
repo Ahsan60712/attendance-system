@@ -5,6 +5,7 @@ import os
 import logging
 import pandas as pd
 from dotenv import load_dotenv
+import threading
 
 # Load environment variables from .env
 load_dotenv()
@@ -415,6 +416,8 @@ def manager_login():
 @app.route('/manager-dashboard')
 def manager_dashboard():
     """Manager dashboard showing pending requests and personal application form"""
+    import time
+    start = time.time()
     try:
         if session.get('user_type') not in ['manager', 'admin']:
             return redirect(url_for('employee_login'))
@@ -448,27 +451,38 @@ def manager_dashboard():
         
         # Get pending requests for approval (from others)
         all_pending_requests = manager.get_pending_requests(req_status='Pending')
-        # DEBUG: Let's see what's happening
-        print(f"DEBUG: Manager ID: {emp_id}, Team from Session: {session.get('emp_team')}, Team from DB: {current_emp.get('emp_team')}")
+        manager_team = (current_emp.get('emp_team') or session.get('emp_team', '')).strip().lower()
         
-        emp_team = (current_emp.get('emp_team') or session.get('emp_team', '')).strip().lower()
-        
-        # Managers can see ALL pending requests from others (No team filtering per user request)
-        pending_requests = [req for req in all_pending_requests if str(req.get('emp_id')) != str(emp_id)]
-        
-        # Attach employee balance to each pending request
-        for req in pending_requests:
+        # Only include pending requests from the manager's exact team
+        pending_requests = []
+        for req in all_pending_requests:
             req_emp_id = req.get('emp_id')
-            req_emp_data = next((e for e in employees if str(e['emp_id']) == str(req_emp_id)), {})
-            # Attach the remaining leaves specifically
-            req['emp_balance'] = req_emp_data.get('Remaining_Leaves', 'N/A')
-            req['total_allotted'] = req_emp_data.get('Total_leaves', 14)
+            if str(req_emp_id) == str(emp_id):
+                continue
             
-        # Get approved requests (from others) with date filtering
+            req_emp_data = next((e for e in employees if str(e.get('emp_id')) == str(req_emp_id)), {})
+            req_emp_team = (req_emp_data.get('emp_team') or '').strip().lower()
+            
+            if req_emp_team == manager_team:
+                req['emp_balance'] = req_emp_data.get('Remaining_Leaves', 'N/A')
+                req['total_allotted'] = req_emp_data.get('Total_leaves', 14)
+                pending_requests.append(req)
+                
+        # Get approved requests (from others in the same team)
         all_approved_requests = manager.get_pending_requests(req_status='Approved')
-        team_approved = [req for req in all_approved_requests if str(req.get('emp_id')) != str(emp_id)]
+        team_approved = []
+        for req in all_approved_requests:
+            req_emp_id = req.get('emp_id')
+            if str(req_emp_id) == str(emp_id):
+                continue
+            
+            req_emp_data = next((e for e in employees if str(e.get('emp_id')) == str(req_emp_id)), {})
+            req_emp_team = (req_emp_data.get('emp_team') or '').strip().lower()
+            
+            if req_emp_team == manager_team:
+                team_approved.append(req)
 
-        # Then filter by date range
+        # Then filter approved requests by date range
         approved_requests = []
         try:
             sd = datetime.strptime(start_date_str, '%Y-%m-%d').date()
@@ -477,17 +491,16 @@ def manager_dashboard():
                 req_date_raw = req.get('date')
                 if req_date_raw:
                     if isinstance(req_date_raw, (date, datetime)):
-                        req_date = req_date_raw.date() if isinstance(req_date_raw, datetime) else req_date_raw
+                        req_date = req_date_raw if isinstance(req_date_raw, date) else req_date_raw.date()
                     else:
                         req_date = datetime.strptime(str(req_date_raw).split(' ')[0], '%Y-%m-%d').date()
-                    
                     if sd <= req_date <= ed:
                         approved_requests.append(req)
         except Exception as e:
-            approved_requests = team_approved[:20] 
-        
-        # Get manager's OWN records for history display
-        my_records = manager.get_employee_records(emp_id, today - timedelta(days=30), today + timedelta(days=365))
+            approved_requests = team_approved  # Fallback: show all
+
+        # Get manager's own records
+        my_records = manager.get_employee_records(emp_id)
         
         if not isinstance(leave_balance, dict):
             leave_balance = {}
@@ -512,6 +525,8 @@ def manager_dashboard():
 def action_request():
     """Approve or Reject a pending request"""
     if session.get('user_type') not in ['manager', 'admin']:
+        if request.headers.get('Content-Type') == 'application/json' or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 401
         return redirect(url_for('employee_login'))
         
     emp_id = request.form.get('emp_id')
@@ -530,32 +545,43 @@ def action_request():
             new_status=new_status, 
             manager_name=session.get('emp_name')
         )
-        flash(f'Request successfully {new_status.lower()}!', 'success')
-
-        # ── WhatsApp: notify employee of the decision ─────────────────────
-        try:
-            emp_phone = manager.get_employee_phone(emp_id)
-            if emp_phone:
-                # Get employee name from the request form or records
-                employees = manager.get_employees()
-                emp_info = next((e for e in employees if str(e['emp_id']) == str(emp_id)), {})
-                wa.notify_employee_decision(
-                    emp_phone=emp_phone,
-                    emp_name=emp_info.get('emp_name', f'Employee #{emp_id}'),
-                    manager_name=session.get('emp_name', 'Manager'),
-                    request_type=req_type,
-                    request_date=req_date,
-                    decision=new_status
-                )
-        except Exception as wa_err:
-            print(f"[WhatsApp] Could not notify employee: {wa_err}")
-        # ─────────────────────────────────────────────────────────────────
-
-    except Exception as e:
-        flash(f'Error processing request: {str(e)}', 'danger')
         
-    # Redirect back to whoever called it (Admin might use this too)
-    return redirect(request.referrer or url_for('manager_dashboard'))
+        # ── WhatsApp: notify employee of the decision (background thread) ─────────────────────
+        def send_whatsapp_notification():
+            try:
+                emp_phone = manager.get_employee_phone(emp_id)
+                if emp_phone:
+                    # Get employee name from the request form or records
+                    employees = manager.get_employees()
+                    emp_info = next((e for e in employees if str(e['emp_id']) == str(emp_id)), {})
+                    wa.notify_employee_decision(
+                        emp_phone=emp_phone,
+                        emp_name=emp_info.get('emp_name', f'Employee #{emp_id}'),
+                        manager_name=session.get('emp_name', 'Manager'),
+                        request_type=req_type,
+                        request_date=req_date,
+                        decision=new_status
+                    )
+            except Exception as wa_err:
+                print(f"[WhatsApp] Could not notify employee: {wa_err}")
+        
+        # Run WhatsApp notification in background thread
+        threading.Thread(target=send_whatsapp_notification, daemon=True).start()
+        # ─────────────────────────────────────────────────────────────────
+        
+        # Check if AJAX request
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'status': new_status})
+        
+        flash(f'Request successfully {new_status.lower()}!', 'success')
+        
+        # Redirect back to whoever called it (Admin might use this too)
+        return redirect(request.referrer or url_for('manager_dashboard'))
+    except Exception as e:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'error': str(e)}), 500
+        flash(f'Error processing request: {str(e)}', 'danger')
+        return redirect(request.referrer or url_for('manager_dashboard'))
 
 @app.route('/cancel-request', methods=['POST'])
 def cancel_request():
@@ -634,34 +660,62 @@ def admin_login():
     
     return render_template('admin_login.html')
 
-@app.route('/admin-dashboard')
+@app.route('/admin-dashboard') # CEO Oversight Hub
 def admin_dashboard():
-    """Admin dashboard with notifications"""
+    """CEO Oversight Dashboard with global activity monitoring"""
     if session.get('user_type') != 'admin':
         return redirect(url_for('admin_login'))
     
-    # Get date for notifications (default to today)
-    date_str = request.args.get('date')
-    if date_str:
-        filter_date = date.fromisoformat(date_str)
-    else:
-        filter_date = date.today()
+    emp_id = session.get('emp_id')
+    today = date.today()
     
-    # Get notifications for the selected date
-    notifications = manager.get_notifications(filter_date=filter_date)
-    
-    # Get all employees for dropdown
+    # Get all employees data for the directory/lookup
     employees = manager.get_employees()
     
-    # Get approval/rejection log for admin
-    approval_log = manager.get_approval_log(limit=50)
+    # Leave balance for the admin themself
+    leave_balance = manager.get_leave_balance_info(emp_id)
+    if not isinstance(leave_balance, dict):
+        leave_balance = {}
+
+    # Get all pending requests globally (except their own)
+    all_pending_requests = manager.get_pending_requests(req_status='Pending')
+    pending_requests = []
+    for req in all_pending_requests:
+        if str(req.get('emp_id')) == str(emp_id):
+            continue
+        req_emp_id = req.get('emp_id')
+        req_emp_data = next((e for e in employees if str(e.get('emp_id')) == str(req_emp_id)), {})
+        req['emp_balance'] = req_emp_data.get('Remaining_Leaves', 'N/A')
+        req['total_allotted'] = req_emp_data.get('Total_leaves', 14)
+        req['team'] = req_emp_data.get('emp_team', 'N/A')
+        pending_requests.append(req)
     
-    return render_template('admin_dashboard.html',
+    # Get recently approved/rejected requests (last 10)
+    all_approved_requests = manager.get_pending_requests(req_status='Approved')
+    all_rejected_requests = manager.get_pending_requests(req_status='Rejected')
+    recent_requests = []
+    
+    # Combine approved and rejected, sort by date (most recent first)
+    for req in all_approved_requests[-10:] + all_rejected_requests[-10:]:
+        if str(req.get('emp_id')) == str(emp_id):
+            continue
+        req_emp_id = req.get('emp_id')
+        req_emp_data = next((e for e in employees if str(e.get('emp_id')) == str(req_emp_id)), {})
+        req['team'] = req_emp_data.get('emp_team', 'N/A')
+        recent_requests.append(req)
+    
+    # Sort by date descending
+    recent_requests.sort(key=lambda x: x.get('date', ''), reverse=True)
+    recent_requests = recent_requests[:10]  # Keep only 10 most recent
+
+    return render_template('ceo_dashboard.html',
                          admin_name=session.get('emp_name'),
-                         notifications=notifications,
+                         emp_data={'emp_team': 'Global Administration'},
+                         leave_balance=leave_balance,
+                         requests=pending_requests,
+                         recent_requests=recent_requests,
                          employees=employees,
-                         approval_log=approval_log,
-                         current_date=filter_date.strftime('%Y-%m-%d'))
+                         today=today.strftime('%Y-%m-%d'))
 
 @app.route('/admin/performance-report')
 def admin_performance_report():
@@ -741,7 +795,18 @@ def admin_view_employee(emp_id):
 def logout():
     """Logout for both employee and admin"""
     session.clear()
-    return redirect(url_for('index'))
+    # Clear all session keys explicitly
+    session.pop('logged_in', None)
+    session.pop('user_type', None)
+    session.pop('emp_id', None)
+    session.pop('emp_name', None)
+    session.pop('emp_team', None)
+    session.pop('is_manager', None)
+    session.pop('is_admin', None)
+    response = redirect(url_for('index'))
+    # Clear session cookie
+    response.delete_cookie('session')
+    return response
 
 @app.route('/admin/add-employee', methods=['GET', 'POST'])
 def add_employee_route():
@@ -986,6 +1051,13 @@ def reset_system_balances():
         return "✅ FINAL RESET SUCCESSFUL:<br>" + "<br>".join(results)
     except Exception as e:
         return f"❌ Reset Failed: {str(e)}"
+
+@app.after_request
+def add_header(response):
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '-1'
+    return response
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, use_reloader=False)
