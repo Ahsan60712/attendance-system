@@ -491,6 +491,12 @@ class WFHLeaveManager:
         return logs
 
     def get_employee_records(self, emp_id, start_date, end_date):
+        # Convert string dates to date objects if needed
+        if isinstance(start_date, str):
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        if isinstance(end_date, str):
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+        
         rows = self._execute_query(
             "SELECT * FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE EMP_ID = %s AND REQUEST_DATE >= %s AND REQUEST_DATE <= %s ORDER BY REQUEST_DATE ASC",
             (emp_id, start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
