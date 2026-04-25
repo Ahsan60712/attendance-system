@@ -3,32 +3,40 @@
 {% block title %}Employee Dashboard - Adlab Solutions{% endblock %}
 
 {% block content %}
-<div class="card" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; border: none;">
-    <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Welcome back, {{ emp_name }} 👋</h1>
-    <p style="opacity: 0.9;">System ID: {{ emp_data.emp_id }} • Team: {{ emp_data.emp_team }}</p>
+<!-- My Dashboard Button -->
+<div style="margin-bottom: 1rem;">
+    <button style="background: #8b5cf6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+        <i data-lucide="user" size="18"></i> My Dashboard
+    </button>
+</div>
+
+<!-- Employee Portal Banner -->
+<div class="card" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; margin-bottom: 2rem; padding: 2rem; border-radius: 16px;">
+    <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem; font-weight: 700;">Welcome back, {{ emp_name }} 👋</h1>
+    <p style="opacity: 0.9; font-size: 1.1rem;">System ID: {{ emp_data.emp_id }} • Team: {{ emp_data.emp_team }}</p>
 </div>
 
 <!-- Stats Grid -->
-<div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
-    <div class="stat-card">
-        <span class="value" style="color: #6366f1;">{{ leave_balance.carried_forward|default(0) }}</span>
-        <span class="label">Carried Forward</span>
+<div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+    <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s; flex: 1; min-width: 150px; text-align: center;">
+        <span class="value" style="font-size: 2rem; font-weight: 700; color: #1f2937;">{{ leave_balance.carried_forward|default(0) }}</span>
+        <span class="label" style="font-size: 0.85rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">CARRIED FORWARD</span>
     </div>
-    <div class="stat-card">
-        <span class="value" style="color: #10b981;">{{ leave_balance.wfh_count|default(0) }}</span>
-        <span class="label">Total WFH</span>
+    <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s; flex: 1; min-width: 150px; text-align: center;">
+        <span class="value" style="font-size: 2rem; font-weight: 700; color: #1f2937;">{{ leave_balance.wfh_count|default(0) }}</span>
+        <span class="label" style="font-size: 0.85rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">TOTAL WFH</span>
     </div>
-    <div class="stat-card">
-        <span class="value" style="color: #f59e0b;">{{ leave_balance.half_days_taken|default(0) }}</span>
-        <span class="label">Half Days</span>
+    <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s; flex: 1; min-width: 150px; text-align: center;">
+        <span class="value" style="font-size: 2rem; font-weight: 700; color: #1f2937;">{{ leave_balance.half_days_taken|default(0) }}</span>
+        <span class="label" style="font-size: 0.85rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">HALF DAYS</span>
     </div>
-    <div class="stat-card">
-        <span class="value" style="color: #ef4444;">{{ leave_balance.leaves_taken_this_year|default(0) }}</span>
-        <span class="label">Leaves Taken</span>
+    <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s; flex: 1; min-width: 150px; text-align: center;">
+        <span class="value" style="font-size: 2rem; font-weight: 700; color: #1f2937;">{{ leave_balance.leaves_taken_this_year|default(0) }}</span>
+        <span class="label" style="font-size: 0.85rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">LEAVES TAKEN</span>
     </div>
-    <div class="stat-card" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
-        <span class="value" style="color: #10b981;">{{ leave_balance.remaining_leaves|default(0) }}</span>
-        <span class="label">Remaining Leaves</span>
+    <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s; flex: 1; min-width: 150px; text-align: center;">
+        <span class="value" style="font-size: 2rem; font-weight: 700; color: #1f2937;">{{ leave_balance.remaining_leaves|default(0) }}</span>
+        <span class="label" style="font-size: 0.85rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">REMAINING LEAVES</span>
     </div>
 </div>
 
@@ -96,6 +104,7 @@
             .radio-label input { display: none; }
             .radio-card { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1rem; border: 2px solid var(--border); border-radius: 12px; transition: all 0.2s; background: white; color: var(--text-secondary); }
             .radio-label input:checked + .radio-card { border-color: var(--primary); background: #eff6ff; color: var(--primary); box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.1); }
+            .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-color: #8b5cf6; }
         </style>
 
         <div class="card">
