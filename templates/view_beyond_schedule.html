@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Beyond Schedule - Adlab Solutions{% endblock %}
+
+{% block content %}
+<div class="card" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; border: none; margin: -1.5rem -2rem 2rem -2rem; padding: 2rem; border-radius: 16px;">
+    <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem; font-weight: 700;">Beyond Schedule</h1>
+    <p style="opacity: 0.9; font-size: 1.1rem;">Admin Portal: {{ admin_name }}</p>
+</div>
+
+<div style="margin-bottom: 1rem;">
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline" style="border-radius: 8px; background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+        <i data-lucide="arrow-left" size="18"></i> Back to Dashboard
+    </a>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 1.5rem;">Overstock Team Shift Schedule</h3>
+    <p style="margin-bottom: 1.5rem; color: var(--text-muted);">Weekly shift schedule for Overstock team members.</p>
+    
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+        <thead>
+            <tr style="background: #f8fafc;">
+                <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #e2e8f0;">Shift</th>
+                <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #e2e8f0;">Name</th>
+                <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #e2e8f0;">Mon</th>
+                <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #e2e8f0;">Tue</th>
+                <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #e2e8f0;">Wed</th>
+                <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #e2e8f0;">Thu</th>
+                <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #e2e8f0;">Fri</th>
+                <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #e2e8f0;">Sat</th>
+                <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e2e8f0;">Sun</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600;">Weekend Night</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left;">{{ schedule_map.get('Weekend Night', 'Not Assigned') }}</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+            </tr>
+            <tr>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600;">Weekend Morning</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left;">{{ schedule_map.get('Weekend Morning', 'Not Assigned') }}</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+            </tr>
+            <tr>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600;">Night</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left;">{{ schedule_map.get('Night', 'Not Assigned') }}</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
+            </tr>
+            <tr>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600;">Morning</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left;">{{ schedule_map.get('Morning', 'Not Assigned') }}</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
+            </tr>
+            <tr>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600;">Primary (P1)</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left;">{{ schedule_map.get('Primary (P1)', 'Not Assigned') }}</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
+            </tr>
+            <tr>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600;">Primary (P2)</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left;">{{ schedule_map.get('Primary (P2)', 'Not Assigned') }}</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
+            </tr>
+            <tr>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600;">DEVELOPMENT/OFFICE</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left;">{{ schedule_map.get('Development Office', 'Not Assigned') }}</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
+            </tr>
+            <tr>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600;">DEVELOPMENT/OFFICE</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left;">{{ schedule_map.get('Development office', 'Not Assigned') }}</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
+            </tr>
+            <tr style="background: #dbeafe;">
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600; color: #1e40af;">Meeting Lead</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left; color: #1e40af;">-</td>
+                <td colspan="3" style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; color: #1e40af;">Week 1: {{ meeting_lead_week1 or 'Not Assigned' }}</td>
+                <td colspan="4" style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; color: #1e40af;">Week 2: {{ meeting_lead_week2 or 'Not Assigned' }}</td>
+            </tr>
+            <tr style="background: #dbeafe;">
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600; color: #1e40af;">Weekly Report</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left; color: #1e40af;">-</td>
+                <td colspan="3" style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; color: #1e40af;">Week 1: {{ weekly_report_week1 or 'Not Assigned' }}</td>
+                <td colspan="4" style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; color: #1e40af;">Week 2: {{ weekly_report_week2 or 'Not Assigned' }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}

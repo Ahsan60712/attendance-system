@@ -591,6 +591,10 @@ class WFHLeaveManager:
         emp = self._execute_query("SELECT PHONE FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id,), fetchone=True)
         return str(emp.get('PHONE', '')) if emp else ''
 
+    def get_employee_by_id(self, emp_id) -> dict:
+        emp = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id,), fetchone=True)
+        return self._map_employee(emp) if emp else {}
+
     def get_all_managers(self) -> list:
         rows = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE IS_MANAGER = TRUE")
         return [self._map_employee(r) for r in rows] if rows else []
@@ -627,3 +631,116 @@ class WFHLeaveManager:
                 teams[team]['no_request'].append(emp_name)
                 
         return teams
+
+    def get_overstock_team_members(self):
+        """Get all Overstock team members"""
+        employees = self.get_employees()
+        overstock = [e for e in employees if e.get('emp_team', '').lower() == 'overstock']
+        return overstock
+
+    def save_shift_schedule(self, valid_from, valid_until, schedule_data, meeting_lead_week1, meeting_lead_week2, weekly_report_week1, weekly_report_week2):
+        """Save shift schedule to ATTENDANCE_REQUESTS table"""
+        print(f"[DEBUG] save_shift_schedule called with valid_from={valid_from}, valid_until={valid_until}")
+        print(f"[DEBUG] schedule_data: {schedule_data}")
+        print(f"[DEBUG] meeting_lead_week1={meeting_lead_week1}, week2={meeting_lead_week2}")
+        print(f"[DEBUG] weekly_report_week1={weekly_report_week1}, week2={weekly_report_week2}")
+        try:
+            # First, delete any existing schedule records for this period (overwrite)
+            print(f"[DEBUG] Deleting existing schedule records for valid_from={valid_from}")
+            self._execute_query(
+                "DELETE FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS WHERE REQUEST_TYPE = 'Schedule' AND CAST(REQUEST_DATE AS DATE) = %s",
+                (valid_from,), commit=True
+            )
+            print(f"[DEBUG] Delete successful")
+            
+            # Insert each shift assignment
+            for item in schedule_data:
+                shift_name = item.get('shift')
+                emp_id = item.get('emp_id')
+                
+                self._execute_query(
+                    """INSERT INTO ADLABS.AHSAN.ATTENDANCE_REQUESTS 
+                    (EMP_ID, REQUEST_DATE, REQUEST_TYPE, REASON, STATUS, SUBMITTED_AT) 
+                    VALUES (%s, %s, 'Schedule', %s, 'Approved', CURRENT_TIMESTAMP())""",
+                    (emp_id, valid_from, f"main:{shift_name}"), commit=True
+                )
+            
+            # Insert meeting lead assignments
+            if meeting_lead_week1:
+                self._execute_query(
+                    """INSERT INTO ADLABS.AHSAN.ATTENDANCE_REQUESTS 
+                    (EMP_ID, REQUEST_DATE, REQUEST_TYPE, REASON, STATUS, SUBMITTED_AT) 
+                    VALUES (%s, %s, 'Schedule', %s, 'Approved', CURRENT_TIMESTAMP())""",
+                    (meeting_lead_week1, valid_from, "meeting_lead_week1:Meeting Lead"), commit=True
+                )
+            if meeting_lead_week2:
+                self._execute_query(
+                    """INSERT INTO ADLABS.AHSAN.ATTENDANCE_REQUESTS 
+                    (EMP_ID, REQUEST_DATE, REQUEST_TYPE, REASON, STATUS, SUBMITTED_AT) 
+                    VALUES (%s, %s, 'Schedule', %s, 'Approved', CURRENT_TIMESTAMP())""",
+                    (meeting_lead_week2, valid_from, "meeting_lead_week2:Meeting Lead"), commit=True
+                )
+            
+            # Insert weekly report assignments
+            if weekly_report_week1:
+                self._execute_query(
+                    """INSERT INTO ADLABS.AHSAN.ATTENDANCE_REQUESTS 
+                    (EMP_ID, REQUEST_DATE, REQUEST_TYPE, REASON, STATUS, SUBMITTED_AT) 
+                    VALUES (%s, %s, 'Schedule', %s, 'Approved', CURRENT_TIMESTAMP())""",
+                    (weekly_report_week1, valid_from, "weekly_report_week1:Weekly Report"), commit=True
+                )
+            if weekly_report_week2:
+                self._execute_query(
+                    """INSERT INTO ADLABS.AHSAN.ATTENDANCE_REQUESTS 
+                    (EMP_ID, REQUEST_DATE, REQUEST_TYPE, REASON, STATUS, SUBMITTED_AT) 
+                    VALUES (%s, %s, 'Schedule', %s, 'Approved', CURRENT_TIMESTAMP())""",
+                    (weekly_report_week2, valid_from, "weekly_report_week2:Weekly Report"), commit=True
+                )
+            
+            return True
+        except Exception as e:
+            print(f"Error saving shift schedule: {e}")
+            return False
+
+    def get_shift_schedules(self, valid_from=None):
+        """Get shift schedules from ATTENDANCE_REQUESTS table"""
+        print(f"[DEBUG] get_shift_schedules called with valid_from={valid_from}")
+        try:
+            if valid_from:
+                print(f"[DEBUG] Querying with valid_from filter")
+                rows = self._execute_query(
+                    """SELECT * FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS 
+                    WHERE REQUEST_TYPE = 'Schedule' AND CAST(REQUEST_DATE AS DATE) = %s""",
+                    (valid_from,)
+                )
+            else:
+                print(f"[DEBUG] Querying all schedules (most recent)")
+                # Get the most recent schedule
+                rows = self._execute_query(
+                    """SELECT * FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS 
+                    WHERE REQUEST_TYPE = 'Schedule' ORDER BY REQUEST_DATE DESC LIMIT 100"""
+                )
+            print(f"[DEBUG] Query result: {rows}")
+            
+            schedules = []
+            if rows:
+                for row in rows:
+                    # Parse reason field to get schedule_type and shift_name
+                    reason = row.get('REASON', '')
+                    if ':' in reason:
+                        schedule_type, shift_name = reason.split(':', 1)
+                    else:
+                        schedule_type = 'main'
+                        shift_name = reason
+                    
+                    schedules.append({
+                        'valid_from': row.get('REQUEST_DATE'),
+                        'valid_until': row.get('REQUEST_DATE'),  # Same as request_date for now
+                        'shift_name': shift_name,
+                        'emp_id': row.get('EMP_ID'),
+                        'schedule_type': schedule_type
+                    })
+            return schedules
+        except Exception as e:
+            print(f"Error getting shift schedules: {e}")
+            return []

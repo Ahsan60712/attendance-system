@@ -279,6 +279,76 @@ def employee_dashboard():
                          filter_start=start_date.strftime('%Y-%m-%d'),
                          filter_end=end_date.strftime('%Y-%m-%d'))
 
+@app.route('/manager-mark-attendance', methods=['POST'])
+def manager_mark_attendance():
+    """Allow managers to mark attendance for team members for any past date"""
+    if session.get('user_type') != 'manager':
+        return redirect(url_for('manager_login'))
+    
+    try:
+        # Get the employee to mark attendance for
+        target_emp_id = request.form.get('target_emp_id')
+        request_type = request.form.get('request_type')
+        reason = request.form.get('reason')
+        start_date_str = request.form.get('date', date.today().strftime('%Y-%m-%d'))
+        end_date_str = request.form.get('end_date')
+        
+        if not target_emp_id:
+            flash('Please select an employee', 'error')
+            return redirect(url_for('manager_dashboard'))
+        
+        if not reason or not reason.strip():
+            flash('Reason is required', 'error')
+            return redirect(url_for('manager_dashboard'))
+        
+        # Get target employee info
+        target_emp = manager.get_employee_by_id(target_emp_id)
+        if not target_emp:
+            flash('Employee not found', 'error')
+            return redirect(url_for('manager_dashboard'))
+        
+        # Parse dates
+        start_date = date.fromisoformat(start_date_str)
+        
+        # Managers can mark for any past date - no restriction
+        if end_date_str and len(end_date_str.strip()) > 5:
+            try:
+                end_date = date.fromisoformat(end_date_str)
+                if end_date < start_date:
+                    end_date = start_date
+            except:
+                end_date = start_date
+        else:
+            end_date = start_date
+        
+        # Handle date range
+        dates_to_mark = []
+        current = start_date
+        while current <= end_date:
+            dates_to_mark.append(current)
+            current += timedelta(days=1)
+        
+        manager_name = session.get('emp_name')
+        
+        for d in dates_to_mark:
+            manager.mark_wfh_leave(
+                emp_id=target_emp_id,
+                emp_name=target_emp.get('emp_name'),
+                emp_team=target_emp.get('emp_team'),
+                date=d,
+                request_type=request_type,
+                reason=reason,
+                status='Approved',  # Manager marks are auto-approved
+                manager_name=manager_name
+            )
+        
+        flash(f'Successfully marked {request_type} for {target_emp.get("emp_name")} from {start_date.strftime("%d %b %Y")} to {end_date.strftime("%d %b %Y")}', 'success')
+        return redirect(url_for('manager_dashboard'))
+        
+    except Exception as e:
+        flash(f'Error marking attendance: {str(e)}', 'error')
+        return redirect(url_for('manager_dashboard'))
+
 @app.route('/mark-request', methods=['POST'])
 def mark_request():
     """Handle WFH/Leave request from employee or manager"""
@@ -311,9 +381,17 @@ def mark_request():
         today = (datetime.now(timezone.utc) + timedelta(hours=5)).date()
         
         # --- PAST DATE RESTRICTION ---
-        if start_date < today:
-            print(f"[DEBUG] Blocking Past Date: Start {start_date} < Today {today}")
-            flash(f'Error: You cannot apply for a past date. Today is {today.strftime("%d %b %Y")}.', 'error')
+        # Employees can mark attendance up to 2 days back
+        # Managers marking for themselves have no restriction
+        max_days_back = 2 if user_type == 'employee' else 0
+        min_allowed_date = today - timedelta(days=max_days_back)
+        
+        if start_date < min_allowed_date:
+            print(f"[DEBUG] Blocking Past Date: Start {start_date} < Min Allowed {min_allowed_date}")
+            if user_type == 'employee':
+                flash(f'Error: You cannot apply for dates more than 2 days back. Today is {today.strftime("%d %b %Y")}.', 'error')
+            else:
+                flash(f'Error: Invalid date selected.', 'error')
             return redirect(url_for(redirect_target))
             
         # Determine end_date safely with auto-correction
@@ -518,6 +596,44 @@ def manager_dashboard():
         if not isinstance(leave_balance, dict):
             leave_balance = {}
         
+        # Get Overstock team members for schedule dropdowns
+        overstock_members = manager.get_overstock_team_members()
+        
+        # Get team members for manager override feature
+        target_team = 'poppi' if is_sajeel else manager_team
+        team_members = [e for e in employees if (e.get('emp_team') or '').strip().lower() == target_team]
+        
+        # Fetch schedule data for Beyond Schedule tab
+        schedules = manager.get_shift_schedules()
+        print(f"[DEBUG] Fetched schedules: {schedules}")
+        emp_dict = {str(e.get('emp_id')): e.get('emp_name') for e in manager.get_employees()}
+        schedule_map = {}
+        meeting_lead_week1 = None
+        meeting_lead_week2 = None
+        weekly_report_week1 = None
+        weekly_report_week2 = None
+        
+        for s in schedules:
+            shift_name = s.get('shift_name')
+            emp_id = s.get('emp_id')
+            schedule_type = s.get('schedule_type')
+            print(f"[DEBUG] Processing schedule: shift={shift_name}, emp_id={emp_id}, type={schedule_type}")
+            
+            if schedule_type == 'meeting_lead_week1':
+                meeting_lead_week1 = emp_dict.get(str(emp_id), 'Not Assigned')
+            elif schedule_type == 'meeting_lead_week2':
+                meeting_lead_week2 = emp_dict.get(str(emp_id), 'Not Assigned')
+            elif schedule_type == 'weekly_report_week1':
+                weekly_report_week1 = emp_dict.get(str(emp_id), 'Not Assigned')
+            elif schedule_type == 'weekly_report_week2':
+                weekly_report_week2 = emp_dict.get(str(emp_id), 'Not Assigned')
+            elif schedule_type == 'main':
+                schedule_map[shift_name] = emp_dict.get(str(emp_id), 'Not Assigned')
+        
+        print(f"[DEBUG] Final schedule_map: {schedule_map}")
+        print(f"[DEBUG] Meeting Lead W1: {meeting_lead_week1}, W2: {meeting_lead_week2}")
+        print(f"[DEBUG] Weekly Report W1: {weekly_report_week1}, W2: {weekly_report_week2}")
+        
         return render_template('manager_dashboard.html', 
                                manager_name=session.get('emp_name', 'Manager'),
                                emp_data=current_emp or {},
@@ -530,7 +646,14 @@ def manager_dashboard():
                                total_allotted=leave_balance.get('total_allotted', 0),
                                carried_forward=leave_balance.get('carried_forward', 0),
                                remaining_leaves=leave_balance.get('remaining_leaves', 0),
-                               today=today.strftime('%Y-%m-%d'))
+                               today=today.strftime('%Y-%m-%d'),
+                               overstock_members=overstock_members,
+                               schedule_map=schedule_map,
+                               meeting_lead_week1=meeting_lead_week1,
+                               meeting_lead_week2=meeting_lead_week2,
+                               weekly_report_week1=weekly_report_week1,
+                               weekly_report_week2=weekly_report_week2,
+                               team_members=team_members)
     except Exception as e:
         return f"<h2>⚠️ Dashboard Crash!</h2><p>Error Type: {type(e).__name__}</p><p>Message: {str(e)}</p>"
 
@@ -1065,7 +1188,7 @@ def reset_system_balances():
         import pandas as pd
         file_path = manager.emp_data_file
         df = pd.read_excel(file_path, engine='openpyxl')
-        
+
         # Reset Logic
         results = []
         for idx in df.index:
@@ -1073,7 +1196,7 @@ def reset_system_balances():
             c_start = df.at[idx, 'Contract_Start_Date']
             year_start, _ = manager.get_contract_year_window(str(c_start))
             year_start_str = year_start.strftime('%Y-%m-%d') if year_start else ""
-            
+
             df.at[idx, 'Leaves_Carried_Forward'] = 0
             df.at[idx, 'Leaves_This_Year'] = 0
             df.at[idx, 'Leaves'] = 0
@@ -1082,11 +1205,118 @@ def reset_system_balances():
             df.at[idx, 'Contract_Year_Start'] = year_start_str
             df.at[idx, 'Carried_Forward_Expiry'] = ""
             results.append(f"{name}: Reset to 14 total, 0 carried. Year Start: {year_start_str}")
-            
+
         df.to_excel(file_path, index=False, engine='openpyxl')
         return "✅ FINAL RESET SUCCESSFUL:<br>" + "<br>".join(results)
     except Exception as e:
         return f"❌ Reset Failed: {str(e)}"
+
+@app.route('/save-schedule', methods=['POST'])
+def save_schedule():
+    """Save shift schedule from manager dashboard"""
+    if session.get('user_type') not in ['manager', 'admin']:
+        return redirect(url_for('employee_login'))
+    
+    emp_id = session.get('emp_id')
+    
+    # Check if Overstock team
+    employees = manager.get_employees()
+    current_emp = next((e for e in employees if str(e.get('emp_id')) == str(emp_id)), {})
+    if current_emp.get('emp_team', '').lower() != 'overstock' and session.get('user_type') != 'admin':
+        flash('Access denied. Only Overstock team can save schedules.', 'error')
+        return redirect(url_for('manager_dashboard'))
+    
+    try:
+        # Get validity dates
+        valid_from = request.form.get('valid_from')
+        valid_until = request.form.get('valid_until')
+        
+        # Collect schedule data from form
+        schedule_data = []
+        shift_fields = {
+            'shift_weekend_night_emp_id': 'Weekend Night',
+            'shift_weekend_morning_emp_id': 'Weekend Morning',
+            'shift_night_emp_id': 'Night',
+            'shift_morning_emp_id': 'Morning',
+            'shift_p1_emp_id': 'Primary (P1)',
+            'shift_p2_emp_id': 'Primary (P2)',
+            'shift_dev_office_emp_id': 'Development Office',
+            'shift_dev_office2_emp_id': 'Development office'
+        }
+        
+        for field_name, shift_name in shift_fields.items():
+            emp_id_field = request.form.get(field_name)
+            if emp_id_field:
+                schedule_data.append({
+                    'shift': shift_name,
+                    'emp_id': emp_id_field
+                })
+        
+        # Get Meeting Lead and Weekly Report data
+        meeting_lead_week1 = request.form.get('meeting_lead_week1_emp_id')
+        meeting_lead_week2 = request.form.get('meeting_lead_week2_emp_id')
+        weekly_report_week1 = request.form.get('weekly_report_week1_emp_id')
+        weekly_report_week2 = request.form.get('weekly_report_week2_emp_id')
+        
+        # Save to database
+        success = manager.save_shift_schedule(
+            valid_from, valid_until, schedule_data,
+            meeting_lead_week1, meeting_lead_week2,
+            weekly_report_week1, weekly_report_week2
+        )
+        
+        if success:
+            flash('Schedule saved successfully! (Valid from ' + valid_from + ' to ' + valid_until + ')', 'success')
+        else:
+            flash('Error saving schedule to database.', 'error')
+    except Exception as e:
+        flash(f'Error saving schedule: {str(e)}', 'error')
+    
+    return redirect(url_for('manager_dashboard'))
+
+@app.route('/view-beyond-schedule')
+def view_beyond_schedule():
+    """View beyond schedule for CEO/Admin"""
+    if session.get('user_type') not in ['admin', 'manager']:
+        return redirect(url_for('employee_login'))
+    
+    # Fetch schedule data from database
+    schedules = manager.get_shift_schedules()
+    
+    # Get employee names for display
+    employees = manager.get_employees()
+    emp_dict = {str(e.get('emp_id')): e.get('emp_name') for e in employees}
+    
+    # Organize schedule data
+    schedule_map = {}
+    meeting_lead_week1 = None
+    meeting_lead_week2 = None
+    weekly_report_week1 = None
+    weekly_report_week2 = None
+    
+    for s in schedules:
+        shift_name = s.get('shift_name')
+        emp_id = s.get('emp_id')
+        schedule_type = s.get('schedule_type')
+        
+        if schedule_type == 'meeting_lead_week1':
+            meeting_lead_week1 = emp_dict.get(str(emp_id), 'Not Assigned')
+        elif schedule_type == 'meeting_lead_week2':
+            meeting_lead_week2 = emp_dict.get(str(emp_id), 'Not Assigned')
+        elif schedule_type == 'weekly_report_week1':
+            weekly_report_week1 = emp_dict.get(str(emp_id), 'Not Assigned')
+        elif schedule_type == 'weekly_report_week2':
+            weekly_report_week2 = emp_dict.get(str(emp_id), 'Not Assigned')
+        elif schedule_type == 'main':
+            schedule_map[shift_name] = emp_dict.get(str(emp_id), 'Not Assigned')
+    
+    return render_template('view_beyond_schedule.html', 
+                          admin_name=session.get('emp_name', 'Admin'),
+                          schedule_map=schedule_map,
+                          meeting_lead_week1=meeting_lead_week1,
+                          meeting_lead_week2=meeting_lead_week2,
+                          weekly_report_week1=weekly_report_week1,
+                          weekly_report_week2=weekly_report_week2)
 
 @app.after_request
 def add_header(response):
