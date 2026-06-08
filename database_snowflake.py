@@ -21,8 +21,18 @@ class SnowflakeDatabase:
         self._conn = None
 
     def get_connection(self):
+        # Reuse existing connection if it's still alive
+        if self._conn is not None:
+            try:
+                # Test if connection is still alive
+                self._conn.cursor().execute("SELECT 1")
+                return self._conn
+            except:
+                # Connection is dead, create new one
+                self._conn = None
+        
         try:
-            return snowflake.connector.connect(
+            self._conn = snowflake.connector.connect(
                 user=SNOW_USER,
                 password=SNOW_PASSWORD,
                 account=SNOW_ACCOUNT,
@@ -31,6 +41,7 @@ class SnowflakeDatabase:
                 schema=SNOW_SCHEMA,
                 role=SNOW_ROLE
             )
+            return self._conn
         except Exception as e:
             logger.error(f"Snowflake Connection Error: {e}")
             return None

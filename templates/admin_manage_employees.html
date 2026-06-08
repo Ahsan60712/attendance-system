@@ -33,11 +33,11 @@
             </thead>
             <tbody>
                 {% for emp in employees %}
-                <tr>
-                    <td class="text-muted font-family-mono">{{ emp.emp_id }}</td>
-                    <td><strong>{{ emp.emp_name }}</strong></td>
-                    <td><span class="badge" style="background: var(--light); color: var(--text);">{{ emp.emp_team }}</span></td>
-                    <td>
+                <tr style="vertical-align: middle;">
+                    <td class="text-muted font-family-mono" style="padding: 1rem 0.5rem;">{{ emp.emp_id }}</td>
+                    <td style="padding: 1rem 0.5rem;"><strong style="color: #0f172a;">{{ emp.emp_name | replace('_', ' ') }}</strong></td>
+                    <td style="padding: 1rem 0.5rem;"><span class="badge" style="background: var(--light); color: var(--text);">{{ emp.emp_team }}</span></td>
+                    <td style="padding: 1rem 0.5rem;">
                         {% if emp.is_admin %}
                         <span class="badge" style="background: #fee2e2; color: #991b1b;">Admin</span>
                         {% elif emp.is_manager %}
@@ -46,17 +46,17 @@
                         <span class="badge" style="background: #dcfce7; color: #166534;">Employee</span>
                         {% endif %}
                     </td>
-                    <td class="text-center">
-                        <div class="d-flex justify-content-center gap-2">
-                            <a href="{{ url_for('admin_view_employee', emp_id=emp.emp_id) }}" class="btn btn-sm btn-primary tooltip" data-tip="View Details">
-                                <i data-lucide="eye" style="width: 14px; height: 14px;"></i>
+                    <td class="text-center" style="padding: 1rem 0.5rem;">
+                        <div style="display: flex; gap: 0.5rem; justify-content: center; align-items: center; flex-wrap: nowrap;">
+                            <a href="{{ url_for('admin_view_employee', emp_id=emp.emp_id) }}" class="btn btn-sm btn-primary tooltip" style="padding: 0.4rem; border-radius: 6px; display: flex; align-items: center;" data-tip="View Details">
+                                <i data-lucide="eye" style="width: 16px; height: 16px;"></i>
                             </a>
-                            <a href="{{ url_for('edit_employee_route', emp_id=emp.emp_id) }}" class="btn btn-sm btn-warning tooltip" data-tip="Edit Info" style="background: #f59e0b; color: white;">
-                                <i data-lucide="edit-2" style="width: 14px; height: 14px;"></i>
+                            <a href="{{ url_for('edit_employee_route', emp_id=emp.emp_id) }}" class="btn btn-sm btn-warning tooltip" data-tip="Edit Info" style="background: #f59e0b; color: white; padding: 0.4rem; border-radius: 6px; border: none; display: flex; align-items: center;">
+                                <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
                             </a>
-                            <form method="POST" action="{{ url_for('delete_employee_route', emp_id=emp.emp_id) }}" style="margin: 0;" onsubmit="return confirm('Remove {{ emp.emp_name }}? This cannot be undone.');">
-                                <button type="submit" class="btn btn-sm btn-danger tooltip" data-tip="Delete Employee">
-                                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                            <form method="POST" action="{{ url_for('delete_employee_route', emp_id=emp.emp_id) }}" style="margin: 0;" onsubmit="return confirm('Remove {{ emp.emp_name | replace('_', ' ') }}? This cannot be undone.');">
+                                <button type="submit" class="btn btn-sm btn-danger tooltip" style="background: #ef4444; border: none; padding: 0.4rem; border-radius: 6px; display: flex; align-items: center;" data-tip="Delete Employee">
+                                    <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
                                 </button>
                             </form>
                         </div>

@@ -15,19 +15,55 @@
 <div class="card animate-in" style="max-width: 600px; margin: 0 auto; animation-delay: 0.1s;">
     <h3 class="mb-4">Employee Details</h3>
 
-    <form method="POST" action="{{ url_for('add_employee_route') }}">
+    <style>
+        .styled-form .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .styled-form label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #334155;
+            font-size: 0.95rem;
+        }
+        .styled-form input[type="text"],
+        .styled-form input[type="date"],
+        .styled-form input[type="number"],
+        .styled-form select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            color: #0f172a;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+            background: #fff;
+        }
+        .styled-form input:focus,
+        .styled-form select:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            outline: none;
+        }
+    </style>
+
+    <form method="POST" action="{{ url_for('add_employee_route') }}" class="styled-form">
         <div class="form-group">
-            <label><i data-lucide="user" style="width:14px;height:14px;display:inline-block;"></i> Employee Name</label>
+            <label><i data-lucide="user" style="width:16px;height:16px;"></i> Employee Name</label>
             <input type="text" name="emp_name" required placeholder="Full Name">
         </div>
 
         <div class="form-group">
-            <label><i data-lucide="briefcase" style="width:14px;height:14px;display:inline-block;"></i> Team / Department</label>
+            <label><i data-lucide="briefcase" style="width:16px;height:16px;"></i> Team / Department</label>
             <input type="text" name="emp_team" required placeholder="e.g. Engineering">
         </div>
 
         <div class="form-group">
-            <label><i data-lucide="shield" style="width:14px;height:14px;display:inline-block;"></i> System Role</label>
+            <label><i data-lucide="shield" style="width:16px;height:16px;"></i> System Role</label>
             <select name="role">
                 <option value="employee">Employee</option>
                 <option value="manager">Manager</option>
@@ -36,37 +72,37 @@
         </div>
 
         <div class="form-group">
-            <label><i data-lucide="file-text" style="width:14px;height:14px;display:inline-block;"></i> Contract Type</label>
-            <div class="radio-group" style="background: var(--light); padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
-                <label class="radio-label">
-                    <input type="radio" name="contract_type" value="Contract" onchange="toggleDuration()" checked>
+            <label><i data-lucide="file-text" style="width:16px;height:16px;"></i> Contract Type</label>
+            <div class="radio-group" style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; gap: 1.5rem;">
+                <label class="radio-label" style="margin-bottom: 0; font-weight: 500; cursor: pointer;">
+                    <input type="radio" name="contract_type" value="Contract" onchange="toggleDuration()" checked style="margin-right: 0.5rem; width: auto;">
                     <span>Permanent / Contract</span>
                 </label>
-                <label class="radio-label">
-                    <input type="radio" name="contract_type" value="Internship" onchange="toggleDuration()">
+                <label class="radio-label" style="margin-bottom: 0; font-weight: 500; cursor: pointer;">
+                    <input type="radio" name="contract_type" value="Internship" onchange="toggleDuration()" style="margin-right: 0.5rem; width: auto;">
                     <span>Internship</span>
                 </label>
             </div>
         </div>
 
-        <div class="d-flex gap-4 mb-4" style="flex-wrap: wrap;">
-            <div class="form-group mb-0 flex-1">
-                <label>Contract Start</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label><i data-lucide="calendar-clock" style="width:16px;height:16px;"></i> Contract Start</label>
                 <input type="date" name="contract_start_date" required>
             </div>
-            <div class="form-group mb-0 flex-1">
-                <label>Contract End</label>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label><i data-lucide="calendar-off" style="width:16px;height:16px;"></i> Contract End</label>
                 <input type="date" name="contract_end_date" required>
             </div>
         </div>
 
         <div class="form-group" id="total-leaves-group">
-            <label><i data-lucide="calendar" style="width:14px;height:14px;display:inline-block;"></i> Total Leaves (Yearly)</label>
+            <label><i data-lucide="calendar" style="width:16px;height:16px;"></i> Total Leaves (Yearly)</label>
             <input type="number" name="total_leaves" required placeholder="e.g. 14 or 20" min="0">
         </div>
 
-        <button type="submit" class="btn btn-primary w-full mt-4 d-flex justify-content-center gap-2">
-            <i data-lucide="user-plus" style="width:18px;height:18px;"></i> Create Employee Data
+        <button type="submit" class="btn btn-primary w-full mt-4 d-flex justify-content-center gap-2" style="padding: 1rem; font-size: 1.05rem; font-weight: 700; border-radius: 8px;">
+            <i data-lucide="user-plus" style="width:20px;height:20px;"></i> Create Employee Data
         </button>
     </form>
 </div>

@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}CEO Oversight Hub - Adlab Solutions{% endblock %}
+
+{% block content %}
+<!-- CEO Premium Header -->
+<div class="card" style="background: linear-gradient(135deg, #0f172a, #1e293b); color: white; border: none; margin-bottom: 2rem; padding: 2.5rem; position: relative; overflow: hidden;">
+    <div style="position: relative; z-index: 2;">
+        <span style="text-transform: uppercase; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.2em; opacity: 0.6; margin-bottom: 0.5rem; display: block;">Executive Control Center</span>
+        <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.02em;">{{ admin_name|replace("_", " ") }}</h1>
+        <p style="opacity: 0.8; font-size: 1.1rem; max-width: 600px;">Global workforce visibility and administrative oversight for Adlab Solutions.</p>
+    </div>
+    <div style="position: absolute; right: -2rem; top: -2rem; opacity: 0.05;">
+        <i data-lucide="crown" size="280"></i>
+    </div>
+</div>
+
+<!-- Executive Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #f0fdf4; color: #10b981;">
+            <i data-lucide="users" size="24"></i>
+        </div>
+        <div class="stat-info">
+            <div class="label">Total Employees</div>
+            <div class="value">{{ employees|length }}</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #eef2ff; color: #6366f1;">
+            <i data-lucide="calendar-check" size="24"></i>
+        </div>
+        <div class="stat-info">
+            <div class="label">Active Today</div>
+            <div class="value">{{ notifications|length }}</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #fff7ed; color: #f97316;">
+            <i data-lucide="clipboard-check" size="24"></i>
+        </div>
+        <div class="stat-info">
+            <div class="label">Manager Decisions</div>
+            <div class="value">{{ approval_log|length }}</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #f8fafc; color: #64748b;">
+            <i data-lucide="clock" size="24"></i>
+        </div>
+        <div class="stat-info">
+            <div class="label">System Uptime</div>
+            <div class="value" style="font-size: 1.1rem;">100%</div>
+        </div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; align-items: start;">
+    <!-- MAIN FEED -->
+    <div style="display: flex; flex-direction: column; gap: 2rem;">
+        
+        <!-- RECENT MANAGER ACTIONS -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="font-weight: 800; display: flex; align-items: center; gap: 0.6rem;">
+                    <i data-lucide="check-square" style="color: #10b981;"></i> Manager Approvals & Rejections
+                </h3>
+                <span class="badge" style="background: #f1f5f9;">Live Updates</span>
+            </div>
+            
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Decision</th>
+                            <th>Processed By</th>
+                            <th>Date</th>
+                            <th style="text-align: right;">Record</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if approval_log %}
+                            {% for log in approval_log[:15] %}
+                            <tr>
+                                <td>
+                                    <div style="font-weight: 700;">{{ log.EMP_NAME }}</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">{{ log.REQUEST_TYPE }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge {% if log.STATUS == 'Approved' %}badge-approved{% else %}badge-rejected{% endif %}">
+                                        {{ log.STATUS }}
+                                    </span>
+                                </td>
+                                <td style="font-weight: 600; color: var(--primary);">{{ log.ACTION_BY }}</td>
+                                <td style="font-size: 0.85rem; color: var(--text-muted);">{{ log.ACTION_AT.strftime('%d %b, %H:%M') if log.ACTION_AT else 'N/A' }}</td>
+                                <td style="text-align: right;">
+                                    <a href="/admin/view-employee/{{ log.EMP_ID }}" style="color: var(--text-muted);"><i data-lucide="external-link" size="16"></i></a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">No recent manager actions found.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- FULL SYSTEM ACTIVITY -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h3 style="font-weight: 800; display: flex; align-items: center; gap: 0.6rem;">
+                    <i data-lucide="activity" style="color: var(--primary);"></i> Global Attendance Feed
+                </h3>
+                <form method="GET" style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="date" name="date" value="{{ current_date }}" style="width: auto;">
+                    <button type="submit" class="btn btn-outline" style="padding: 0.4rem 1rem;">Go</button>
+                </form>
+            </div>
+
+            {% if notifications %}
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    {% for notif in notifications %}
+                    <div style="padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); display: flex; gap: 1rem; align-items: center;">
+                        <div style="background: #f8fafc; padding: 0.6rem; border-radius: 10px; color: var(--text-muted);">
+                            <i data-lucide="{% if notif.type == 'WFH' %}home{% else %}user{% endif %}" size="18"></i>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 700;">{{ notif.emp_name }}</span>
+                                <span class="badge {% if notif.status == 'Approved' %}badge-approved{% elif 'Reject' in notif.status or 'Cancel' in notif.status %}badge-rejected{% else %}badge-pending{% endif %}">
+                                    {{ notif.status }}
+                                </span>
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 1rem; margin-top: 0.25rem;">
+                                <span>{{ notif.type }} for {{ notif.display_date }}</span>
+                                <span style="display: flex; align-items: center; gap: 0.3rem;"><i data-lucide="clock" size="12"></i> {{ notif.timestamp }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div style="padding: 3rem; text-align: center; color: var(--text-muted);">
+                    <i data-lucide="inbox" size="48" style="opacity: 0.2; margin-bottom: 1rem;"></i>
+                    <p>No activity recorded for this period.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div style="display: flex; flex-direction: column; gap: 2rem;">
+        <div class="card" style="background: #fafafa; border-style: dashed;">
+            <h3 style="font-size: 1rem; font-weight: 800; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Management Console</h3>
+            <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                <a href="{{ url_for('add_employee_route') }}" class="btn btn-primary" style="width: 100%;">
+                    <i data-lucide="user-plus"></i> Add New Employee
+                </a>
+                <a href="{{ url_for('admin_performance_report') }}" class="btn btn-outline" style="width: 100%;">
+                    <i data-lucide="trending-up"></i> Company Performance
+                </a>
+                <a href="{{ url_for('manage_employees_route') }}" class="btn btn-outline" style="width: 100%;">
+                    <i data-lucide="users"></i> Workforce Directory
+                </a>
+                <a href="{{ url_for('admin_whatsapp_settings') }}" class="btn btn-outline" style="width: 100%; color: #166534;">
+                    <i data-lucide="message-square"></i> Messaging Config
+                </a>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="font-size: 1rem; font-weight: 800; margin-bottom: 1.25rem;">Employee Quick Lookup</h3>
+            <select id="employee-select" onchange="updateEmployeeView()" style="margin-bottom: 1rem;">
+                <option value="">-- Choose Employee --</option>
+                {% for emp in employees %}
+                <option value="{{ emp.emp_id }}">{{ emp.emp_name }} ({{ emp.emp_team }})</option>
+                {% endfor %}
+            </select>
+            
+            <div id="filter-options" style="display: none;">
+                <button onclick="applyFilter()" class="btn btn-primary" style="width: 100%;">View Full Profile</button>
+            </div>
+        </div>
+
+        <div class="card" style="background: linear-gradient(to bottom right, #f8fafc, #f1f5f9);">
+            <h3 style="font-size: 0.9rem; font-weight: 800; margin-bottom: 1rem;">Executive Info</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0;">This panel provides real-time oversight of all manager actions and employee attendance logs. No operational approvals are required from this portal.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateEmployeeView() {
+        const empId = document.getElementById('employee-select').value;
+        const opts = document.getElementById('filter-options');
+        opts.style.display = empId ? 'block' : 'none';
+    }
+
+    function applyFilter() {
+        const empId = document.getElementById('employee-select').value;
+        if (empId) {
+            window.location.href = `/admin/view-employee/${empId}`;
+        }
+    }
+</script>
+{% endblock %}

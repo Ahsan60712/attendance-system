@@ -1,206 +1,224 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Dashboard - Adlab Solutions{% endblock %}
+{% block title %}Manager Dashboard - Adlab Solutions{% endblock %}
 
 {% block content %}
-<!-- Welcome Section -->
-<div class="welcome-hero">
-    <div style="position: relative; z-index: 2;">
-        <h1>Dashboard Overview</h1>
-        <p style="opacity: 0.9; font-size: 1.1rem;">Welcome back, {{ admin_name }}. Here's what's happening today.</p>
-    </div>
-    <div style="position: absolute; right: 2rem; top: 50%; transform: translateY(-50%); opacity: 0.2;">
-        <i data-lucide="shield-check" size="120"></i>
-    </div>
+<div style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; border: none; margin: -1.5rem -2rem 2rem -2rem; padding: 2rem; border-radius: 16px;">
+    <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem; font-weight: 700;">Executive Portal: {{ admin_name }}</h1>
+    <p style="opacity: 0.9; font-size: 1.1rem;">Team <strong>{{ emp_data.emp_team }}</strong> • System Management</p>
 </div>
 
-<!-- Quick Action Stats -->
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-info">
-            <h4>Today's Date</h4>
-            <div class="value">{{ current_date }}</div>
-        </div>
-        <div style="background: #eef2ff; color: #4f46e5; padding: 1rem; border-radius: 12px;">
-            <i data-lucide="calendar"></i>
-        </div>
-    </div>
-    
-    <div class="stat-card">
-        <div class="stat-info">
-            <h4>Recent Alerts</h4>
-            <div class="value">{{ notifications|length }}</div>
-        </div>
-        <div style="background: #fff7ed; color: #f97316; padding: 1rem; border-radius: 12px;">
-            <i data-lucide="bell"></i>
-        </div>
-    </div>
-
-    <div class="stat-card" style="cursor: pointer;" onclick="window.location.href='{{ url_for('manage_employees_route') }}'">
-        <div class="stat-info">
-            <h4>Total Staff</h4>
-            <div class="value">{{ employees|length }}</div>
-        </div>
-        <div style="background: #f0fdf4; color: #10b981; padding: 1rem; border-radius: 12px;">
-            <i data-lucide="users"></i>
-        </div>
-    </div>
+<!-- Management Tabs -->
+<div style="display: flex; gap: 1rem; margin-bottom: 2rem; overflow-x: auto; padding-bottom: 0.5rem;">
+    <a href="{{ url_for('add_employee_route') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap;">
+        <i data-lucide="user-plus" size="18"></i> Add New Employee
+    </a>
+    <a href="{{ url_for('admin_performance_report') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap;">
+        <i data-lucide="trending-up" size="18"></i> Company Performance
+    </a>
+    <a href="{{ url_for('manage_employees_route') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap;">
+        <i data-lucide="users" size="18"></i> Add and Remove Employee
+    </a>
+    <a href="{{ url_for('admin_whatsapp_settings') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.05); color: #166534; white-space: nowrap;">
+        <i data-lucide="message-square" size="18"></i> Messaging Config
+    </a>
 </div>
 
-<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
-    <!-- LEFT COLUMN: Main Activity -->
-    <div style="display: flex; flex-direction: column; gap: 2rem;">
+<!-- Tabs Navigation -->
+<div style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
+    <button onclick="showTab('requests-tab')" class="tab-btn active-tab" id="btn-requests">
+        <i data-lucide="users" size="18"></i> Every Request ({{ requests|length }})
+    </button>
+    <button onclick="showTab('apply-tab')" class="tab-btn" id="btn-apply">
+        <i data-lucide="plus-circle" size="18"></i> Personal Apply
+    </button>
+</div>
+
+<style>
+    .tab-btn { border: none; background: transparent; padding: 0.75rem 1.5rem; font-weight: 700; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; border-radius: 8px 8px 0 0; transition: all 0.3s; }
+    .tab-btn:hover { color: var(--primary); background: #f1f5f9; }
+    .active-tab { color: var(--primary); border-bottom: 4px solid var(--primary); margin-bottom: -7px; }
+    .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+
+<!-- TAB 1: TEAM REQUESTS -->
+<div id="requests-tab" class="tab-content" style="display: block;">
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+        <div class="stat-card">
+            <span class="value">{{ requests|length }}</span>
+            <span class="label">Total Pending</span>
+        </div>
+        <div class="stat-card">
+            <span class="value" style="color: #6366f1;">{{ leave_balance.carried_forward|default(0) }}</span>
+            <span class="label">Carried Forward</span>
+        </div>
+        <div class="stat-card">
+            <span class="value" style="color: #10b981;">{{ leave_balance.wfh_count|default(0) }}</span>
+            <span class="label">My WFH</span>
+        </div>
+        <div class="stat-card">
+            <span class="value" style="color: #f59e0b;">{{ leave_balance.half_days_taken|default(0) }}</span>
+            <span class="label">My Half Days</span>
+        </div>
+        <div class="stat-card">
+            <span class="value" style="color: #ef4444;">{{ leave_balance.leaves_taken_this_year|default(0) }}</span>
+            <span class="label">Leaves Taken</span>
+        </div>
+        <div style="background: #1e293b; border: 1px solid #0f172a; padding: 1.5rem; border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; gap: 0.5rem; transition: var(--transition);">
+            <span class="value" style="color: #ffffff; font-size: 1.5rem; font-weight: 700;">{{ leave_balance.remaining_leaves|default(0) }}</span>
+            <span class="label" style="color: #94a3b8; font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">My Balance</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="inbox" size="20"></i> Active Requests List
+        </h3>
         
-        <!-- Notifications Card -->
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <h3 style="font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 0.6rem;">
-                    <i data-lucide="activity" style="color: #4f46e5;"></i> Recent Notifications
-                </h3>
-                <form method="GET" style="display: flex; gap: 0.5rem; align-items: center;">
-                    <input type="date" name="date" value="{{ current_date }}" style="padding: 0.4rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem;">
-                    <button type="submit" class="btn btn-primary" style="padding: 0.4rem 1rem;">Go</button>
-                </form>
+        <div class="table-wrapper">
+            {% if requests %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Team</th>
+                        <th style="background: #eff6ff; color: #1e40af;">Balance</th>
+                        <th>Type</th>
+                        <th>Date</th>
+                        <th style="text-align: center;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in requests %}
+                    <tr>
+                        <td style="font-weight: 700;">{{ req.emp_name }}</td>
+                        <td><span class="badge" style="background:#f1f5f9;">{{ req.team }}</span></td>
+                        <td style="background: #f8fafc;">
+                            <span class="badge" style="background: #dbeafe; color: #1e40af;">
+                                <strong>{{ req.emp_balance }}</strong> left
+                            </span>
+                        </td>
+                        <td>{{ req.type }}</td>
+                        <td>{{ req.display_date }}</td>
+                        <td style="text-align: center;">
+                            <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                                <form method="POST" action="{{ url_for('action_request') }}" style="margin: 0;">
+                                    <input type="hidden" name="emp_id" value="{{ req.emp_id }}"><input type="hidden" name="date" value="{{ req.date }}"><input type="hidden" name="type" value="{{ req.type }}"><input type="hidden" name="timestamp" value="{{ req.timestamp }}"><input type="hidden" name="action" value="Approve">
+                                    <button type="submit" class="badge badge-approved" style="border: none; cursor: pointer; padding: 0.6rem 1rem;">Approve</button>
+                                </form>
+                                <form method="POST" action="{{ url_for('action_request') }}" style="margin: 0;">
+                                    <input type="hidden" name="emp_id" value="{{ req.emp_id }}"><input type="hidden" name="date" value="{{ req.date }}"><input type="hidden" name="type" value="{{ req.type }}"><input type="hidden" name="timestamp" value="{{ req.timestamp }}"><input type="hidden" name="action" value="Reject">
+                                    <button type="submit" class="badge badge-rejected" style="border: none; cursor: pointer; padding: 0.6rem 1rem;">Reject</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                <i data-lucide="check-circle" size="32" style="opacity: 0.4; margin-bottom: 0.5rem;"></i>
+                <p>No pending requests found.</p>
             </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
 
-            {% if notifications %}
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    {% for notif in notifications %}
-                    <div style="padding: 1.25rem; border: 1px solid var(--border); border-radius: 14px; display: flex; gap: 1.25rem; align-items: start; background: #fff;">
-                        <div style="background: #f8fafc; padding: 0.75rem; border-radius: 10px;">
-                            <i data-lucide="file-text" size="20" style="color: var(--text-muted);"></i>
-                        </div>
-                        <div style="flex: 1;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                                <span style="font-weight: 700; font-size: 1rem;">{{ notif.emp_name }}</span>
-                                <div style="display: flex; gap: 0.5rem;">
-                                    <span class="badge badge-pending">{{ notif.type }}</span>
-                                    <span class="badge {% if notif.status == 'Approved' %}badge-approved{% elif notif.status == 'Rejected' %}badge-rejected{% else %}badge-pending{% endif %}">
-                                        {{ notif.status }}
-                                    </span>
-                                </div>
-                            </div>
-                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">{{ notif.reason }}</p>
-                            <div style="font-size: 0.75rem; color: #94a3b8; display: flex; align-items: center; gap: 0.4rem;">
-                                <i data-lucide="clock" size="14"></i> Submitted {{ notif.timestamp }}
-                            </div>
+<!-- TAB 2: APPLY FOR LEAVE/WFH -->
+<div id="apply-tab" class="tab-content">
+    <div class="row">
+        <div class="col-8">
+            <div class="card">
+                <h3 style="margin-bottom: 2rem;"><i data-lucide="calendar-plus" size="22"></i> Personal Absence Application</h3>
+                
+                <form method="POST" action="{{ url_for('mark_request') }}">
+                    <!-- TYPE SELECTOR (Radio Buttons) -->
+                    <div style="margin-bottom: 2rem;">
+                        <label style="display: block; font-weight: 700; margin-bottom: 1rem; font-size: 0.9rem; color: var(--text);">Select Request Type</label>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <label class="radio-label">
+                                <input type="radio" name="request_type" value="WFH" checked>
+                                <span class="radio-card">
+                                    <i data-lucide="home" size="18"></i>
+                                    <span>WFH</span>
+                                </span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="request_type" value="Leave">
+                                <span class="radio-card">
+                                    <i data-lucide="plane" size="18"></i>
+                                    <span>Full Leave</span>
+                                </span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="request_type" value="Half Day">
+                                <span class="radio-card">
+                                    <i data-lucide="clock" size="18"></i>
+                                    <span>Half Day</span>
+                                </span>
+                            </label>
                         </div>
                     </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div style="padding: 4rem 1rem; text-align: center; color: var(--text-muted); background: #f8fafc; border-radius: 14px; border: 1px dashed var(--border);">
-                    <i data-lucide="bell-off" size="32" style="opacity: 0.4; margin-bottom: 1rem;"></i>
-                    <p>No activity recorded for this date.</p>
-                </div>
-            {% endif %}
-        </div>
 
-        <!-- Manager Actions Log -->
-        <div class="card">
-            <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.6rem;">
-                <i data-lucide="check-circle-2" style="color: #10b981;"></i> Manager Approval Log
-            </h3>
-            
-            {% set approved_only = approval_log | selectattr('status', 'equalto', 'Approved') | list %}
-            {% if approved_only %}
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Employee</th>
-                            <th>Type</th>
-                            <th>Date</th>
-                            <th>Manager</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for entry in approved_only %}
-                        <tr>
-                            <td style="font-weight: 600;">{{ entry.emp_name }}</td>
-                            <td><span class="badge badge-outline">{{ entry.request_type }}</span></td>
-                            <td>{{ entry.request_date }}</td>
-                            <td>{{ entry.manager_name }}</td>
-                            <td><span class="badge badge-approved">Approved</span></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-                <div style="text-align: center; padding: 2rem; color: var(--text-muted);">No approvals logged yet.</div>
-            {% endif %}
-        </div>
-    </div>
+                    <!-- DATE RANGE -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                        <div>
+                            <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">Start Date</label>
+                            <input type="date" name="date" value="{{ today }}" min="{{ today }}" required style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border);">
+                        </div>
+                        <div>
+                            <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">End Date (Optional)</label>
+                            <input type="date" name="end_date" value="{{ today }}" min="{{ today }}" style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border);">
+                            <small style="color: var(--text-muted); font-size: 0.75rem;">Leave empty for single day</small>
+                        </div>
+                    </div>
 
-    <!-- RIGHT COLUMN: Side Info -->
-    <div style="display: flex; flex-direction: column; gap: 2rem;">
-        
-        <!-- System Control -->
-        <div class="card" style="background: #fafafa;">
-            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem;">System Controls</h3>
-            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                <a href="{{ url_for('add_employee_route') }}" class="btn btn-primary" style="width: 100%; justify-content: center;">
-                    <i data-lucide="user-plus"></i> Add New Employee
-                </a>
-                <a href="{{ url_for('admin_whatsapp_settings') }}" class="btn btn-outline" style="width: 100%; justify-content: center; border: 1px solid var(--border); background: white;">
-                    <i data-lucide="message-circle" style="color: #25d366;"></i> WhatsApp Config
-                </a>
-                <a href="{{ url_for('admin_performance_report') }}" class="btn btn-outline" style="width: 100%; justify-content: center; border: 1px solid var(--border); background: white;">
-                    <i data-lucide="line-chart"></i> View Performance
-                </a>
-                <a href="{{ url_for('manage_employees_route') }}" class="btn btn-outline" style="width: 100%; justify-content: center; border: 1px solid var(--border); background: white; color: #ef4444;">
-                    <i data-lucide="users"></i> Manage Directory
-                </a>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">Reason</label>
+                        <textarea name="reason" rows="3" required placeholder="Brief reason for your absence..." style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border); resize: none;"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn" style="width: 100%; justify-content: center; padding: 1.2rem; font-size: 1.1rem;">
+                        <i data-lucide="send"></i> Submit My Application
+                    </button>
+                </form>
             </div>
         </div>
-
-        <!-- Filter Records Section -->
-        <div class="card">
-            <h4 style="font-size: 1rem; font-weight: 700; margin-bottom: 1rem;">Find Records</h4>
-            <div style="display: flex; flex-direction: column; gap: 1rem;">
-                <label style="font-size: 0.85rem; color: var(--text-secondary);">Select Employee</label>
-                <select id="employee-select" onchange="updateEmployeeView()" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); outline: none;">
-                    <option value="">-- Employee List --</option>
-                    {% for emp in employees %}
-                    <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
-                    {% endfor %}
-                </select>
-                
-                <div id="filter-options" style="display: none; padding-top: 1rem; border-top: 1px dashed var(--border);">
-                    <button onclick="applyFilter('custom')" class="btn btn-primary" style="width: 100%; font-size: 0.8rem; height: 36px; justify-content: center;">View Detailed Report</button>
-                    <input type="hidden" id="start-date">
-                    <input type="hidden" id="end-date">
-                </div>
+        <div class="col-4">
+            <div class="card" style="background: #f8fafc; border-style: dashed; height: 100%;">
+                <h4 style="margin-bottom: 1rem;">System Rules</h4>
+                <ul style="padding-left: 1.2rem; font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 1.2rem;">
+                    <li><strong>WFH:</strong> No deductions.</li>
+                    <li><strong>Full Leave:</strong> Deducted from balance.</li>
+                    <li><strong>Half Day:</strong> 0.5 deduction.</li>
+                    <li><strong>Ranges:</strong> Selecting a range will apply for all days between Start and End.</li>
+                </ul>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+    .radio-label { flex: 1; min-width: 120px; cursor: pointer; }
+    .radio-label input { display: none; }
+    .radio-card { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1rem; border: 2px solid var(--border); border-radius: 12px; transition: all 0.2s; background: white; }
+    .radio-label input:checked + .radio-card { border-color: var(--primary); background: #eff6ff; color: var(--primary); box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.1); }
+    .radio-card i { opacity: 0.7; }
+    .radio-label input:checked + .radio-card i { opacity: 1; }
+</style>
 <script>
-    function updateEmployeeView() {
-        const empId = document.getElementById('employee-select').value;
-        const opts = document.getElementById('filter-options');
-        opts.style.display = empId ? 'block' : 'none';
-        
-        if (empId) {
-            const today = new Date().toISOString().split('T')[0];
-            const thirtyAgo = new Date();
-            thirtyAgo.setDate(thirtyAgo.getDate() - 30);
-            document.getElementById('start-date').value = thirtyAgo.toISOString().split('T')[0];
-            document.getElementById('end-date').value = today;
-        }
-    }
-
-    function applyFilter(type) {
-        const empId = document.getElementById('employee-select').value;
-        const start = document.getElementById('start-date').value;
-        const end = document.getElementById('end-date').value;
-        if (empId) {
-            window.location.href = `/admin/view-employee/${empId}?filter_type=custom&start_date=${start}&end_date=${end}`;
+    function showTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active-tab'));
+        document.getElementById(tabId).style.display = 'block';
+        if(tabId === 'requests-tab') {
+            document.getElementById('btn-requests').classList.add('active-tab');
+        } else {
+            document.getElementById('btn-apply').classList.add('active-tab');
         }
     }
 </script>
-
 {% endblock %}
