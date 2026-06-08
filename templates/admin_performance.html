@@ -4,56 +4,61 @@
 
 {% block content %}
 <div class="page-container">
-    <div class="header" style="margin-bottom: 2rem; border-radius: 12px; border: 1px solid var(--border);">
-        <h2 class="header-brand" style="margin: 0; display: flex; align-items: center; gap: 0.75rem;">
-            <i data-lucide="bar-chart-2"></i> Employee Performance Report
+    <div class="header" style="margin-bottom: 2rem; border-radius: 12px; border: 1px solid var(--border); padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <h2 class="header-brand" style="margin: 0; display: flex; align-items: center; gap: 0.75rem; font-size: 1.5rem; font-weight: 700; color: #0f172a;">
+            <i data-lucide="bar-chart-2" style="color: #4f46e5;"></i> Employee Performance Report
         </h2>
         <div class="btn-group">
-            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline" style="display: inline-flex; align-items: center; gap: 0.5rem; border-radius: 8px; padding: 0.5rem 1rem; font-weight: 600; font-size: 0.9rem;">
                 <i data-lucide="arrow-left" size="18"></i> Back to Dashboard
             </a>
         </div>
     </div>
 
-    <div class="card">
-        <p class="text-secondary" style="font-size: 0.95rem; margin-bottom: 2rem;">
+    <div class="card" style="padding: 2rem; border-radius: 12px; background: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0;">
+        <p class="text-secondary" style="font-size: 0.95rem; margin-bottom: 1.5rem; color: #64748b;">
             Detailed overview of WFH and Leave statistics for all employees to track utilization and policy compliance.
         </p>
 
-        <div class="table-container">
-            <table>
+        <div class="custom-performance-wrapper">
+            <table class="custom-performance-table">
                 <thead>
                     <tr>
                         <th>Employee Name</th>
                         <th>Team</th>
-                        <th style="text-align: center;">WFH Days</th>
-                        <th style="text-align: center;">Allowed</th>
-                        <th style="text-align: center;">Carried</th>
-                        <th style="text-align: center;">Taken</th>
-                        <th style="text-align: center;">Remaining</th>
+                        <th class="text-center">WFH Days</th>
+                        <th class="text-center">Allowed</th>
+                        <th class="text-center">Carried</th>
+                        <th class="text-center">Taken</th>
+                        <th class="text-center">Remaining</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for emp in employees %}
                     <tr>
-                        <td style="font-weight: 600;">{{ emp.emp_name }}</td>
-                        <td><span class="badge badge-outline">{{ emp.emp_team }}</span></td>
-                        <td style="text-align: center;">
-                            <span class="badge badge-primary">{{ emp.WFH_count|default(0) }}</span>
+                        <td class="emp-name-cell">{{ emp.emp_name }}</td>
+                        <td><span class="team-badge-custom">{{ emp.emp_team }}</span></td>
+                        
+                        <td class="text-center">
+                            <span class="count-badge text-primary-badge">{{ emp.WFH_count|default(0) }}</span>
                         </td>
-                        <td style="text-align: center;">
-                            <span class="badge badge-info">{{ emp.Total_leaves|default(14) }}</span>
+                        
+                        <td class="text-center">
+                            <span class="count-badge text-info-badge">{{ emp.Total_leaves|default(14) }}</span>
                         </td>
-                        <td style="text-align: center;">
-                            <span class="badge badge-success">{{ emp.Leaves_Carried_Forward|default(0) }}</span>
+                        
+                        <td class="text-center">
+                            <span class="count-badge text-success-badge">{{ emp.Leaves_Carried_Forward|default(0) }}</span>
                         </td>
-                        <td style="text-align: center;">
-                            <span class="badge {% if emp.Leaves_This_Year > 10 %}badge-danger{% else %}badge-outline{% endif %}">
+                        
+                        <td class="text-center">
+                            <span class="count-badge {% if emp.Leaves_This_Year > 10 %}bg-danger-light text-danger-dark{% else %}bg-gray-light text-gray-dark{% endif %}">
                                 {{ emp.Leaves_This_Year|default(0) }}
                             </span>
                         </td>
-                        <td style="text-align: center;">
-                            <span class="badge {% if emp.Remaining_Leaves > 10 %}badge-success{% elif emp.Remaining_Leaves > 5 %}badge-warning{% else %}badge-danger{% endif %}">
+                        
+                        <td class="text-center">
+                            <span class="count-badge {% if emp.Remaining_Leaves > 10 %}bg-success-light text-success-dark{% elif emp.Remaining_Leaves > 5 %}bg-warning-light text-warning-dark{% else %}bg-danger-light text-danger-dark{% endif %}" style="font-weight: 700;">
                                 {{ emp.Remaining_Leaves|default(0) }}
                             </span>
                         </td>
@@ -64,4 +69,93 @@
         </div>
     </div>
 </div>
+
+<style>
+    .custom-performance-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        background: #ffffff;
+        margin-top: 1rem;
+    }
+
+    .custom-performance-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 0.9rem;
+    }
+
+    .custom-performance-table th {
+        background-color: #f8fafc;
+        padding: 1rem 1.25rem;
+        font-weight: 600;
+        color: #475569;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .custom-performance-table td {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #f1f5f9;
+        color: #334155;
+        vertical-align: middle;
+    }
+
+    .custom-performance-table tr:hover {
+        background-color: #f8fafc;
+        transition: background 0.2s ease-in-out;
+    }
+
+    .text-center {
+        text-align: center !important;
+    }
+
+    .emp-name-cell {
+        font-weight: 600;
+        color: #0f172a !important;
+    }
+
+    .team-badge-custom {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 0.35rem 0.75rem;
+        border-radius: 6px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    /* Standard Badge Styling to handle clean grids */
+    .count-badge {
+        display: inline-block;
+        padding: 0.35rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        font-family: monospace;
+        min-width: 40px;
+        text-align: center;
+    }
+
+    /* Colors Definition */
+    .text-primary-badge { background: #eff6ff; color: #1e40af; }
+    .text-info-badge { background: #f0fdfa; color: #0f766e; }
+    .text-success-badge { background: #f0fdf4; color: #166534; }
+    
+    .bg-danger-light { background: #fef2f2; }
+    .text-danger-dark { color: #991b1b; }
+    
+    .bg-gray-light { background: #f8fafc; border: 1px solid #e2e8f0; }
+    .text-gray-dark { color: #475569; }
+    
+    .bg-success-light { background: #f0fdf4; }
+    .text-success-dark { color: #166534; }
+    
+    .bg-warning-light { background: #fffbeb; }
+    .text-warning-dark { color: #92400e; }
+</style>
 {% endblock %}
