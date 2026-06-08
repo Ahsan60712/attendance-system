@@ -98,7 +98,18 @@ class WFHLeaveManager:
 
     def get_employees(self):
         rows = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES ORDER BY EMP_ID ASC")
-        return [self._map_employee(row) for row in rows] if rows else []
+        employees = [self._map_employee(row) for row in rows] if rows else []
+        
+        # Remove duplicates based on EMP_ID
+        seen_ids = set()
+        unique_employees = []
+        for emp in employees:
+            emp_id = emp.get('emp_id')
+            if emp_id not in seen_ids:
+                seen_ids.add(emp_id)
+                unique_employees.append(emp)
+        
+        return unique_employees
 
     def get_contract_year_window(self, contract_start_date_str, today=None):
         if today is None: today = date.today()
