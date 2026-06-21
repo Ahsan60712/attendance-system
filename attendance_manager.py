@@ -30,6 +30,23 @@ def normalize_status(status):
         return 'Cancelled'
     return str(status).strip()
 
+def normalize_date_to_str(d):
+    if not d:
+        return ''
+    if isinstance(d, (date, datetime)):
+        return d.strftime('%Y-%m-%d')
+    d_str = str(d).strip()
+    for fmt in ('%Y-%m-%d', '%d %b %Y', '%d-%b-%Y', '%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S'):
+        try:
+            return datetime.strptime(d_str, fmt).strftime('%Y-%m-%d')
+        except ValueError:
+            continue
+    try:
+        return date.fromisoformat(d_str.split(' ')[0]).strftime('%Y-%m-%d')
+    except ValueError:
+        pass
+    return d_str
+
 class WFHLeaveManager:
     def __init__(self, base_path):
         self.base_path = base_path
@@ -255,20 +272,61 @@ class WFHLeaveManager:
         if not year_start: return self._map_employee(emp)
         
         year_start_str = year_start.strftime('%Y-%m-%d')
-        stored_year_start = emp.get('CONTRACT_YEAR_START')
-        if stored_year_start and str(stored_year_start).strip() == year_start_str:
+        stored_year_start_raw = emp.get('CONTRACT_YEAR_START')
+        stored_year_start_str = str(stored_year_start_raw).strip() if stored_year_start_raw else ''
+
+        # Already up-to-date — no action needed
+        if stored_year_start_str == year_start_str:
             return self._map_employee(emp)
-            
+
+        # Case 1: CONTRACT_YEAR_START is NULL/empty — first-time initialization.
+        # Just stamp the correct year start; do NOT reset any leave counters.
+        if not stored_year_start_str:
+            print(f"[ROLLOVER] ID {emp_id}: Initializing CONTRACT_YEAR_START to {year_start_str} (no counter reset)")
+            self._execute_query(
+                "UPDATE ADLABS.AHSAN.EMPLOYEES SET CONTRACT_YEAR_START = %s WHERE EMP_ID = %s",
+                (year_start_str, emp_id), commit=True
+            )
+            updated_emp = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id,), fetchone=True)
+            return self._map_employee(updated_emp)
+
+        # Parse the stored year start to detect invalid/future dates
+        try:
+            stored_year_start_date = date.fromisoformat(stored_year_start_str.split(' ')[0])
+        except ValueError:
+            # Unreadable format — just correct it without touching leave counters
+            print(f"[ROLLOVER] ID {emp_id}: Invalid CONTRACT_YEAR_START '{stored_year_start_str}', correcting to {year_start_str} (no counter reset)")
+            self._execute_query(
+                "UPDATE ADLABS.AHSAN.EMPLOYEES SET CONTRACT_YEAR_START = %s WHERE EMP_ID = %s",
+                (year_start_str, emp_id), commit=True
+            )
+            updated_emp = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id,), fetchone=True)
+            return self._map_employee(updated_emp)
+
+        # Case 2: stored_year_start is a FUTURE date (e.g. 2026-07-01 entered by mistake).
+        # This is NOT a real rollover — just correct the field without touching leave counters.
+        if stored_year_start_date > today:
+            print(f"[ROLLOVER] ID {emp_id}: CONTRACT_YEAR_START '{stored_year_start_str}' is in the future, correcting to {year_start_str} (no counter reset)")
+            self._execute_query(
+                "UPDATE ADLABS.AHSAN.EMPLOYEES SET CONTRACT_YEAR_START = %s WHERE EMP_ID = %s",
+                (year_start_str, emp_id), commit=True
+            )
+            updated_emp = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id,), fetchone=True)
+            return self._map_employee(updated_emp)
+
+        # Case 3: stored_year_start is a genuine PAST year — this is a real year-end rollover.
+        # Carry forward remaining leaves and reset current-year counter.
         old_taken = float(emp.get('LEAVES_THIS_YEAR') or 0)
         old_total = float(emp.get('TOTAL_LEAVES') or 0)
         old_carried = float(emp.get('LEAVES_CARRIED_FORWARD') or 0)
         
         old_remaining = max(0, (old_total + old_carried) - old_taken)
-        new_carried = old_remaining if (stored_year_start and old_total > 0) else 0
+        new_carried = old_remaining if old_total > 0 else 0
         
         expiry_date = (year_start + relativedelta(months=6)).strftime('%Y-%m-%d')
         new_remaining = old_total + new_carried
-        
+
+        print(f"[ROLLOVER] ID {emp_id}: Real year rollover from {stored_year_start_str} → {year_start_str}, carrying {new_carried} leaves")
         self._execute_query(
             """UPDATE ADLABS.AHSAN.EMPLOYEES SET 
                 LEAVES_THIS_YEAR = 0, 
@@ -717,11 +775,27 @@ class WFHLeaveManager:
         emp = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id,), fetchone=True)
         if not emp: raise Exception("Employee not found")
         
-        old_csd = str(emp.get('CONTRACT_START_DATE') or '').strip()
-        new_csd = str(contract_start_date).strip() if contract_start_date else ''
-        year_start_nullify = ""
+        old_csd = normalize_date_to_str(emp.get('CONTRACT_START_DATE'))
+        new_csd = normalize_date_to_str(contract_start_date)
+        norm_start_date = new_csd if new_csd else None
+        norm_end_date = normalize_date_to_str(contract_end_date) if contract_end_date else None
+        
+        # Calculate/retrieve year_start
+        year_start = emp.get('CONTRACT_YEAR_START')
+        if isinstance(year_start, (date, datetime)):
+            year_start = year_start.strftime('%Y-%m-%d')
+        else:
+            year_start = str(year_start or '').strip() if year_start else None
+
         if new_csd != old_csd:
-            year_start_nullify = ", CONTRACT_YEAR_START = NULL"
+            if norm_start_date:
+                try:
+                    ys, _ = self.get_contract_year_window(norm_start_date)
+                    year_start = ys.strftime('%Y-%m-%d') if ys else None
+                except:
+                    pass
+            else:
+                year_start = None
             
         old_taken = float(emp.get('LEAVES_THIS_YEAR') or 0)
         curr_carried = float(emp.get('LEAVES_CARRIED_FORWARD') or 0)
@@ -730,17 +804,16 @@ class WFHLeaveManager:
              
         new_rem = (float(total_leaves) + curr_carried) - old_taken
         
-        sql = f"""UPDATE ADLABS.AHSAN.EMPLOYEES SET 
+        sql = """UPDATE ADLABS.AHSAN.EMPLOYEES SET 
             EMP_NAME = %s, EMP_TEAM = %s, IS_ADMIN = %s, IS_MANAGER = %s,
             CONTRACT_TYPE = %s, CONTRACT_START_DATE = %s, CONTRACT_END_DATE = %s,
             TOTAL_LEAVES = %s, LEAVES_CARRIED_FORWARD = %s, REMAINING_LEAVES = %s,
-            PHONE = COALESCE(%s, PHONE)
-            {year_start_nullify}
+            PHONE = COALESCE(%s, PHONE), CONTRACT_YEAR_START = %s
             WHERE EMP_ID = %s
         """
         self._execute_query(sql, (
-            emp_name, emp_team, is_admin, is_manager, contract_type, contract_start_date, contract_end_date,
-            total_leaves, curr_carried, new_rem, phone, emp_id
+            emp_name, emp_team, is_admin, is_manager, contract_type, norm_start_date, norm_end_date,
+            total_leaves, curr_carried, new_rem, phone, year_start, emp_id
         ), commit=True)
         return True
 
