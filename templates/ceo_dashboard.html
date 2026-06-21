@@ -1,102 +1,249 @@
 {% extends "base.html" %}
 
-{% block title %}Manager Dashboard - Adlab Solutions{% endblock %}
+{% block title %}CEO Portal - Adlab Solutions{% endblock %}
 
 {% block content %}
-<div class="card" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; border: none; margin: -1.5rem -2rem 2rem -2rem; padding: 2rem; border-radius: 16px;">
-    <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem; font-weight: 700;">Admin Portal: {{ admin_name }}</h1>
-    <p style="opacity: 0.9; font-size: 1.1rem;">Team: <strong>Poppi</strong></p>
+
+<!-- CEO Hero Header -->
+<div style="background: linear-gradient(135deg, #0f172a, #1e3a5f, #0c4a6e); color: white; border: none; margin: -1.5rem -2rem 2rem -2rem; padding: 2rem 2.5rem; border-radius: 16px; position: relative; overflow: hidden;">
+    <div style="position: absolute; top: -30px; right: -30px; width: 180px; height: 180px; background: rgba(255,255,255,0.04); border-radius: 50%;"></div>
+    <div style="position: absolute; bottom: -20px; right: 100px; width: 100px; height: 100px; background: rgba(255,255,255,0.04); border-radius: 50%;"></div>
+    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem;">
+        <div style="background: rgba(255,255,255,0.12); border-radius: 12px; padding: 0.6rem 1rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">
+            <i data-lucide="briefcase" size="14"></i> Chief Executive Officer
+        </div>
+    </div>
+    <h1 style="font-size: 2.4rem; margin-bottom: 0.4rem; font-weight: 800; letter-spacing: -0.02em;">
+        Welcome, {{ ceo_name | replace('_', ' ') }}
+    </h1>
+    <p style="opacity: 0.75; font-size: 1rem;">Company-wide overview &bull; Full access</p>
 </div>
 
-<!-- Management Tabs -->
-<div style="display: flex; gap: 1rem; margin-bottom: 2rem; overflow-x: auto; padding-bottom: 0.5rem;">
-    <a href="{{ url_for('admin_performance_report') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap;">
-        <i data-lucide="trending-up" size="18"></i> Company Performance
+<!-- Shortcut Buttons -->
+<div style="display: flex; gap: 1rem; margin-bottom: 2rem; overflow-x: auto; padding-bottom: 0.5rem; flex-wrap: wrap;">
+    <a href="{{ url_for('manage_employees_route') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap; min-width: 160px;">
+        <i data-lucide="users" size="18"></i> Add or Remove Employee
     </a>
-    <a href="{{ url_for('manage_employees_route') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap;">
-        <i data-lucide="users" size="18"></i> Add and Remove Employee
-    </a>
-    <a href="{{ url_for('view_beyond_schedule') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap;">
+    <a href="{{ url_for('view_beyond_schedule') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap; min-width: 160px;">
         <i data-lucide="table" size="18"></i> Beyond Schedule
     </a>
-    <a href="{{ url_for('admin_whatsapp_settings') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.05); color: #166534; white-space: nowrap;">
+    <a href="{{ url_for('admin_whatsapp_settings') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.05); color: #166534; white-space: nowrap; min-width: 160px;">
         <i data-lucide="message-square" size="18"></i> Messaging Config
     </a>
 </div>
 
-<!-- RECENT REQUESTS SECTION -->
-<div style="margin-top: 2rem;">
-    <div class="card">
-        <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-            <i data-lucide="history" size="20"></i> Recent Activity
-        </h3>
-        
-        <!-- Date Filter -->
-        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <label style="font-weight: 600; font-size: 0.9rem;">From:</label>
-                <input type="date" name="start_date" value="{{ start_date }}" 
-                       onchange="filterByDate()" 
-                       style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-family: inherit;">
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <label style="font-weight: 600; font-size: 0.9rem;">To:</label>
-                <input type="date" name="end_date" value="{{ end_date }}" 
-                       onchange="filterByDate()" 
-                       style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-family: inherit;">
-            </div>
-            <button onclick="resetFilter()" 
-                    style="padding: 0.5rem 1rem; background: white; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-weight: 600;">
-                Reset
-            </button>
+<!-- KPI Cards -->
+{% set approved_count = recent_requests | selectattr('status','equalto','Approved') | list | length %}
+{% set rejected_count = recent_requests | selectattr('status','equalto','Rejected') | list | length %}
+{% set teams = employees | map(attribute='emp_team') | unique | list %}
+
+<style>
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2.5rem;
+    }
+    .kpi-card {
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 1.6rem 1.75rem;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+        border: 1px solid #f1f5f9;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        cursor: default;
+    }
+    .kpi-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.10);
+    }
+    .kpi-card .kpi-glow {
+        position: absolute;
+        top: -40px;
+        right: -40px;
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        opacity: 0.08;
+    }
+    .kpi-card .kpi-icon-wrap {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.2rem;
+    }
+    .kpi-card .kpi-value {
+        font-size: 2.6rem;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.03em;
+        margin-bottom: 0.35rem;
+        display: block;
+    }
+    .kpi-card .kpi-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #94a3b8;
+        display: block;
+        margin-bottom: 1rem;
+    }
+    .kpi-card .kpi-footer {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #64748b;
+        border-top: 1px solid #f1f5f9;
+        padding-top: 0.85rem;
+        margin-top: auto;
+    }
+    .kpi-card .kpi-footer i { opacity: 0.6; }
+    @keyframes countUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .kpi-value { animation: countUp 0.5s ease forwards; }
+</style>
+
+<div class="kpi-grid">
+
+    <!-- Total Employees -->
+    <div class="kpi-card">
+        <div class="kpi-glow" style="background: #6366f1;"></div>
+        <div class="kpi-icon-wrap" style="background: #eff6ff;">
+            <i data-lucide="users" size="22" style="color: #6366f1;"></i>
         </div>
-        
-        <div class="table-wrapper">
-            {% if recent_requests %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Employee</th>
-                        <th>Team</th>
-                        <th>Type</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for req in recent_requests %}
-                    <tr>
-                        <td style="font-weight: 700; padding: 1rem;">{{ req.emp_name }}</td>
-                        <td style="padding: 1rem;"><span class="badge" style="background:#f1f5f9;">{{ req.team }}</span></td>
-                        <td style="padding: 1rem;">{{ req.type }}</td>
-                        <td style="padding: 1rem;">{{ req.display_date }}</td>
-                        <td style="padding: 1rem;">
-                            {% if req.status == 'Approved' %}
-                            <span class="badge" style="background: #dcfce7; color: #166534;">Approved</span>
-                            {% elif req.status == 'Rejected' %}
-                            <span class="badge" style="background: #fee2e2; color: #991b1b;">Rejected</span>
-                            {% else %}
-                            <span class="badge" style="background: #f1f5f9;">{{ req.status }}</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
-                <i data-lucide="clock" size="32" style="opacity: 0.4; margin-bottom: 0.5rem;"></i>
-                <p>No recent activity found for selected date range.</p>
-            </div>
-            {% endif %}
+        <span class="kpi-value" style="color: #0f172a;">{{ employees | length }}</span>
+        <span class="kpi-label">Total Employees</span>
+        <div class="kpi-footer">
+            <i data-lucide="building-2" size="13"></i>
+            Active across all teams
         </div>
+    </div>
+
+    <!-- Approved Requests -->
+    <div class="kpi-card">
+        <div class="kpi-glow" style="background: #10b981;"></div>
+        <div class="kpi-icon-wrap" style="background: #f0fdf4;">
+            <i data-lucide="check-circle-2" size="22" style="color: #10b981;"></i>
+        </div>
+        <span class="kpi-value" style="color: #059669;">{{ approved_count }}</span>
+        <span class="kpi-label">Approved Requests</span>
+        <div class="kpi-footer">
+            <i data-lucide="calendar-check" size="13"></i>
+            Within selected date range
+        </div>
+    </div>
+
+    <!-- Rejected Requests -->
+    <div class="kpi-card">
+        <div class="kpi-glow" style="background: #ef4444;"></div>
+        <div class="kpi-icon-wrap" style="background: #fff1f2;">
+            <i data-lucide="x-circle" size="22" style="color: #ef4444;"></i>
+        </div>
+        <span class="kpi-value" style="color: #dc2626;">{{ rejected_count }}</span>
+        <span class="kpi-label">Rejected Requests</span>
+        <div class="kpi-footer">
+            <i data-lucide="calendar-x" size="13"></i>
+            Within selected date range
+        </div>
+    </div>
+
+    <!-- Active Teams -->
+    <div class="kpi-card">
+        <div class="kpi-glow" style="background: #f59e0b;"></div>
+        <div class="kpi-icon-wrap" style="background: #fffbeb;">
+            <i data-lucide="layers" size="22" style="color: #f59e0b;"></i>
+        </div>
+        <span class="kpi-value" style="color: #d97706;">{{ teams | length }}</span>
+        <span class="kpi-label">Active Teams</span>
+        <div class="kpi-footer">
+            <i data-lucide="network" size="13"></i>
+            {{ teams | join(' &bull; ') | safe }}
+        </div>
+    </div>
+
+</div>
+
+<!-- Recent Activity Card -->
+<div class="card">
+    <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        <i data-lucide="history" size="20"></i> Company-Wide Activity
+    </h3>
+
+    <!-- Date Filter -->
+    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label style="font-weight: 600; font-size: 0.9rem;">From:</label>
+            <input id="filter-start" type="date" name="start_date" value="{{ start_date }}"
+                   onchange="filterByDate()"
+                   style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-family: inherit;">
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label style="font-weight: 600; font-size: 0.9rem;">To:</label>
+            <input id="filter-end" type="date" name="end_date" value="{{ end_date }}"
+                   onchange="filterByDate()"
+                   style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-family: inherit;">
+        </div>
+        <button onclick="resetFilter()"
+                style="padding: 0.5rem 1rem; background: white; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-weight: 600;">
+            Reset
+        </button>
+    </div>
+
+    <div class="table-wrapper">
+        {% if recent_requests %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Team</th>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in recent_requests %}
+                <tr>
+                    <td style="font-weight: 700; padding: 1rem;">{{ req.emp_name | replace('_', ' ') }}</td>
+                    <td style="padding: 1rem;"><span class="badge" style="background:#f1f5f9;">{{ req.team }}</span></td>
+                    <td style="padding: 1rem;">{{ req.type }}</td>
+                    <td style="padding: 1rem;">{{ req.display_date }}</td>
+                    <td style="padding: 1rem;">
+                        {% if req.status == 'Approved' %}
+                        <span class="badge" style="background: #dcfce7; color: #166534;">Approved</span>
+                        {% elif req.status == 'Rejected' %}
+                        <span class="badge" style="background: #fee2e2; color: #991b1b;">Rejected</span>
+                        {% else %}
+                        <span class="badge" style="background: #f1f5f9;">{{ req.status }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+            <i data-lucide="clock" size="32" style="opacity: 0.4; margin-bottom: 0.5rem;"></i>
+            <p>No activity found for the selected date range.</p>
+        </div>
+        {% endif %}
     </div>
 </div>
 
 <script>
 function filterByDate() {
-    const startDate = document.querySelector('input[name="start_date"]').value;
-    const endDate = document.querySelector('input[name="end_date"]').value;
+    const startDate = document.getElementById('filter-start').value;
+    const endDate = document.getElementById('filter-end').value;
     const url = new URL(window.location.href);
     url.searchParams.set('start_date', startDate);
     url.searchParams.set('end_date', endDate);

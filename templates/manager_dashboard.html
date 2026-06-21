@@ -3,35 +3,175 @@
 {% block title %}Manager Dashboard - Adlab Solutions{% endblock %}
 
 {% block content %}
+<style>
+    .welcome-banner {
+        background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+        color: white;
+        border: none;
+        margin-bottom: 2rem;
+        padding: 2.5rem 2rem;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
+        position: relative;
+        overflow: hidden;
+    }
+    .welcome-banner::after {
+        content: '';
+        position: absolute;
+        top: 0; right: 0; bottom: 0; left: 0;
+        background: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.05)"/></svg>') repeat;
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    /* Tabs Styling */
+    .tabs-container {
+        display: flex; 
+        gap: 0.5rem; 
+        margin-bottom: 2rem; 
+        padding: 0.5rem;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        border: 1px solid #e2e8f0;
+        overflow-x: auto;
+    }
+    .tab-btn { 
+        border: none; 
+        background: transparent; 
+        padding: 0.8rem 1.25rem; 
+        font-weight: 700; 
+        color: #64748b; 
+        cursor: pointer; 
+        display: flex; 
+        align-items: center; 
+        gap: 0.5rem; 
+        border-radius: 12px; 
+        transition: all 0.2s; 
+        white-space: nowrap;
+    }
+    .tab-btn:hover { color: #2563eb; background: #eff6ff; }
+    .active-tab { 
+        color: white !important; 
+        background: linear-gradient(135deg, #1d4ed8, #3b82f6) !important; 
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    /* Stat Cards */
+    .stat-card {
+        background: white; 
+        border: 1px solid #e2e8f0; 
+        border-radius: 16px; 
+        padding: 1.5rem; 
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); 
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        flex: 1; 
+        min-width: 160px; 
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+    }
+    .stat-card:hover { 
+        transform: translateY(-5px); 
+        box-shadow: 0 12px 20px -5px rgba(0,0,0,0.1); 
+    }
+    .stat-icon-wrapper {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+
+    /* Tables */
+    .table-modern { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .table-modern th { background: #f8fafc; color: #475569; font-weight: 700; padding: 1.25rem 1rem; text-align: left; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; border-bottom: 2px solid #e2e8f0; }
+    .table-modern td { padding: 1rem; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+    .table-modern tr:hover td { background: #f8fafc; }
+    
+    .card-modern {
+        background: white; 
+        border-radius: 20px; 
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05); 
+        padding: 2rem; 
+        margin-bottom: 2rem; 
+        border: 1px solid #e2e8f0;
+    }
+    
+    .custom-select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.9rem;
+        color: #334155;
+        background-color: white;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .custom-select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .shift-dot { display: inline-block; width: 10px; height: 10px; background: #3b82f6; border-radius: 50%; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3); }
+    .shift-dash { display: inline-block; width: 12px; height: 3px; background: #cbd5e1; border-radius: 2px; }
+    
+    .shift-dot-wnight { background: #8b5cf6; box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3); }
+    .shift-dot-wmorn { background: #f97316; box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3); }
+    .shift-dot-night { background: #4f46e5; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3); }
+    .shift-dot-morn { background: #0ea5e9; box-shadow: 0 2px 4px rgba(14, 165, 233, 0.3); }
+    .shift-dot-p1 { background: #10b981; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3); }
+    .shift-dot-p2 { background: #059669; box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3); }
+    .shift-dot-dev { background: #ec4899; box-shadow: 0 2px 4px rgba(236, 72, 153, 0.3); }
+</style>
+
 <!-- Team Dashboard Button -->
-<div style="margin-bottom: 1rem;">
-    <button style="background: #8b5cf6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+<div style="margin-bottom: 1.5rem;">
+    <button style="background: white; color: #2563eb; border: 1px solid #2563eb; padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1); transition: all 0.2s;" onmouseover="this.style.background='#2563eb'; this.style.color='white';" onmouseout="this.style.background='white'; this.style.color='#2563eb';">
         <i data-lucide="layout-dashboard" size="18"></i> Team Dashboard
     </button>
 </div>
 
 <!-- Manager Portal Banner -->
-<div class="card" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; margin-bottom: 2rem; padding: 2rem; border-radius: 16px;">
-    <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem; font-weight: 700;">Manager Portal: {{ manager_name }}</h1>
-    <p style="opacity: 0.9; font-size: 1.1rem;">Team <strong>{{ emp_data.emp_team }}</strong> • System Management</p>
+<div class="welcome-banner">
+    <div style="position: relative; z-index: 1;">
+        <h1 style="font-size: 2.25rem; margin-bottom: 0.5rem; font-weight: 800; letter-spacing: -0.02em;">Manager Portal: {{ manager_name }}</h1>
+        <div style="display: flex; gap: 1rem; align-items: center; opacity: 0.9; font-size: 1rem; margin-top: 1rem;">
+            <span style="background: rgba(255,255,255,0.2); padding: 0.4rem 1rem; border-radius: 20px; backdrop-filter: blur(4px);">
+                <i data-lucide="users" size="14" style="vertical-align: middle; margin-right: 4px;"></i> Team: <strong>{{ emp_data.emp_team }}</strong>
+            </span>
+            <span style="background: rgba(255,255,255,0.2); padding: 0.4rem 1rem; border-radius: 20px; backdrop-filter: blur(4px);">
+                <i data-lucide="shield" size="14" style="vertical-align: middle; margin-right: 4px;"></i> System Management
+            </span>
+        </div>
+    </div>
 </div>
 
 <!-- Tabs Navigation -->
-<div style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
+<div class="tabs-container">
     <button onclick="showTab('requests-tab')" class="tab-btn active-tab" id="btn-requests">
-        <i data-lucide="users" size="18"></i> Active Requests ({{ requests|length }})
+        <i data-lucide="inbox" size="18"></i> Active Requests <span style="background: rgba(255,255,255,0.3); padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; margin-left: 4px;">{{ requests|length }}</span>
     </button>
     <button onclick="showTab('approved-tab')" class="tab-btn" id="btn-approved">
-        <i data-lucide="check-circle" size="18"></i> Approved Requests ({{ approved_requests|length }})
+        <i data-lucide="check-circle" size="18"></i> Approved <span style="background: #e2e8f0; color: #475569; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; margin-left: 4px;" class="tab-badge">{{ approved_requests|length }}</span>
     </button>
     {% if emp_data.emp_team|lower == 'overstock' %}
     <button onclick="showTab('schedule-tab')" class="tab-btn" id="btn-schedule">
         <i data-lucide="calendar" size="18"></i> Schedule
     </button>
     {% endif %}
+    {% if emp_data.emp_team|lower == 'overstock' or 'sajeel' in session.get('emp_name', '')|lower or 'najm' in session.get('emp_name', '')|lower or session.get('user_type') in ['admin', 'ceo'] %}
     <button onclick="showTab('beyond-schedule-tab')" class="tab-btn" id="btn-beyond-schedule">
         <i data-lucide="table" size="18"></i> Beyond Schedule
     </button>
+    {% endif %}
     <button onclick="showTab('mark-team-tab')" class="tab-btn" id="btn-mark-team">
         <i data-lucide="edit-3" size="18"></i> Mark Team Attendance
     </button>
@@ -40,76 +180,112 @@
     </button>
 </div>
 
-<style>
-    .tab-btn { border: none; background: transparent; padding: 0.75rem 1.5rem; font-weight: 700; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; border-radius: 8px 8px 0 0; transition: all 0.3s; }
-    .tab-btn:hover { color: #8b5cf6; background: #f1f5f9; }
-    .active-tab { color: #8b5cf6; border-bottom: 4px solid #8b5cf6; margin-bottom: -7px; }
-    .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-color: #8b5cf6; }
-</style>
-
 <!-- TAB 1: TEAM REQUESTS -->
 <div id="requests-tab" class="tab-content" style="display: block;">
-    <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
-        <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s; flex: 1; min-width: 150px; text-align: center;">
-            <span class="value" style="font-size: 2rem; font-weight: 700; color: #1f2937;">{{ requests|length }}</span>
-            <span class="label" style="font-size: 0.85rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">TOTAL PENDING</span>
+    <div style="display: flex; gap: 1.25rem; margin-bottom: 2.5rem; flex-wrap: wrap;">
+        <!-- Stat Cards Matching Employee Portal Design -->
+        <div class="stat-card" style="border-top: 4px solid #10b981;">
+            <div class="stat-icon-wrapper" style="background: #d1fae5; color: #10b981;">
+                <i data-lucide="inbox" size="24"></i>
+            </div>
+            <span class="value" style="font-size: 2.25rem; font-weight: 800; color: #1e293b; line-height: 1;">{{ requests|length }}</span>
+            <span class="label" style="font-size: 0.8rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 0.5rem; letter-spacing: 0.05em;">Pending Requests</span>
         </div>
-        <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s; flex: 1; min-width: 150px; text-align: center;">
-            <span class="value" style="font-size: 2rem; font-weight: 700; color: #1f2937;">{{ leave_balance.carried_forward|default(0) }}</span>
-            <span class="label" style="font-size: 0.85rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">CARRIED FORWARD</span>
+        
+        <div class="stat-card" style="border-top: 4px solid #8b5cf6;">
+            <div class="stat-icon-wrapper" style="background: #f5f3ff; color: #8b5cf6;">
+                <i data-lucide="arrow-right-circle" size="24"></i>
+            </div>
+            <span class="value" style="font-size: 2.25rem; font-weight: 800; color: #1e293b; line-height: 1;">{{ "%.1f"|format(leave_balance.carried_forward|default(0)|float) }}</span>
+            <span class="label" style="font-size: 0.8rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 0.5rem; letter-spacing: 0.05em;">Carried Forward</span>
         </div>
-        <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s; flex: 1; min-width: 150px; text-align: center;">
-            <span class="value" style="font-size: 2rem; font-weight: 700; color: #1f2937;">{{ leave_balance.wfh_count|default(0) }}</span>
-            <span class="label" style="font-size: 0.85rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">MY WFH</span>
+        
+        <div class="stat-card" style="border-top: 4px solid #3b82f6;">
+            <div class="stat-icon-wrapper" style="background: #eff6ff; color: #3b82f6;">
+                <i data-lucide="home" size="24"></i>
+            </div>
+            <span class="value" style="font-size: 2.25rem; font-weight: 800; color: #1e293b; line-height: 1;">{{ leave_balance.wfh_count | default(0) | int }}</span>
+            <span class="label" style="font-size: 0.8rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 0.5rem; letter-spacing: 0.05em;">My Total WFH</span>
         </div>
-        <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s; flex: 1; min-width: 150px; text-align: center;">
-            <span class="value" style="font-size: 2rem; font-weight: 700; color: #1f2937;">{{ leave_balance.half_days_taken|default(0) }}</span>
-            <span class="label" style="font-size: 0.85rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">MY HALF DAYS</span>
+        
+        <div class="stat-card" style="border-top: 4px solid #f59e0b;">
+            <div class="stat-icon-wrapper" style="background: #fffbeb; color: #f59e0b;">
+                <i data-lucide="clock" size="24"></i>
+            </div>
+            <span class="value" style="font-size: 2.25rem; font-weight: 800; color: #1e293b; line-height: 1;">{{ "%.1f"|format(leave_balance.half_days_taken|default(0)|float) }}</span>
+            <span class="label" style="font-size: 0.8rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 0.5rem; letter-spacing: 0.05em;">My Half Days</span>
         </div>
-        <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s; flex: 1; min-width: 150px; text-align: center;">
-            <span class="value" style="font-size: 2rem; font-weight: 700; color: #1f2937;">{{ leave_balance.leaves_taken_this_year|default(0) }}</span>
-            <span class="label" style="font-size: 0.85rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">LEAVES TAKEN</span>
+        
+        <div class="stat-card" style="border-top: 4px solid #f43f5e;">
+            <div class="stat-icon-wrapper" style="background: #fff1f2; color: #f43f5e;">
+                <i data-lucide="calendar-off" size="24"></i>
+            </div>
+            <span class="value" style="font-size: 2.25rem; font-weight: 800; color: #1e293b; line-height: 1;">{{ "%.1f"|format(leave_balance.leaves_taken_this_year|default(0)|float) }}</span>
+            <span class="label" style="font-size: 0.8rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 0.5rem; letter-spacing: 0.05em;">Leaves Taken</span>
+        </div>
+
+        <div class="stat-card" style="border-top: 4px solid #10b981; background: linear-gradient(to bottom right, #ffffff, #f0fdf4);">
+            <div class="stat-icon-wrapper" style="background: #d1fae5; color: #10b981;">
+                <i data-lucide="shield-check" size="24"></i>
+            </div>
+            <span class="value" style="font-size: 2.25rem; font-weight: 800; color: #047857; line-height: 1;">{{ "%.1f"|format(leave_balance.remaining_leaves|default(0)|float) }}</span>
+            <span class="label" style="font-size: 0.8rem; color: #059669; font-weight: 700; text-transform: uppercase; margin-top: 0.5rem; letter-spacing: 0.05em;">Remaining Leaves</span>
         </div>
     </div>
 
-    <div class="card">
-        <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-            <i data-lucide="inbox" size="20"></i> Active Requests List
-        </h3>
+    <div class="card-modern">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+            <div style="background: #f1f5f9; color: #475569; padding: 0.5rem; border-radius: 10px;">
+                <i data-lucide="inbox" size="20"></i>
+            </div>
+            <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin: 0;">Active Requests List</h3>
+        </div>
         
-        <div class="table-wrapper">
+        <div style="overflow-x: auto; border-radius: 12px; border: 1px solid #f1f5f9;">
             {% if requests %}
-            <table style="border-collapse: separate; border-spacing: 0; width: 100%;">
+            <table class="table-modern">
                 <thead>
                     <tr>
-                        <th style="background: #f8fafc; padding: 1rem; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">EMPLOYEE</th>
-                        <th style="background: #f8fafc; padding: 1rem; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">TEAM</th>
-                        <th style="background: #f8fafc; padding: 1rem; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">BALANCE</th>
-                        <th style="background: #f8fafc; padding: 1rem; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">TYPE</th>
-                        <th style="background: #f8fafc; padding: 1rem; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">DATE</th>
-                        <th style="background: #f8fafc; padding: 1rem; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">ACTION</th>
+                        <th>Employee</th>
+                        <th>Team</th>
+                        <th>Balance</th>
+                        <th>Type</th>
+                        <th>Date</th>
+                        <th style="text-align: center;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for req in requests %}
-                    <tr style="border-bottom: 1px solid #e2e8f0;">
-                        <td style="padding: 1rem; font-weight: 700; color: #1f2937;">{{ req.emp_name }}</td>
-                        <td style="padding: 1rem;"><span class="badge" style="background: #f1f5f9; color: #64748b; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.85rem;">{{ req.team }}</span></td>
-                        <td style="padding: 1rem;">
-                            <span class="badge" style="background: #dbeafe; color: #1e40af; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.85rem;">
+                    <tr>
+                        <td style="font-weight: 700; color: #1f2937;">{{ req.emp_name }}</td>
+                        <td><span style="background: #f1f5f9; color: #64748b; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">{{ req.team }}</span></td>
+                        <td>
+                            <span style="background: #dbeafe; color: #1e40af; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
                                 <strong>{{ req.emp_balance }}</strong> left
                             </span>
                         </td>
-                        <td style="padding: 1rem; color: #475569;">{{ req.type }}</td>
-                        <td style="padding: 1rem; color: #475569;">{{ req.display_date }}</td>
-                        <td style="padding: 1rem; text-align: center;">
+                        <td>
+                            {% if req.type == 'WFH' %}
+                            <span style="background: #eff6ff; color: #3b82f6; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                <i data-lucide="home" size="12" style="vertical-align: middle; margin-right: 4px;"></i>WFH
+                            </span>
+                            {% elif req.type == 'Leave' %}
+                            <span style="background: #fff1f2; color: #f43f5e; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                <i data-lucide="plane" size="12" style="vertical-align: middle; margin-right: 4px;"></i>Full Leave
+                            </span>
+                            {% else %}
+                            <span style="background: #fffbeb; color: #f59e0b; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                <i data-lucide="clock" size="12" style="vertical-align: middle; margin-right: 4px;"></i>Half Day
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td style="font-weight: 500;">{{ req.display_date }}</td>
+                        <td style="text-align: center;">
                             <div style="display: flex; gap: 0.5rem; justify-content: center;">
                                 <button onclick="handleAction('{{ req.emp_id }}', '{{ req.date }}', '{{ req.type }}', '{{ req.timestamp }}', 'Approve', this)" 
-                                        style="background: #10b981; color: white; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem; transition: all 0.2s;">Approve</button>
+                                        style="background: #3b82f6; color: white; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.85rem; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)';" onmouseout="this.style.transform='translateY(0)';"><i data-lucide="check" size="14" style="vertical-align: middle; margin-right: 2px;"></i> Approve</button>
                                 <button onclick="handleAction('{{ req.emp_id }}', '{{ req.date }}', '{{ req.type }}', '{{ req.timestamp }}', 'Reject', this)" 
-                                        style="background: #ef4444; color: white; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem; transition: all 0.2s;">Reject</button>
+                                        style="background: white; color: #ef4444; border: 1px solid #fca5a5; cursor: pointer; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.85rem; transition: all 0.2s;" onmouseover="this.style.background='#fef2f2';" onmouseout="this.style.background='white';"><i data-lucide="x" size="14" style="vertical-align: middle; margin-right: 2px;"></i> Reject</button>
                             </div>
                         </td>
                     </tr>
@@ -126,50 +302,68 @@
     </div>
 </div>
 
-<!-- TAB 2: APPROVED REQUESTS -->
 <div id="approved-tab" class="tab-content">
-    <div class="card">
-        <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-            <i data-lucide="check-circle" size="20"></i> Approved Requests
-        </h3>
+    <div class="card-modern">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+            <div style="background: #dcfce7; color: #166534; padding: 0.5rem; border-radius: 10px;">
+                <i data-lucide="check-circle" size="20"></i>
+            </div>
+            <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin: 0;">Approved Requests</h3>
+        </div>
         
         <!-- Date Filter -->
-        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <label style="font-weight: 600; font-size: 0.9rem;">From:</label>
+        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; align-items: center; flex-wrap: wrap; background: #f8fafc; padding: 1rem 1.5rem; border-radius: 12px; border: 1px solid #f1f5f9;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <label style="font-weight: 700; font-size: 0.9rem; color: #475569;">From</label>
                 <input type="date" name="start_date" value="{{ start_date }}" 
                        onchange="filterApprovedByDate()" 
-                       style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-family: inherit;">
+                       style="padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 0.9rem;">
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <label style="font-weight: 600; font-size: 0.9rem;">To:</label>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <label style="font-weight: 700; font-size: 0.9rem; color: #475569;">To</label>
                 <input type="date" name="end_date" value="{{ end_date }}" 
                        onchange="filterApprovedByDate()" 
-                       style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-family: inherit;">
+                       style="padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 0.9rem;">
             </div>
         </div>
         
-        <div class="table-wrapper">
+        <div style="overflow-x: auto; border-radius: 12px; border: 1px solid #f1f5f9;">
             {% if approved_requests %}
-            <table style="border-collapse: separate; border-spacing: 0; width: 100%;">
+            <table class="table-modern">
                 <thead>
                     <tr>
-                        <th style="background: #f8fafc; padding: 1rem; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">EMPLOYEE</th>
-                        <th style="background: #f8fafc; padding: 1rem; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">TEAM</th>
-                        <th style="background: #f8fafc; padding: 1rem; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">TYPE</th>
-                        <th style="background: #f8fafc; padding: 1rem; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">DATE</th>
-                        <th style="background: #f8fafc; padding: 1rem; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">STATUS</th>
+                        <th>Employee</th>
+                        <th>Team</th>
+                        <th>Type</th>
+                        <th>Date</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for req in approved_requests %}
-                    <tr style="border-bottom: 1px solid #e2e8f0;">
-                        <td style="padding: 1rem; font-weight: 700; color: #1f2937;">{{ req.emp_name }}</td>
-                        <td style="padding: 1rem;"><span class="badge" style="background: #f1f5f9; color: #64748b; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.85rem;">{{ req.team }}</span></td>
-                        <td style="padding: 1rem; color: #475569;">{{ req.type }}</td>
-                        <td style="padding: 1rem; color: #475569;">{{ req.display_date }}</td>
-                        <td style="padding: 1rem;">
-                            <span class="badge" style="background: #dcfce7; color: #166534; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.85rem;">Approved</span>
+                    <tr>
+                        <td style="font-weight: 700; color: #1f2937;">{{ req.emp_name }}</td>
+                        <td><span style="background: #f1f5f9; color: #64748b; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">{{ req.team }}</span></td>
+                        <td>
+                            {% if req.type == 'WFH' %}
+                            <span style="background: #eff6ff; color: #3b82f6; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                <i data-lucide="home" size="12" style="vertical-align: middle; margin-right: 4px;"></i>WFH
+                            </span>
+                            {% elif req.type == 'Leave' %}
+                            <span style="background: #fff1f2; color: #f43f5e; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                <i data-lucide="plane" size="12" style="vertical-align: middle; margin-right: 4px;"></i>Full Leave
+                            </span>
+                            {% else %}
+                            <span style="background: #fffbeb; color: #f59e0b; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                <i data-lucide="clock" size="12" style="vertical-align: middle; margin-right: 4px;"></i>Half Day
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td style="font-weight: 500;">{{ req.display_date }}</td>
+                        <td>
+                            <span style="background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                <div style="width: 6px; height: 6px; border-radius: 50%; background: #166534;"></div>Approved
+                            </span>
                         </td>
                     </tr>
                     {% endfor %}
@@ -190,201 +384,228 @@
 <div id="schedule-tab" class="tab-content">
     <form method="POST" action="{{ url_for('save_schedule') }}">
         <!-- Validity Dates -->
-        <div class="card" style="margin-bottom: 1.5rem;">
-            <h3 style="margin-bottom: 1rem;">Schedule Validity Period</h3>
-            <div style="display: flex; gap: 2rem;">
-                <div>
-                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Valid From</label>
-                    <input type="date" name="valid_from" required style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px;">
+        <div class="card-modern" style="margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                <div style="background: #eff6ff; color: #2563eb; padding: 0.5rem; border-radius: 10px;">
+                    <i data-lucide="calendar" size="20"></i>
                 </div>
-                <div>
-                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Valid Until</label>
-                    <input type="date" name="valid_until" required style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px;">
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin: 0;">Schedule Validity Period</h3>
+            </div>
+            <div style="display: flex; gap: 2rem; background: #f8fafc; padding: 1.5rem; border-radius: 12px; border: 1px solid #f1f5f9;">
+                <div style="flex: 1;">
+                    <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.9rem; color: #475569;">Valid From</label>
+                    <input type="date" name="valid_from" required style="width: 100%; padding: 0.8rem; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.9rem; color: #475569;">Valid Until</label>
+                    <input type="date" name="valid_until" required style="width: 100%; padding: 0.8rem; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit;">
                 </div>
             </div>
         </div>
 
         <!-- Table 1: Main Schedule -->
-        <div class="card" style="margin-bottom: 1.5rem;">
-            <h3 style="margin-bottom: 1rem;">Main Schedule</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background: #f8fafc;">
-                        <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid #e2e8f0;">Shift</th>
-                        <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid #e2e8f0;">Resource</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0; font-weight: 600;">Weekend Night</td>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">
-                            <select name="shift_weekend_night_emp_id" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; width: 100%;">
-                                <option value="">Select Employee</option>
-                                {% for emp in overstock_members %}
-                                <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0; font-weight: 600;">Weekend Morning</td>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">
-                            <select name="shift_weekend_morning_emp_id" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; width: 100%;">
-                                <option value="">Select Employee</option>
-                                {% for emp in overstock_members %}
-                                <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0; font-weight: 600;">Night</td>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">
-                            <select name="shift_night_emp_id" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; width: 100%;">
-                                <option value="">Select Employee</option>
-                                {% for emp in overstock_members %}
-                                <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0; font-weight: 600;">Morning</td>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">
-                            <select name="shift_morning_emp_id" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; width: 100%;">
-                                <option value="">Select Employee</option>
-                                {% for emp in overstock_members %}
-                                <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0; font-weight: 600;">Primary (P1)</td>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">
-                            <select name="shift_p1_emp_id" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; width: 100%;">
-                                <option value="">Select Employee</option>
-                                {% for emp in overstock_members %}
-                                <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0; font-weight: 600;">Primary (P2)</td>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">
-                            <select name="shift_p2_emp_id" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; width: 100%;">
-                                <option value="">Select Employee</option>
-                                {% for emp in overstock_members %}
-                                <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0; font-weight: 600;">Development Office</td>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">
-                            <select name="shift_dev_office_emp_id" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; width: 100%;">
-                                <option value="">Select Employee</option>
-                                {% for emp in overstock_members %}
-                                <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0; font-weight: 600;">Development office</td>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">
-                            <select name="shift_dev_office2_emp_id" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; width: 100%;">
-                                <option value="">Select Employee</option>
-                                {% for emp in overstock_members %}
-                                <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="card-modern" style="margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                <div style="background: #f5f3ff; color: #8b5cf6; padding: 0.5rem; border-radius: 10px;">
+                    <i data-lucide="list" size="20"></i>
+                </div>
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin: 0;">Main Schedule</h3>
+            </div>
+            <div style="border-radius: 12px; border: 1px solid #f1f5f9; overflow: hidden;">
+                <table class="table-modern">
+                    <thead>
+                        <tr>
+                            <th style="width: 40%;">Shift</th>
+                            <th>Assigned Resource</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span style="color: #8b5cf6; background: #f5f3ff; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; display: inline-block;">Weekend Night</span></td>
+                            <td>
+                                <select name="shift_weekend_night_emp_id" class="custom-select">
+                                    <option value="">Select Employee</option>
+                                    {% for emp in overstock_members %}
+                                    <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span style="color: #f97316; background: #fff7ed; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; display: inline-block;">Weekend Morning</span></td>
+                            <td>
+                                <select name="shift_weekend_morning_emp_id" class="custom-select">
+                                    <option value="">Select Employee</option>
+                                    {% for emp in overstock_members %}
+                                    <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span style="color: #4f46e5; background: #eef2ff; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; display: inline-block;">Night</span></td>
+                            <td>
+                                <select name="shift_night_emp_id" class="custom-select">
+                                    <option value="">Select Employee</option>
+                                    {% for emp in overstock_members %}
+                                    <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span style="color: #0ea5e9; background: #e0f2fe; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; display: inline-block;">Morning</span></td>
+                            <td>
+                                <select name="shift_morning_emp_id" class="custom-select">
+                                    <option value="">Select Employee</option>
+                                    {% for emp in overstock_members %}
+                                    <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span style="color: #10b981; background: #ecfdf5; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; display: inline-block;">Primary (P1)</span></td>
+                            <td>
+                                <select name="shift_p1_emp_id" class="custom-select">
+                                    <option value="">Select Employee</option>
+                                    {% for emp in overstock_members %}
+                                    <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span style="color: #059669; background: #d1fae5; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; display: inline-block;">Primary (P2)</span></td>
+                            <td>
+                                <select name="shift_p2_emp_id" class="custom-select">
+                                    <option value="">Select Employee</option>
+                                    {% for emp in overstock_members %}
+                                    <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span style="color: #ec4899; background: #fdf2f8; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; display: inline-block;">Dev Office</span></td>
+                            <td>
+                                <select name="shift_dev_office_emp_id" class="custom-select">
+                                    <option value="">Select Employee</option>
+                                    {% for emp in overstock_members %}
+                                    <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span style="color: #ec4899; background: #fdf2f8; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; display: inline-block;">Dev Office 2</span></td>
+                            <td>
+                                <select name="shift_dev_office2_emp_id" class="custom-select">
+                                    <option value="">Select Employee</option>
+                                    {% for emp in overstock_members %}
+                                    <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <!-- Table 2: Meeting Lead -->
-        <div class="card" style="margin-bottom: 1.5rem;">
-            <h3 style="margin-bottom: 1rem;">Meeting Lead</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background: #f8fafc;">
-                        <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid #e2e8f0;">Week</th>
-                        <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid #e2e8f0;">Employee</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">Week 1</td>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">
-                            <select name="meeting_lead_week1_emp_id" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px;">
-                                <option value="">Select Employee</option>
-                                {% for emp in overstock_members %}
-                                <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">Week 2</td>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">
-                            <select name="meeting_lead_week2_emp_id" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px;">
-                                <option value="">Select Employee</option>
-                                {% for emp in overstock_members %}
-                                <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <!-- Table 2: Meeting Lead & Weekly Report -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+            <div class="card-modern" style="margin-bottom: 0;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                    <div style="background: #fffbeb; color: #f59e0b; padding: 0.5rem; border-radius: 10px;">
+                        <i data-lucide="mic" size="20"></i>
+                    </div>
+                    <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin: 0;">Meeting Lead</h3>
+                </div>
+                <div style="border-radius: 12px; border: 1px solid #f1f5f9; overflow: hidden;">
+                    <table class="table-modern">
+                        <thead>
+                            <tr>
+                                <th style="width: 30%;">Week</th>
+                                <th>Assigned Employee</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="font-weight: 600;">Week 1</td>
+                                <td>
+                                    <select name="meeting_lead_week1_emp_id" class="custom-select">
+                                        <option value="">Select Employee</option>
+                                        {% for emp in overstock_members %}
+                                        <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: 600;">Week 2</td>
+                                <td>
+                                    <select name="meeting_lead_week2_emp_id" class="custom-select">
+                                        <option value="">Select Employee</option>
+                                        {% for emp in overstock_members %}
+                                        <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-        <!-- Table 3: Weekly Report -->
-        <div class="card" style="margin-bottom: 1.5rem;">
-            <h3 style="margin-bottom: 1rem;">Weekly Report</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background: #f8fafc;">
-                        <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid #e2e8f0;">Week</th>
-                        <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid #e2e8f0;">Employee</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">Week 1</td>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">
-                            <select name="weekly_report_week1_emp_id" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px;">
-                                <option value="">Select Employee</option>
-                                {% for emp in overstock_members %}
-                                <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">Week 2</td>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">
-                            <select name="weekly_report_week2_emp_id" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px;">
-                                <option value="">Select Employee</option>
-                                {% for emp in overstock_members %}
-                                <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="card-modern" style="margin-bottom: 0;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                    <div style="background: #ecfdf5; color: #10b981; padding: 0.5rem; border-radius: 10px;">
+                        <i data-lucide="file-text" size="20"></i>
+                    </div>
+                    <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin: 0;">Weekly Report</h3>
+                </div>
+                <div style="border-radius: 12px; border: 1px solid #f1f5f9; overflow: hidden;">
+                    <table class="table-modern">
+                        <thead>
+                            <tr>
+                                <th style="width: 30%;">Week</th>
+                                <th>Assigned Employee</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="font-weight: 600;">Week 1</td>
+                                <td>
+                                    <select name="weekly_report_week1_emp_id" class="custom-select">
+                                        <option value="">Select Employee</option>
+                                        {% for emp in overstock_members %}
+                                        <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: 600;">Week 2</td>
+                                <td>
+                                    <select name="weekly_report_week2_emp_id" class="custom-select">
+                                        <option value="">Select Employee</option>
+                                        {% for emp in overstock_members %}
+                                        <option value="{{ emp.emp_id }}">{{ emp.emp_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <!-- Save Button -->
-        <div style="text-align: center;">
-            <button type="submit" style="background: #10b981; color: white; border: none; padding: 1rem 2rem; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 1rem;">
-                <i data-lucide="save" size="18"></i> Save Schedule
+        <div style="text-align: right;">
+            <button type="submit" style="background: #3b82f6; color: white; border: none; padding: 1rem 2rem; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 1rem; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
+                <i data-lucide="save" size="18" style="vertical-align: middle; margin-right: 4px;"></i> Save Schedule
             </button>
         </div>
     </form>
@@ -392,272 +613,304 @@
 {% endif %}
 
 <!-- TAB 4: BEYOND SCHEDULE -->
+{% if emp_data.emp_team|lower == 'overstock' or 'sajeel' in session.get('emp_name', '')|lower or 'najm' in session.get('emp_name', '')|lower or session.get('user_type') in ['admin', 'ceo'] %}
 <div id="beyond-schedule-tab" class="tab-content">
-    <div class="card">
-        <h3 style="margin-bottom: 1.5rem;">Beyond Schedule</h3>
-        <p style="margin-bottom: 1.5rem; color: var(--text-muted);">View shift schedule for Overstock team.</p>
+    <div class="card" style="padding: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem; color: #1e293b;">
+                <i data-lucide="file-spreadsheet" size="22" style="color: #10b981;"></i> Beyond Schedule Grid
+            </h3>
+            <button onclick="showPopup('Export to Excel feature coming soon!', 'success')" style="background: #10b981; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; font-weight: 600; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="download" size="14"></i> Export to Excel
+            </button>
+        </div>
         
-        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
-            <thead>
-                <tr style="background: #f8fafc;">
-                    <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #e2e8f0;">Shift</th>
-                    <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #e2e8f0;">Name</th>
-                    <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #e2e8f0;">Mon</th>
-                    <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #e2e8f0;">Tue</th>
-                    <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #e2e8f0;">Wed</th>
-                    <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #e2e8f0;">Thu</th>
-                    <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #e2e8f0;">Fri</th>
-                    <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #e2e8f0;">Sat</th>
-                    <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #e2e8f0;">Sun</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600;">Weekend Night</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left;">{{ schedule_map.get('Weekend Night', 'Not Assigned') }}</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                </tr>
-                <tr>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600;">Weekend Morning</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left;">{{ schedule_map.get('Weekend Morning', 'Not Assigned') }}</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                </tr>
-                <tr>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600;">Night</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left;">{{ schedule_map.get('Night', 'Not Assigned') }}</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
-                </tr>
-                <tr>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600;">Morning</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left;">{{ schedule_map.get('Morning', 'Not Assigned') }}</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
-                </tr>
-                <tr>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600;">Primary (P1)</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left;">{{ schedule_map.get('Primary (P1)', 'Not Assigned') }}</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
-                </tr>
-                <tr>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600;">Primary (P2)</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left;">{{ schedule_map.get('Primary (P2)', 'Not Assigned') }}</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
-                </tr>
-                <tr>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600;">DEVELOPMENT/OFFICE</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left;">{{ schedule_map.get('Development Office', 'Not Assigned') }}</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
-                </tr>
-                <tr>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600;">DEVELOPMENT/OFFICE</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left;">{{ schedule_map.get('Development office', 'Not Assigned') }}</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #fef3c7;">●</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; background: #f1f5f9;">-</td>
-                </tr>
-                <tr style="background: #dbeafe;">
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600; color: #1e40af;">Meeting Lead</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left; color: #1e40af;">-</td>
-                    <td colspan="3" style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; color: #1e40af;">Week 1: {{ meeting_lead_week1 or 'Not Assigned' }}</td>
-                    <td colspan="4" style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; color: #1e40af;">Week 2: {{ meeting_lead_week2 or 'Not Assigned' }}</td>
-                </tr>
-                <tr style="background: #dbeafe;">
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: 600; color: #1e40af;">Weekly Report</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: left; color: #1e40af;">-</td>
-                    <td colspan="3" style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-align: center; color: #1e40af;">Week 1: {{ weekly_report_week1 or 'Not Assigned' }}</td>
-                    <td colspan="4" style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; color: #1e40af;">Week 2: {{ weekly_report_week2 or 'Not Assigned' }}</td>
-                </tr>
-            </tbody>
-        </table>
+        <div style="overflow-x: auto; border: 1px solid #cbd5e1; border-radius: 2px;">
+            <table style="width: 100%; border-collapse: collapse; min-width: 900px; font-family: 'Inter', system-ui, sans-serif; font-size: 0.8rem;">
+                <thead>
+                    <tr style="background: #f1f5f9; border-bottom: 2px solid #94a3b8;">
+                        <th style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: left; font-weight: 700; color: #334155; width: 15%;">SHIFT</th>
+                        <th style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: left; font-weight: 700; color: #334155; width: 20%;">EMPLOYEE NAME</th>
+                        <th style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #334155; width: 9%;">MON</th>
+                        <th style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #334155; width: 9%;">TUE</th>
+                        <th style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #334155; width: 9%;">WED</th>
+                        <th style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #334155; width: 9%;">THU</th>
+                        <th style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #334155; width: 9%;">FRI</th>
+                        <th style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #334155; width: 9%;">SAT</th>
+                        <th style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #334155; width: 9%;">SUN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Weekend Night -->
+                    <tr>
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 600; background: #fafafa; color: #1e293b;">Weekend Night</td>
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem;">{{ schedule_map.get('Weekend Night', 'N/A') }}</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                        <td style="border: 1px solid #cbd5e1; background: #8b5cf6; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #8b5cf6; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                        <td style="border: 1px solid #cbd5e1; background: #8b5cf6; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #8b5cf6; color: white; text-align: center; font-weight: 700;">ON</td>
+                    </tr>
+                    <!-- Weekend Morning -->
+                    <tr>
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 600; background: #fafafa; color: #1e293b;">Weekend Morning</td>
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem;">{{ schedule_map.get('Weekend Morning', 'N/A') }}</td>
+                        <td style="border: 1px solid #cbd5e1; background: #f97316; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #f97316; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                        <td style="border: 1px solid #cbd5e1; background: #f97316; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #f97316; color: white; text-align: center; font-weight: 700;">ON</td>
+                    </tr>
+                    <!-- Night -->
+                    <tr>
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 600; background: #fafafa; color: #1e293b;">Night</td>
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem;">{{ schedule_map.get('Night', 'N/A') }}</td>
+                        <td style="border: 1px solid #cbd5e1; background: #4f46e5; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #4f46e5; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #4f46e5; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #4f46e5; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #4f46e5; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                    </tr>
+                    <!-- Morning -->
+                    <tr>
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 600; background: #fafafa; color: #1e293b;">Morning</td>
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem;">{{ schedule_map.get('Morning', 'N/A') }}</td>
+                        <td style="border: 1px solid #cbd5e1; background: #0ea5e9; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #0ea5e9; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #0ea5e9; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #0ea5e9; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #0ea5e9; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                    </tr>
+                    <!-- Primary (P1) -->
+                    <tr>
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 600; background: #fafafa; color: #1e293b;">Primary (P1)</td>
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem;">{{ schedule_map.get('Primary (P1)', 'N/A') }}</td>
+                        <td style="border: 1px solid #cbd5e1; background: #10b981; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #10b981; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #10b981; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #10b981; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #10b981; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                    </tr>
+                    <!-- Primary (P2) -->
+                    <tr>
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 600; background: #fafafa; color: #1e293b;">Primary (P2)</td>
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem;">{{ schedule_map.get('Primary (P2)', 'N/A') }}</td>
+                        <td style="border: 1px solid #cbd5e1; background: #059669; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #059669; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #059669; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #059669; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #059669; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                    </tr>
+                    <!-- Dev Office -->
+                    <tr>
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 600; background: #fafafa; color: #1e293b;">Dev Office</td>
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem;">{{ schedule_map.get('Development Office', 'N/A') }}</td>
+                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                    </tr>
+                    <!-- Dev Office 2 -->
+                    <tr>
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 600; background: #fafafa; color: #1e293b;">Dev Office 2</td>
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem;">{{ schedule_map.get('Development office', 'N/A') }}</td>
+                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                    </tr>
+                    <!-- Meeting Lead -->
+                    <tr style="background: #f8fafc;">
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 700; color: #1e293b;">Meeting Lead</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                        <td colspan="3" style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #3b82f6; background: #eff6ff;">W1: {{ meeting_lead_week1 or 'N/A' }}</td>
+                        <td colspan="4" style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #3b82f6; background: #eff6ff;">W2: {{ meeting_lead_week2 or 'N/A' }}</td>
+                    </tr>
+                    <!-- Weekly Report -->
+                    <tr style="background: #f8fafc;">
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 700; color: #1e293b;">Weekly Report</td>
+                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
+                        <td colspan="3" style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #10b981; background: #ecfdf5;">W1: {{ weekly_report_week1 or 'N/A' }}</td>
+                        <td colspan="4" style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #10b981; background: #ecfdf5;">W2: {{ weekly_report_week2 or 'N/A' }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
+{% endif %}
 
 <!-- TAB 6: MARK TEAM ATTENDANCE -->
 <div id="mark-team-tab" class="tab-content">
-    <div class="card">
-        <h3 style="margin-bottom: 1.5rem;">Mark Attendance for Team Members</h3>
-        <p style="margin-bottom: 1.5rem; color: var(--text-muted);">Mark attendance for your team members for any past date. This overrides the 2-day restriction for employees.</p>
-        
-        <form action="/manager-mark-attendance" method="POST">
-            <!-- SELECT EMPLOYEE -->
-            <div style="margin-bottom: 1.5rem;">
-                <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">Select Team Member</label>
-                <select name="target_emp_id" required style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border);">
-                    <option value="">-- Select Employee --</option>
-                    {% for member in team_members %}
-                    <option value="{{ member.emp_id }}">{{ member.emp_name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- REQUEST TYPE -->
-            <div style="margin-bottom: 1.5rem;">
-                <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">Request Type</label>
-                <div style="display: flex; gap: 1rem;">
-                    <label class="radio-label">
-                        <input type="radio" name="request_type" value="WFH" checked>
-                        <div class="radio-card">
-                            <i data-lucide="home" size="24"></i>
-                            <span>WFH</span>
-                        </div>
-                    </label>
-                    <label class="radio-label">
-                        <input type="radio" name="request_type" value="Leave">
-                        <div class="radio-card">
-                            <i data-lucide="calendar-x" size="24"></i>
-                            <span>Leave</span>
-                        </div>
-                    </label>
-                    <label class="radio-label">
-                        <input type="radio" name="request_type" value="Half Day">
-                        <div class="radio-card">
-                            <i data-lucide="clock" size="24"></i>
-                            <span>Half Day</span>
-                        </div>
-                    </label>
-                </div>
-            </div>
-
-            <!-- DATE RANGE -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-                <div>
-                    <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">Start Date</label>
-                    <input type="date" name="date" value="{{ today }}" required style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border);">
+    <div style="flex: 1; min-width: 100%;">
+        <div class="card" style="background: white; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 2rem; margin-bottom: 2rem; border: none; overflow: hidden; position: relative;">
+            <!-- Colorful Header -->
+            <div style="background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%); margin: -2rem -2rem 2rem -2rem; padding: 2rem; color: white; display: flex; align-items: center; gap: 1rem;">
+                <div style="background: rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 12px; backdrop-filter: blur(4px);">
+                    <i data-lucide="users" size="26"></i>
                 </div>
                 <div>
-                    <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">End Date (Optional)</label>
-                    <input type="date" name="end_date" value="{{ today }}" style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border);">
-                    <small style="color: var(--text-muted); font-size: 0.75rem;">Leave empty for single day</small>
+                    <h3 style="font-size: 1.5rem; font-weight: 800; margin: 0; letter-spacing: -0.02em;">Mark Team Attendance</h3>
+                    <p style="margin: 0; font-size: 0.9rem; opacity: 0.9; margin-top: 0.25rem;">Mark attendance for your team members for any past date.</p>
                 </div>
             </div>
 
-            <div style="margin-bottom: 1.5rem;">
-                <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">Reason</label>
-                <textarea name="reason" rows="3" required placeholder="Brief reason for marking attendance..." style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border); resize: none;"></textarea>
-            </div>
+            <form action="/manager-mark-attendance" method="POST">
+                <!-- SELECT EMPLOYEE -->
+                <div style="margin-bottom: 2rem;">
+                    <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.95rem; color: #334155;">Select Team Member</label>
+                    <select name="target_emp_id" required class="custom-select" style="border-radius: 12px; padding: 1rem; border-color: #99f6e4;">
+                        <option value="">-- Select Employee --</option>
+                        {% for member in team_members %}
+                        <option value="{{ member.emp_id }}">{{ member.emp_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-            <button type="submit" class="btn" style="width: 100%; justify-content: center; padding: 1.2rem; font-size: 1.1rem;">
-                <i data-lucide="check"></i> Mark Attendance
-            </button>
-        </form>
+                <!-- REQUEST TYPE -->
+                <div style="margin-bottom: 2rem;">
+                    <label style="display: block; font-weight: 700; margin-bottom: 1rem; font-size: 0.95rem; color: #334155;">Request Type</label>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <label class="radio-label">
+                            <input type="radio" name="request_type" value="WFH" checked>
+                            <span class="radio-card">
+                                <i data-lucide="home" size="22"></i>
+                                <span>WFH</span>
+                            </span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="request_type" value="Leave">
+                            <span class="radio-card">
+                                <i data-lucide="plane" size="22"></i>
+                                <span>Leave</span>
+                            </span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="request_type" value="Half Day">
+                            <span class="radio-card">
+                                <i data-lucide="clock" size="22"></i>
+                                <span>Half Day</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- DATE RANGE -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; background: linear-gradient(to right, #f0fdf4, #ccfbf1); padding: 1.5rem; border-radius: 16px; border: 1px solid #99f6e4;">
+                    <div>
+                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.9rem; color: #047857;">Start Date</label>
+                        <input type="date" name="date" value="{{ today }}" required class="custom-input" style="border-color: #5eead4; background: white;">
+                    </div>
+                    <div>
+                        <label style="display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.9rem; color: #047857;">
+                            <span>End Date</span>
+                            <span style="font-weight: 600; font-size: 0.75rem; color: #0d9488; background: #99f6e4; padding: 2px 8px; border-radius: 12px;">Optional</span>
+                        </label>
+                        <input type="date" name="end_date" value="{{ today }}" class="custom-input" style="border-color: #5eead4; background: white;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 2rem;">
+                    <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.9rem; color: #475569;">Reason</label>
+                    <textarea name="reason" rows="3" required placeholder="Brief reason for marking attendance..." class="custom-input" style="resize: vertical; min-height: 80px;"></textarea>
+                </div>
+
+                <button type="submit" class="btn" style="width: 100%; justify-content: center; padding: 1rem; font-size: 1.1rem; border-radius: 12px; background: linear-gradient(135deg, #10b981, #0d9488); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); border: none; transition: all 0.2s;">
+                    <i data-lucide="check" size="20"></i> Mark Attendance
+                </button>
+            </form>
+        </div>
     </div>
 </div>
 
 <!-- TAB 5: APPLY FOR LEAVE/WFH -->
 <div id="apply-tab" class="tab-content">
-    <div class="row">
-        <div class="col-8">
-            <div class="card">
-                <h3 style="margin-bottom: 2rem;"><i data-lucide="calendar-plus" size="22"></i> Personal Absence Application</h3>
-                
-                <form method="POST" action="{{ url_for('mark_request') }}">
-                    <!-- TYPE SELECTOR (Radio Buttons) -->
-                    <div style="margin-bottom: 2rem;">
-                        <label style="display: block; font-weight: 700; margin-bottom: 1rem; font-size: 0.9rem; color: var(--text);">Select Request Type</label>
-                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                            <label class="radio-label">
-                                <input type="radio" name="request_type" value="WFH" checked>
-                                <span class="radio-card">
-                                    <i data-lucide="home" size="18"></i>
-                                    <span>WFH</span>
-                                </span>
-                            </label>
-                            <label class="radio-label">
-                                <input type="radio" name="request_type" value="Leave">
-                                <span class="radio-card">
-                                    <i data-lucide="plane" size="18"></i>
-                                    <span>Full Leave</span>
-                                </span>
-                            </label>
-                            <label class="radio-label">
-                                <input type="radio" name="request_type" value="Half Day">
-                                <span class="radio-card">
-                                    <i data-lucide="clock" size="18"></i>
-                                    <span>Half Day</span>
-                                </span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- DATE RANGE -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-                        <div>
-                            <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">Start Date</label>
-                            <input type="date" name="date" value="{{ today }}" min="{{ today }}" required style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border);">
-                        </div>
-                        <div>
-                            <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">End Date (Optional)</label>
-                            <input type="date" name="end_date" value="{{ today }}" min="{{ today }}" style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border);">
-                            <small style="color: var(--text-muted); font-size: 0.75rem;">Leave empty for single day</small>
-                        </div>
-                    </div>
-
-                    <div style="margin-bottom: 1.5rem;">
-                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">Reason</label>
-                        <textarea name="reason" rows="3" required placeholder="Brief reason for your absence..." style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border); resize: none;"></textarea>
-                    </div>
-
-                    <button type="submit" class="btn" style="width: 100%; justify-content: center; padding: 1.2rem; font-size: 1.1rem;">
-                        <i data-lucide="send"></i> Submit My Application
-                    </button>
-                </form>
+    <div style="flex: 1; min-width: 100%;">
+        <!-- Submit Request Form -->
+        <div class="card" style="background: white; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 2rem; margin-bottom: 2rem; border: none; overflow: hidden; position: relative;">
+            <!-- Colorful Header -->
+            <div style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); margin: -2rem -2rem 2rem -2rem; padding: 2rem; color: white; display: flex; align-items: center; gap: 1rem;">
+                <div style="background: rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 12px; backdrop-filter: blur(4px);">
+                    <i data-lucide="calendar-plus" size="26"></i>
+                </div>
+                <div>
+                    <h3 style="font-size: 1.5rem; font-weight: 800; margin: 0; letter-spacing: -0.02em;">Submit Application</h3>
+                    <p style="margin: 0; font-size: 0.9rem; opacity: 0.9; margin-top: 0.25rem;">Apply for leave or work from home</p>
+                </div>
             </div>
-        </div>
-        <div class="col-4">
-            <div class="card" style="background: #f8fafc; border-style: dashed; height: 100%;">
-                <h4 style="margin-bottom: 1rem;">System Rules</h4>
-                <ul style="padding-left: 1.2rem; font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 1.2rem;">
-                    <li><strong>WFH:</strong> No deductions.</li>
-                    <li><strong>Full Leave:</strong> Deducted from balance.</li>
-                    <li><strong>Half Day:</strong> 0.5 deduction.</li>
-                    <li><strong>Ranges:</strong> Selecting a range will apply for all days between Start and End.</li>
-                </ul>
-            </div>
+            
+            <form method="POST" action="{{ url_for('mark_request') }}">
+                <!-- Category -->
+                <div style="margin-bottom: 2rem;">
+                    <label style="display: block; font-weight: 700; margin-bottom: 1rem; font-size: 0.95rem; color: #334155;">Select Category</label>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <label class="radio-label">
+                            <input type="radio" name="request_type" value="WFH" checked>
+                            <span class="radio-card">
+                                <i data-lucide="home" size="22"></i>
+                                <span>Work From Home</span>
+                            </span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="request_type" value="Leave">
+                            <span class="radio-card">
+                                <i data-lucide="plane" size="22"></i>
+                                <span>Full Leave</span>
+                            </span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="request_type" value="Half Day">
+                            <span class="radio-card">
+                                <i data-lucide="clock" size="22"></i>
+                                <span>Half Day</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Date Selection -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; background: linear-gradient(to right, #faf5ff, #f3e8ff); padding: 1.5rem; border-radius: 16px; border: 1px solid #e9d5ff;">
+                    <div>
+                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.9rem; color: #6b21a8;">Start Date</label>
+                        <input type="date" name="date" value="{{ today }}" min="{{ today }}" required class="custom-input" style="border-color: #d8b4fe; background: white;">
+                    </div>
+                    <div>
+                        <label style="display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.9rem; color: #6b21a8;">
+                            <span>End Date</span>
+                            <span style="font-weight: 600; font-size: 0.75rem; color: #9333ea; background: #e9d5ff; padding: 2px 8px; border-radius: 12px;">Optional</span>
+                        </label>
+                        <input type="date" name="end_date" value="{{ today }}" min="{{ today }}" class="custom-input" style="border-color: #d8b4fe; background: white;">
+                    </div>
+                </div>
+
+                <!-- Reason -->
+                <div style="margin-bottom: 2rem;">
+                    <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.9rem; color: #475569;">Reason for Application</label>
+                    <textarea name="reason" rows="3" required placeholder="Please provide a brief explanation..." class="custom-input" style="resize: vertical; min-height: 80px;"></textarea>
+                </div>
+
+                <button type="submit" class="btn" style="width: 100%; justify-content: center; padding: 1rem; font-size: 1.1rem; border-radius: 12px; background: linear-gradient(135deg, #6366f1, #4f46e5); box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3); border: none; transition: all 0.2s;">
+                    <i data-lucide="send" size="20"></i> Submit Request
+                </button>
+            </form>
         </div>
     </div>
 </div>
@@ -665,10 +918,39 @@
 <style>
     .radio-label { flex: 1; min-width: 120px; cursor: pointer; }
     .radio-label input { display: none; }
-    .radio-card { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1rem; border: 2px solid var(--border); border-radius: 12px; transition: all 0.2s; background: white; }
-    .radio-label input:checked + .radio-card { border-color: var(--primary); background: #eff6ff; color: var(--primary); box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.1); }
-    .radio-card i { opacity: 0.7; }
-    .radio-label input:checked + .radio-card i { opacity: 1; }
+    .radio-card { 
+        display: flex; flex-direction: column; align-items: center; gap: 0.75rem; 
+        padding: 1.25rem 1rem; 
+        border: 2px solid #e2e8f0; 
+        border-radius: 16px; 
+        transition: all 0.2s; 
+        background: white; 
+        color: #64748b; 
+        font-weight: 600;
+    }
+    .radio-card i { transition: transform 0.2s; }
+    .radio-label:hover .radio-card { border-color: #cbd5e1; background: #f8fafc; }
+    .radio-label input:checked + .radio-card { 
+        border-color: #6366f1; 
+        background: #eef2ff; 
+        color: #4f46e5; 
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15); 
+    }
+    .radio-label input:checked + .radio-card i { transform: scale(1.1); }
+
+    .custom-input {
+        width: 100%; 
+        padding: 0.8rem 1rem; 
+        border-radius: 12px; 
+        border: 1px solid #cbd5e1;
+        transition: all 0.2s;
+        font-family: inherit;
+    }
+    .custom-input:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
 </style>
 <script>
     function showTab(tabId) {
@@ -803,6 +1085,13 @@
             to { transform: translateX(100%); opacity: 0; }
         }
     `;
-    document.head.appendChild(style);
+    // Read active tab from URL query parameter
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab');
+        if (tabParam) {
+            showTab(tabParam);
+        }
+    });
 </script>
 {% endblock %}

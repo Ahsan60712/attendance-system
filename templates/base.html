@@ -6,6 +6,7 @@
     <title>{% block title %}Adlab Solutions{% endblock %}</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
             --primary: #6366f1;
@@ -24,18 +25,19 @@
         }
         .container { max-width: 1280px; margin: 0 auto; padding: 1.5rem 2rem; }
         header { 
-            background: rgba(255, 255, 255, 0.8); 
-            backdrop-filter: blur(12px);
+            background: linear-gradient(to right, #1e1b4b, #312e81, #4338ca);
+            color: white;
             padding: 0.75rem 2rem; 
-            border-bottom: 1px solid var(--border); 
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
             display: flex; 
             justify-content: space-between; 
             align-items: center;
             position: sticky;
             top: 0;
             z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
-        .logo { font-weight: 800; font-size: 1.4rem; color: var(--primary-dark); text-decoration: none; display: flex; align-items: center; gap: 0.6rem; letter-spacing: -0.02em; }
+        .logo { font-weight: 800; font-size: 1.4rem; color: white; text-decoration: none; display: flex; align-items: center; gap: 0.6rem; letter-spacing: -0.02em; }
         .btn { padding: 0.6rem 1.25rem; background: var(--primary); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
         .btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
     </style>
@@ -43,10 +45,17 @@
 <body>
     {% if session.get('logged_in') or session.get('emp_name') %}
     <header>
-        <a href="/" class="logo"><i data-lucide="shield-check"></i> Adlab Solutions</a>
+        <a href="/" class="logo"><i data-lucide="shield-check" color="#a5b4fc"></i> Adlab Solutions</a>
         <div style="display: flex; align-items: center; gap: 1rem;">
-            <span style="font-weight: 600; font-size: 0.9rem;">{{ session.get('emp_name') | replace('_', ' ') }}</span>
-            <a href="{{ url_for('logout') }}" class="btn" style="background: #f1f5f9; color: #ef4444;">Logout</a>
+            <span style="font-weight: 600; font-size: 0.9rem; color: #e0e7ff;">{{ session.get('emp_name') | replace('_', ' ') }}</span>
+            {% if session.get('logged_in') and session.get('user_type') in ['employee', 'manager', 'admin', 'ceo'] %}
+            <a href="{{ url_for('change_password') }}" class="btn" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(4px);">
+                <i data-lucide="key" size="16"></i> Change Password
+            </a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}" class="btn" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);">
+                <i data-lucide="log-out" size="16"></i> Logout
+            </a>
         </div>
     </header>
     {% endif %}
@@ -55,27 +64,43 @@
         {% if session.get('logged_in') %}
         <nav style="margin-bottom: 2rem; display: flex; gap: 0.5rem; overflow-x: auto;">
             {% if session.get('user_type') == 'admin' %}
-                <a href="{{ url_for('admin_dashboard') }}" class="btn">Dashboard</a>
-                <a href="{{ url_for('admin_performance_report') }}" class="btn" style="background:white; color:var(--text); border:1px solid var(--border);">Performance</a>
             {% endif %}
         </nav>
         {% endif %}
 
-        <!-- Flash Messages (Popups) -->
+        <!-- Professional Toast Notifications (Popups) -->
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
-            {% for category, message in messages %}
-              <div class="alert alert-{{ category }}" id="flash-message">
-                <i data-lucide="{% if category == 'success' %}check-circle{% elif category == 'error' or category == 'danger' %}alert-circle{% else %}info{% endif %}" size="18"></i>
-                {{ message }}
-              </div>
-            {% endfor %}
             <script>
-                setTimeout(() => {
-                    const flash = document.getElementById('flash-message');
-                    if(flash) flash.style.opacity = '0';
-                    setTimeout(() => flash?.remove(), 500);
-                }, 4000);
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 4000,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.onmouseenter = Swal.stopTimer;
+                        toast.onmouseleave = Swal.resumeTimer;
+                    }
+                });
+
+                document.addEventListener('DOMContentLoaded', function() {
+                    {% for category, message in messages %}
+                        {% set icon = 'success' %}
+                        {% if category == 'error' or category == 'danger' %}
+                            {% set icon = 'error' %}
+                        {% elif category == 'warning' %}
+                            {% set icon = 'warning' %}
+                        {% elif category == 'info' %}
+                            {% set icon = 'info' %}
+                        {% endif %}
+                        
+                        Toast.fire({
+                            icon: '{{ icon }}',
+                            title: {{ message | tojson }}
+                        });
+                    {% endfor %}
+                });
             </script>
           {% endif %}
         {% endwith %}

@@ -3,114 +3,247 @@
 {% block title %}Employee Dashboard - Adlab Solutions{% endblock %}
 
 {% block content %}
-<!-- My Dashboard Button -->
-<div style="margin-bottom: 1rem;">
-    <button style="background: #8b5cf6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
-        <i data-lucide="user" size="18"></i> My Dashboard
-    </button>
+<style>
+    .welcome-banner {
+        background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+        color: white;
+        border: none;
+        margin-bottom: 2rem;
+        padding: 2.5rem 2rem;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
+        position: relative;
+        overflow: hidden;
+    }
+    .welcome-banner::after {
+        content: '';
+        position: absolute;
+        top: 0; right: 0; bottom: 0; left: 0;
+        background: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.05)"/></svg>') repeat;
+        opacity: 0.5;
+        pointer-events: none;
+    }
+    
+    .stat-card {
+        background: white; 
+        border: 1px solid #e2e8f0; 
+        border-radius: 16px; 
+        padding: 1.5rem; 
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); 
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        flex: 1; 
+        min-width: 160px; 
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+    }
+    .stat-card:hover { 
+        transform: translateY(-5px); 
+        box-shadow: 0 12px 20px -5px rgba(0,0,0,0.1); 
+    }
+    .stat-icon-wrapper {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+    
+    .radio-label { flex: 1; min-width: 120px; cursor: pointer; }
+    .radio-label input { display: none; }
+    .radio-card { 
+        display: flex; flex-direction: column; align-items: center; gap: 0.75rem; 
+        padding: 1.25rem 1rem; 
+        border: 2px solid #e2e8f0; 
+        border-radius: 16px; 
+        transition: all 0.2s; 
+        background: white; 
+        color: #64748b; 
+        font-weight: 600;
+    }
+    .radio-card i { transition: transform 0.2s; }
+    .radio-label:hover .radio-card { border-color: #cbd5e1; background: #f8fafc; }
+    .radio-label input:checked + .radio-card { 
+        border-color: #6366f1; 
+        background: #eef2ff; 
+        color: #4f46e5; 
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15); 
+    }
+    .radio-label input:checked + .radio-card i { transform: scale(1.1); }
+
+    .custom-input {
+        width: 100%; 
+        padding: 0.8rem 1rem; 
+        border-radius: 12px; 
+        border: 1px solid #cbd5e1;
+        transition: all 0.2s;
+        font-family: inherit;
+    }
+    .custom-input:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+    
+    .table-modern { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .table-modern th { background: #f8fafc; color: #475569; font-weight: 600; padding: 1rem; text-align: left; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; border-bottom: 1px solid #e2e8f0; }
+    .table-modern td { padding: 1rem; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+    .table-modern tr:hover td { background: #f8fafc; }
+</style>
+
+<!-- Welcome Banner -->
+<div class="welcome-banner">
+    <div style="position: relative; z-index: 1;">
+        <h1 style="font-size: 2.25rem; margin-bottom: 0.5rem; font-weight: 800; letter-spacing: -0.02em;">Welcome back, {{ emp_name }} 👋</h1>
+        <div style="display: flex; gap: 1rem; align-items: center; opacity: 0.9; font-size: 1rem; margin-top: 1rem;">
+            <span style="background: rgba(255,255,255,0.2); padding: 0.4rem 1rem; border-radius: 20px; backdrop-filter: blur(4px);">
+                <i data-lucide="hash" size="14" style="vertical-align: middle; margin-right: 4px;"></i> System ID: {{ emp_data.emp_id }}
+            </span>
+            <span style="background: rgba(255,255,255,0.2); padding: 0.4rem 1rem; border-radius: 20px; backdrop-filter: blur(4px);">
+                <i data-lucide="users" size="14" style="vertical-align: middle; margin-right: 4px;"></i> Team: {{ emp_data.emp_team }}
+            </span>
+        </div>
+    </div>
 </div>
 
-<!-- Employee Portal Banner -->
-<div class="card" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; margin-bottom: 2rem; padding: 2rem; border-radius: 16px;">
-    <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem; font-weight: 700;">Welcome back, {{ emp_name }} 👋</h1>
-    <p style="opacity: 0.9; font-size: 1.1rem;">System ID: {{ emp_data.emp_id }} • Team: {{ emp_data.emp_team }}</p>
+<!-- Shortcut Buttons -->
+{% if emp_data.emp_team|lower == 'overstock' %}
+<div style="display: flex; gap: 1rem; margin-bottom: 2rem; overflow-x: auto; padding-bottom: 0.5rem; flex-wrap: wrap;">
+    <a href="{{ url_for('view_beyond_schedule') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap; min-width: 160px; border: 1px solid #cbd5e1; display: inline-flex; align-items: center; gap: 0.5rem;">
+        <i data-lucide="table" size="18" style="color: #6366f1;"></i> Beyond Schedule
+    </a>
 </div>
+{% endif %}
 
 <!-- Stats Grid -->
-<div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
-    <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s; flex: 1; min-width: 150px; text-align: center;">
-        <span class="value" style="font-size: 2rem; font-weight: 700; color: #1f2937;">{{ leave_balance.carried_forward|default(0) }}</span>
-        <span class="label" style="font-size: 0.85rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">CARRIED FORWARD</span>
+<div style="display: flex; gap: 1.25rem; margin-bottom: 2.5rem; flex-wrap: wrap;">
+    <div class="stat-card" style="border-top: 4px solid #8b5cf6;">
+        <div class="stat-icon-wrapper" style="background: #f5f3ff; color: #8b5cf6;">
+            <i data-lucide="arrow-right-circle" size="24"></i>
+        </div>
+        <span class="value" style="font-size: 2.25rem; font-weight: 800; color: #1e293b; line-height: 1;">{{ leave_balance.carried_forward | default(0) | format_number }}</span>
+        <span class="label" style="font-size: 0.8rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 0.5rem; letter-spacing: 0.05em;">Carried Forward</span>
     </div>
-    <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s; flex: 1; min-width: 150px; text-align: center;">
-        <span class="value" style="font-size: 2rem; font-weight: 700; color: #1f2937;">{{ leave_balance.wfh_count|default(0) }}</span>
-        <span class="label" style="font-size: 0.85rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">TOTAL WFH</span>
+    
+    <div class="stat-card" style="border-top: 4px solid #3b82f6;">
+        <div class="stat-icon-wrapper" style="background: #eff6ff; color: #3b82f6;">
+            <i data-lucide="home" size="24"></i>
+        </div>
+        <span class="value" style="font-size: 2.25rem; font-weight: 800; color: #1e293b; line-height: 1;">{{ leave_balance.wfh_count | default(0) | format_number }}</span>
+        <span class="label" style="font-size: 0.8rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 0.5rem; letter-spacing: 0.05em;">Total WFH</span>
     </div>
-    <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s; flex: 1; min-width: 150px; text-align: center;">
-        <span class="value" style="font-size: 2rem; font-weight: 700; color: #1f2937;">{{ leave_balance.half_days_taken|default(0) }}</span>
-        <span class="label" style="font-size: 0.85rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">HALF DAYS</span>
+    
+    <div class="stat-card" style="border-top: 4px solid #f59e0b;">
+        <div class="stat-icon-wrapper" style="background: #fffbeb; color: #f59e0b;">
+            <i data-lucide="clock" size="24"></i>
+        </div>
+        <span class="value" style="font-size: 2.25rem; font-weight: 800; color: #1e293b; line-height: 1;">{{ leave_balance.half_days_taken | default(0) | format_number }}</span>
+        <span class="label" style="font-size: 0.8rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 0.5rem; letter-spacing: 0.05em;">Half Days</span>
     </div>
-    <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s; flex: 1; min-width: 150px; text-align: center;">
-        <span class="value" style="font-size: 2rem; font-weight: 700; color: #1f2937;">{{ leave_balance.leaves_taken_this_year|default(0) }}</span>
-        <span class="label" style="font-size: 0.85rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">LEAVES TAKEN</span>
+    
+    <div class="stat-card" style="border-top: 4px solid #f43f5e;">
+        <div class="stat-icon-wrapper" style="background: #fff1f2; color: #f43f5e;">
+            <i data-lucide="calendar-off" size="24"></i>
+        </div>
+        <span class="value" style="font-size: 2.25rem; font-weight: 800; color: #1e293b; line-height: 1;">{{ leave_balance.leaves_taken_this_year | default(0) | format_number }}</span>
+        <span class="label" style="font-size: 0.8rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 0.5rem; letter-spacing: 0.05em;">Leaves Taken</span>
     </div>
-    <div class="stat-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s; flex: 1; min-width: 150px; text-align: center;">
-        <span class="value" style="font-size: 2rem; font-weight: 700; color: #1f2937;">{{ leave_balance.remaining_leaves|default(0) }}</span>
-        <span class="label" style="font-size: 0.85rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">REMAINING LEAVES</span>
+    
+    <div class="stat-card" style="border-top: 4px solid #10b981; background: linear-gradient(to bottom right, #ffffff, #f0fdf4);">
+        <div class="stat-icon-wrapper" style="background: #d1fae5; color: #10b981;">
+            <i data-lucide="shield-check" size="24"></i>
+        </div>
+        <span class="value" style="font-size: 2.25rem; font-weight: 800; color: #047857; line-height: 1;">{{ leave_balance.remaining_leaves | default(0) | format_number }}</span>
+        <span class="label" style="font-size: 0.8rem; color: #059669; font-weight: 700; text-transform: uppercase; margin-top: 0.5rem; letter-spacing: 0.05em;">Remaining Leaves</span>
     </div>
 </div>
 
 <div class="row">
-    <!-- Submit Request Column -->
-    <div class="col-8">
-        <div class="card">
-            <h3 style="margin-bottom: 2rem;"><i data-lucide="calendar-plus" size="22"></i> Submit New Request</h3>
+    <!-- Main Content Column -->
+    <div style="flex: 1; min-width: 100%;">
+        <!-- Submit Request Form -->
+        <div class="card" style="background: white; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 2rem; margin-bottom: 2rem; border: none; overflow: hidden; position: relative;">
+            <!-- Colorful Header -->
+            <div style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); margin: -2rem -2rem 2rem -2rem; padding: 2rem; color: white; display: flex; align-items: center; gap: 1rem;">
+                <div style="background: rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 12px; backdrop-filter: blur(4px);">
+                    <i data-lucide="calendar-plus" size="26"></i>
+                </div>
+                <div>
+                    <h3 style="font-size: 1.5rem; font-weight: 800; margin: 0; letter-spacing: -0.02em;">Submit Application</h3>
+                    <p style="margin: 0; font-size: 0.9rem; opacity: 0.9; margin-top: 0.25rem;">Apply for leave or work from home</p>
+                </div>
+            </div>
             
             <form method="POST" action="{{ url_for('mark_request') }}">
-                <!-- TYPE SELECTOR (Radio Buttons) -->
+                <!-- Category -->
                 <div style="margin-bottom: 2rem;">
-                    <label style="display: block; font-weight: 700; margin-bottom: 1rem; font-size: 0.9rem; color: var(--text);">Request Category</label>
+                    <label style="display: block; font-weight: 700; margin-bottom: 1rem; font-size: 0.95rem; color: #334155;">Select Category</label>
                     <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                         <label class="radio-label">
                             <input type="radio" name="request_type" value="WFH" checked>
                             <span class="radio-card">
-                                <i data-lucide="home" size="18"></i>
-                                <span>WFH</span>
+                                <i data-lucide="home" size="22"></i>
+                                <span>Work From Home</span>
                             </span>
                         </label>
                         <label class="radio-label">
                             <input type="radio" name="request_type" value="Leave">
                             <span class="radio-card">
-                                <i data-lucide="plane" size="18"></i>
+                                <i data-lucide="plane" size="22"></i>
                                 <span>Full Leave</span>
                             </span>
                         </label>
                         <label class="radio-label">
                             <input type="radio" name="request_type" value="Half Day">
                             <span class="radio-card">
-                                <i data-lucide="clock" size="18"></i>
+                                <i data-lucide="clock" size="22"></i>
                                 <span>Half Day</span>
                             </span>
                         </label>
                     </div>
                 </div>
 
-                <!-- DATE RANGE -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <!-- Date Selection -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; background: linear-gradient(to right, #faf5ff, #f3e8ff); padding: 1.5rem; border-radius: 16px; border: 1px solid #e9d5ff;">
                     <div>
-                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">Start Date</label>
-                        <input type="date" name="date" value="{{ today }}" min="{{ today }}" required style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border);">
+                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.9rem; color: #6b21a8;">Start Date</label>
+                        <input type="date" name="date" value="{{ today }}" min="{{ today }}" required class="custom-input" style="border-color: #d8b4fe; background: white;">
                     </div>
                     <div>
-                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">End Date (Optional)</label>
-                        <input type="date" name="end_date" value="{{ today }}" min="{{ today }}" style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border);">
-                        <small style="color: var(--text-muted); font-size: 0.75rem;">Leave empty for single day</small>
+                        <label style="display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.9rem; color: #6b21a8;">
+                            <span>End Date</span>
+                            <span style="font-weight: 600; font-size: 0.75rem; color: #9333ea; background: #e9d5ff; padding: 2px 8px; border-radius: 12px;">Optional</span>
+                        </label>
+                        <input type="date" name="end_date" value="{{ today }}" min="{{ today }}" class="custom-input" style="border-color: #d8b4fe; background: white;">
                     </div>
                 </div>
 
-                <div style="margin-bottom: 1.5rem;">
-                    <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">Reason</label>
-                    <textarea name="reason" rows="3" required placeholder="Brief reason for your absence..." style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border); resize: none;"></textarea>
+                <!-- Reason -->
+                <div style="margin-bottom: 2rem;">
+                    <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.9rem; color: #475569;">Reason for Application</label>
+                    <textarea name="reason" rows="3" required placeholder="Please provide a brief explanation..." class="custom-input" style="resize: vertical; min-height: 80px;"></textarea>
                 </div>
 
-                <button type="submit" class="btn" style="width: 100%; justify-content: center; padding: 1.2rem; font-size: 1.1rem;">
-                    <i data-lucide="send"></i> Submit Application
+                <button type="submit" class="btn" style="width: 100%; justify-content: center; padding: 1rem; font-size: 1.1rem; border-radius: 12px; background: linear-gradient(135deg, #6366f1, #4f46e5); box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3); border: none; transition: all 0.2s;">
+                    <i data-lucide="send" size="20"></i> Submit Request
                 </button>
             </form>
         </div>
 
-        <style>
-            .radio-label { flex: 1; min-width: 120px; cursor: pointer; }
-            .radio-label input { display: none; }
-            .radio-card { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1rem; border: 2px solid var(--border); border-radius: 12px; transition: all 0.2s; background: white; color: var(--text-secondary); }
-            .radio-label input:checked + .radio-card { border-color: var(--primary); background: #eff6ff; color: var(--primary); box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.1); }
-            .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-color: #8b5cf6; }
-        </style>
-
-        <div class="card">
-            <h3 style="margin-bottom: 1.5rem;"><i data-lucide="history" size="20" style="vertical-align: middle;"></i> History</h3>
-            <div class="table-wrapper">
-                <table>
+        <!-- History -->
+        <div class="card" style="background: white; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 2rem; border: 1px solid #e2e8f0;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                <div style="background: #f1f5f9; color: #475569; padding: 0.5rem; border-radius: 10px;">
+                    <i data-lucide="history" size="20"></i>
+                </div>
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin: 0;">Recent Activity</h3>
+            </div>
+            
+            <div style="overflow-x: auto; border-radius: 12px; border: 1px solid #f1f5f9;">
+                <table class="table-modern">
                     <thead>
                         <tr>
                             <th>Date</th>
@@ -119,14 +252,45 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for record in records %}
+                        {% for record in records[:10] %}
                         <tr>
-                            <td>{{ record.date }}</td>
-                            <td><span class="badge" style="background: #f1f5f9;">{{ record.type }}</span></td>
+                            <td style="font-weight: 500;">{{ record.date }}</td>
                             <td>
-                                <span class="badge {% if record.status == 'Approved' %}badge-approved{% elif record.status == 'Rejected' %}badge-rejected{% else %}badge-pending{% endif %}">
-                                    {{ record.status }}
+                                {% if record.type == 'WFH' %}
+                                <span style="background: #eff6ff; color: #3b82f6; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                    <i data-lucide="home" size="12" style="vertical-align: middle; margin-right: 4px;"></i>WFH
                                 </span>
+                                {% elif record.type == 'Leave' %}
+                                <span style="background: #fff1f2; color: #f43f5e; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                    <i data-lucide="plane" size="12" style="vertical-align: middle; margin-right: 4px;"></i>Full Leave
+                                </span>
+                                {% else %}
+                                <span style="background: #fffbeb; color: #f59e0b; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                    <i data-lucide="clock" size="12" style="vertical-align: middle; margin-right: 4px;"></i>Half Day
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.status == 'Approved' %}
+                                    <span style="background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                        <div style="width: 6px; height: 6px; border-radius: 50%; background: #166534;"></div>{{ record.status }}
+                                    </span>
+                                {% elif record.status == 'Rejected' %}
+                                    <span style="background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                        <div style="width: 6px; height: 6px; border-radius: 50%; background: #991b1b;"></div>{{ record.status }}
+                                    </span>
+                                {% else %}
+                                    <span style="background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                        <div style="width: 6px; height: 6px; border-radius: 50%; background: #d97706;" class="pulse"></div>{{ record.status }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">
+                                <i data-lucide="inbox" size="32" style="margin-bottom: 1rem; opacity: 0.5; display: block; margin-left: auto; margin-right: auto;"></i>
+                                No recent requests found
                             </td>
                         </tr>
                         {% endfor %}
@@ -135,17 +299,14 @@
             </div>
         </div>
     </div>
-
-    <!-- Info Column -->
-    <div class="col-4">
-        <div class="card" style="background: #f8fafc;">
-            <h4 style="margin-bottom: 1rem; font-size: 0.9rem;">Policy Info</h4>
-            <ul style="padding-left: 1.2rem; font-size: 0.85rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.75rem;">
-                <li>WFH requests don't deduct leaves.</li>
-                <li>Half Day deducts 0.5 leaves.</li>
-                <li>Managers must approve all requests.</li>
-            </ul>
-        </div>
-    </div>
 </div>
+
+<style>
+    @keyframes pulse-dot {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 4px rgba(217, 119, 6, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
+    }
+    .pulse { animation: pulse-dot 2s infinite; }
+</style>
 {% endblock %}

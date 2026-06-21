@@ -1,70 +1,408 @@
 {% extends "base.html" %}
 
-{% block title %}Manage Employees - Adlab Solutions{% endblock %}
+{% block title %}Add or Remove Employee - Adlab Solutions{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 animate-in">
-    <h2 style="font-size: 1.5rem;" class="d-flex align-items-center gap-2">
-        <i data-lucide="users" style="width: 24px; height: 24px;"></i> Manage Employees
-    </h2>
-    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">
-        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back to Dashboard
+
+<style>
+    /* ── Page Header ── */
+    .page-hero {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        color: white;
+        margin: -1.5rem -2rem 2.5rem -2rem;
+        padding: 2rem 2.5rem;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        position: relative;
+        overflow: hidden;
+    }
+    .page-hero::before {
+        content: '';
+        position: absolute;
+        top: -60px; right: -60px;
+        width: 220px; height: 220px;
+        background: rgba(255,255,255,0.04);
+        border-radius: 50%;
+    }
+    .page-hero::after {
+        content: '';
+        position: absolute;
+        bottom: -40px; right: 120px;
+        width: 130px; height: 130px;
+        background: rgba(255,255,255,0.03);
+        border-radius: 50%;
+    }
+    .page-hero h1 {
+        font-size: 1.9rem;
+        font-weight: 800;
+        margin: 0 0 0.25rem 0;
+        letter-spacing: -0.02em;
+    }
+    .page-hero p {
+        margin: 0;
+        opacity: 0.65;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    .hero-left { display: flex; align-items: center; gap: 1rem; }
+    .hero-icon {
+        width: 52px; height: 52px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+    }
+    .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.2rem;
+        background: rgba(255,255,255,0.12);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: background 0.2s, border-color 0.2s;
+        backdrop-filter: blur(4px);
+        white-space: nowrap;
+        position: relative;
+        z-index: 1;
+    }
+    .btn-back:hover {
+        background: rgba(255,255,255,0.2);
+        border-color: rgba(255,255,255,0.35);
+        color: white;
+    }
+
+    /* ── Toolbar ── */
+    .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+    .employee-count {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #64748b;
+    }
+    .count-pill {
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        padding: 0.2rem 0.65rem;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #475569;
+    }
+    .btn-add {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.65rem 1.3rem;
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 0.875rem;
+        text-decoration: none;
+        box-shadow: 0 4px 12px rgba(99,102,241,0.35);
+        transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-add:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(99,102,241,0.45);
+        color: white;
+    }
+
+    /* ── Search bar ── */
+    .search-wrap {
+        position: relative;
+        min-width: 220px;
+    }
+    .search-wrap i {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0.4;
+        pointer-events: none;
+    }
+    .search-wrap input {
+        width: 100%;
+        padding: 0.6rem 0.75rem 0.6rem 2.3rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 0.875rem;
+        font-family: inherit;
+        background: white;
+        color: #0f172a;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        box-sizing: border-box;
+    }
+    .search-wrap input:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+    }
+
+    /* ── Employee Table ── */
+    .emp-table-card {
+        background: white;
+        border-radius: 16px;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.03);
+        overflow: hidden;
+    }
+    .emp-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+    .emp-table thead th {
+        background: #f8fafc;
+        padding: 0.9rem 1.2rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #94a3b8;
+        border-bottom: 1px solid #f1f5f9;
+        white-space: nowrap;
+    }
+    .emp-table tbody tr {
+        border-bottom: 1px solid #f8fafc;
+        transition: background 0.15s;
+    }
+    .emp-table tbody tr:last-child { border-bottom: none; }
+    .emp-table tbody tr:hover { background: #fafbff; }
+    .emp-table td {
+        padding: 1rem 1.2rem;
+        vertical-align: middle;
+        color: #334155;
+    }
+    .emp-id {
+        font-family: 'Courier New', monospace;
+        font-size: 0.8rem;
+        color: #94a3b8;
+        font-weight: 600;
+    }
+    .emp-avatar {
+        width: 36px; height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: #4338ca;
+        margin-right: 0.6rem;
+        flex-shrink: 0;
+    }
+    .emp-name-cell { display: flex; align-items: center; }
+    .emp-name { font-weight: 700; color: #0f172a; }
+
+    /* Role badges */
+    .role-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+    }
+    .role-admin   { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+    .role-manager { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
+    .role-employee{ background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+
+    /* Team badge */
+    .team-badge {
+        display: inline-block;
+        padding: 0.25rem 0.65rem;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+    }
+
+    /* Action buttons */
+    .action-group { display: flex; gap: 0.4rem; justify-content: center; align-items: center; }
+    .action-btn {
+        width: 34px; height: 34px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all 0.15s;
+        text-decoration: none;
+        flex-shrink: 0;
+    }
+    .action-btn:hover { transform: translateY(-1px); }
+    .action-view   { background: #eff6ff; color: #2563eb; border-color: #dbeafe; }
+    .action-view:hover { background: #dbeafe; }
+    .action-edit   { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+    .action-edit:hover { background: #fef3c7; }
+    .action-delete { background: #fff1f2; color: #be123c; border-color: #fecdd3; }
+    .action-delete:hover { background: #ffe4e6; }
+    .action-delete-form { margin: 0; }
+
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #94a3b8;
+    }
+    .empty-state i { margin-bottom: 1rem; opacity: 0.35; }
+    .empty-state p { font-size: 0.9rem; }
+
+    /* Search highlight */
+    .hidden-row { display: none !important; }
+</style>
+
+<!-- ── Page Hero ── -->
+<div class="page-hero">
+    <div class="hero-left">
+        <div class="hero-icon">
+            <i data-lucide="users" size="24"></i>
+        </div>
+        <div>
+            <h1>Add or Remove Employee</h1>
+            <p>Manage your team directory &bull; {{ employees | length }} member{{ 's' if employees | length != 1 else '' }} total</p>
+        </div>
+    </div>
+    <a href="{% if session.get('user_type') == 'ceo' %}{{ url_for('ceo_dashboard') }}{% else %}{{ url_for('admin_dashboard') }}{% endif %}"
+       class="btn-back">
+        <i data-lucide="arrow-left" size="15"></i> Back to Dashboard
     </a>
 </div>
 
-<div class="card animate-in" style="animation-delay: 0.1s;">
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-4">
-        <h3 class="mb-0 d-flex align-items-center gap-2">Employees Directory</h3>
-        <a href="{{ url_for('add_employee_route') }}" class="btn btn-primary d-flex align-items-center gap-2">
-            <i data-lucide="user-plus" style="width:16px; height:16px;"></i> Add New Employee
+<!-- ── Toolbar ── -->
+<div class="toolbar">
+    <div class="employee-count">
+        <i data-lucide="users" size="16"></i>
+        All Employees
+        <span class="count-pill" id="visible-count">{{ employees | length }}</span>
+    </div>
+    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+        <div class="search-wrap">
+            <i data-lucide="search" size="16"></i>
+            <input type="text" id="emp-search" placeholder="Search by name or team…" oninput="filterTable()">
+        </div>
+        <a href="{{ url_for('add_employee_route') }}" class="btn-add">
+            <i data-lucide="user-plus" size="16"></i> Add New Employee
         </a>
     </div>
-
-    <div class="table-container">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Emp ID</th>
-                    <th>Name</th>
-                    <th>Team</th>
-                    <th>Role</th>
-                    <th class="text-center">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for emp in employees %}
-                <tr style="vertical-align: middle;">
-                    <td class="text-muted font-family-mono" style="padding: 1rem 0.5rem;">{{ emp.emp_id }}</td>
-                    <td style="padding: 1rem 0.5rem;"><strong style="color: #0f172a;">{{ emp.emp_name | replace('_', ' ') }}</strong></td>
-                    <td style="padding: 1rem 0.5rem;"><span class="badge" style="background: var(--light); color: var(--text);">{{ emp.emp_team }}</span></td>
-                    <td style="padding: 1rem 0.5rem;">
-                        {% if emp.is_admin %}
-                        <span class="badge" style="background: #fee2e2; color: #991b1b;">Admin</span>
-                        {% elif emp.is_manager %}
-                        <span class="badge" style="background: #e0e7ff; color: #4338ca;">Manager</span>
-                        {% else %}
-                        <span class="badge" style="background: #dcfce7; color: #166534;">Employee</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-center" style="padding: 1rem 0.5rem;">
-                        <div style="display: flex; gap: 0.5rem; justify-content: center; align-items: center; flex-wrap: nowrap;">
-                            <a href="{{ url_for('admin_view_employee', emp_id=emp.emp_id) }}" class="btn btn-sm btn-primary tooltip" style="padding: 0.4rem; border-radius: 6px; display: flex; align-items: center;" data-tip="View Details">
-                                <i data-lucide="eye" style="width: 16px; height: 16px;"></i>
-                            </a>
-                            <a href="{{ url_for('edit_employee_route', emp_id=emp.emp_id) }}" class="btn btn-sm btn-warning tooltip" data-tip="Edit Info" style="background: #f59e0b; color: white; padding: 0.4rem; border-radius: 6px; border: none; display: flex; align-items: center;">
-                                <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
-                            </a>
-                            <form method="POST" action="{{ url_for('delete_employee_route', emp_id=emp.emp_id) }}" style="margin: 0;" onsubmit="return confirm('Remove {{ emp.emp_name | replace('_', ' ') }}? This cannot be undone.');">
-                                <button type="submit" class="btn btn-sm btn-danger tooltip" style="background: #ef4444; border: none; padding: 0.4rem; border-radius: 6px; display: flex; align-items: center;" data-tip="Delete Employee">
-                                    <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
 </div>
+
+<!-- ── Employee Table ── -->
+<div class="emp-table-card">
+    {% if employees %}
+    <table class="emp-table" id="emp-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Employee</th>
+                <th>Team</th>
+                <th>Role</th>
+                <th style="text-align: center;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for emp in employees %}
+            {% if not emp.is_ceo %}
+            <tr class="emp-row">
+                <td><span class="emp-id">#{{ emp.emp_id }}</span></td>
+                <td>
+                    <div class="emp-name-cell">
+                        <div class="emp-avatar">{{ (emp.emp_name | replace('_', ' '))[:2] | upper }}</div>
+                        <span class="emp-name">{{ emp.emp_name | replace('_', ' ') }}</span>
+                    </div>
+                </td>
+                <td><span class="team-badge">{{ emp.emp_team }}</span></td>
+                <td>
+                    {% if emp.is_admin %}
+                    <span class="role-badge role-admin"><i data-lucide="shield" size="11"></i> Admin</span>
+                    {% elif emp.is_manager %}
+                    <span class="role-badge role-manager"><i data-lucide="briefcase" size="11"></i> Manager</span>
+                    {% else %}
+                    <span class="role-badge role-employee"><i data-lucide="user" size="11"></i> Employee</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-group">
+                        <a href="{{ url_for('admin_view_employee', emp_id=emp.emp_id) }}"
+                           class="action-btn action-view" title="View Details">
+                            <i data-lucide="eye" size="15"></i>
+                        </a>
+                        <a href="{{ url_for('edit_employee_route', emp_id=emp.emp_id) }}"
+                           class="action-btn action-edit" title="Edit Employee">
+                            <i data-lucide="pencil" size="15"></i>
+                        </a>
+                        <form method="POST" action="{{ url_for('delete_employee_route', emp_id=emp.emp_id) }}"
+                              class="action-delete-form"
+                              onsubmit="return confirm('Remove {{ emp.emp_name | replace('_', ' ') }}? This action cannot be undone.');">
+                            <button type="submit" class="action-btn action-delete" title="Remove Employee">
+                                <i data-lucide="trash-2" size="15"></i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+    <div id="no-results" style="display:none; text-align:center; padding:3rem; color:#94a3b8;">
+        <i data-lucide="search-x" size="28" style="opacity:0.35; margin-bottom:0.75rem;"></i>
+        <p style="font-size:0.9rem;">No employees match your search.</p>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i data-lucide="users" size="36"></i>
+        <p>No employees found. Add your first employee to get started.</p>
+        <a href="{{ url_for('add_employee_route') }}" class="btn-add" style="margin-top:1rem; display:inline-flex;">
+            <i data-lucide="user-plus" size="15"></i> Add Employee
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function filterTable() {
+    const query = document.getElementById('emp-search').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('.emp-row');
+    let visible = 0;
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(query)) {
+            row.classList.remove('hidden-row');
+            visible++;
+        } else {
+            row.classList.add('hidden-row');
+        }
+    });
+    document.getElementById('visible-count').textContent = visible;
+    document.getElementById('no-results').style.display = (visible === 0 && query) ? 'block' : 'none';
+}
+</script>
+
 {% endblock %}

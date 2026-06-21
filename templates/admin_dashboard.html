@@ -1,33 +1,39 @@
 {% extends "base.html" %}
 
-{% block title %}Manager Dashboard - Adlab Solutions{% endblock %}
+{% block title %}Admin Dashboard - Adlab Solutions{% endblock %}
 
 {% block content %}
-<div style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; border: none; margin: -1.5rem -2rem 2rem -2rem; padding: 2rem; border-radius: 16px;">
-    <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem; font-weight: 700;">Executive Portal: {{ admin_name }}</h1>
-    <p style="opacity: 0.9; font-size: 1.1rem;">Team <strong>{{ emp_data.emp_team }}</strong> • System Management</p>
+
+<!-- Hero Header -->
+<div style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; border: none; margin: -1.5rem -2rem 2rem -2rem; padding: 2rem 2.5rem; border-radius: 16px;">
+    <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem; font-weight: 700;">Admin Portal: {{ admin_name }}</h1>
+    <p style="opacity: 0.9; font-size: 1.1rem;">Team <strong>{{ emp_data.emp_team }}</strong> &bull; System Management</p>
 </div>
 
-<!-- Management Tabs -->
-<div style="display: flex; gap: 1rem; margin-bottom: 2rem; overflow-x: auto; padding-bottom: 0.5rem;">
-    <a href="{{ url_for('add_employee_route') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap;">
-        <i data-lucide="user-plus" size="18"></i> Add New Employee
+<!-- Shortcut Buttons -->
+<div style="display: flex; gap: 1rem; margin-bottom: 2rem; overflow-x: auto; padding-bottom: 0.5rem; flex-wrap: wrap;">
+    <a href="{{ url_for('manage_employees_route') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap; min-width: 160px;">
+        <i data-lucide="users" size="18"></i> Add &amp; Remove Employee
     </a>
-    <a href="{{ url_for('admin_performance_report') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap;">
-        <i data-lucide="trending-up" size="18"></i> Company Performance
+    <a href="{{ url_for('view_beyond_schedule') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap; min-width: 160px;">
+        <i data-lucide="table" size="18"></i> Beyond Schedule
     </a>
-    <a href="{{ url_for('manage_employees_route') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap;">
-        <i data-lucide="users" size="18"></i> Add and Remove Employee
+    <a href="{{ url_for('manager_dashboard', tab='mark-team-tab') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; color: #2563eb; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap; min-width: 160px;">
+        <i data-lucide="edit-3" size="18"></i> Mark Team Attendance
     </a>
-    <a href="{{ url_for('admin_whatsapp_settings') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.05); color: #166534; white-space: nowrap;">
+    <a href="{{ url_for('admin_whatsapp_settings') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.05); color: #166534; white-space: nowrap; min-width: 160px;">
         <i data-lucide="message-square" size="18"></i> Messaging Config
     </a>
 </div>
 
-<!-- Tabs Navigation -->
-<div style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
+<!-- Tab Navigation -->
+<div style="display: flex; gap: 0.25rem; margin-bottom: 2rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; overflow-x: auto;">
     <button onclick="showTab('requests-tab')" class="tab-btn active-tab" id="btn-requests">
-        <i data-lucide="users" size="18"></i> Every Request ({{ requests|length }})
+        <i data-lucide="inbox" size="18"></i> Pending Requests
+        {% if requests %}<span style="background:#ef4444; color:white; border-radius:999px; padding:0.1rem 0.55rem; font-size:0.75rem; margin-left:0.25rem;">{{ requests|length }}</span>{% endif %}
+    </button>
+    <button onclick="showTab('activity-tab')" class="tab-btn" id="btn-activity">
+        <i data-lucide="history" size="18"></i> Recent Activity
     </button>
     <button onclick="showTab('apply-tab')" class="tab-btn" id="btn-apply">
         <i data-lucide="plus-circle" size="18"></i> Personal Apply
@@ -35,47 +41,112 @@
 </div>
 
 <style>
-    .tab-btn { border: none; background: transparent; padding: 0.75rem 1.5rem; font-weight: 700; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; border-radius: 8px 8px 0 0; transition: all 0.3s; }
+    .tab-btn { border: none; background: transparent; padding: 0.75rem 1.5rem; font-weight: 700; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; border-radius: 8px 8px 0 0; transition: all 0.3s; white-space: nowrap; }
     .tab-btn:hover { color: var(--primary); background: #f1f5f9; }
     .active-tab { color: var(--primary); border-bottom: 4px solid var(--primary); margin-bottom: -7px; }
     .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .radio-label { flex: 1; min-width: 120px; cursor: pointer; }
+    .radio-label input { display: none; }
+    .radio-card { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1rem; border: 2px solid var(--border); border-radius: 12px; transition: all 0.2s; background: white; }
+    .radio-label input:checked + .radio-card { border-color: var(--primary); background: #eff6ff; color: var(--primary); box-shadow: 0 4px 6px -1px rgba(99,102,241,0.1); }
+    .radio-card i { opacity: 0.7; }
+    .radio-label input:checked + .radio-card i { opacity: 1; }
+
+    /* Premium Stats Grid & Cards */
+    .stats-grid { display: flex; gap: 1.25rem; margin-bottom: 2.5rem; flex-wrap: wrap; }
+    .stat-card {
+        background: white; 
+        border: 1px solid #e2e8f0; 
+        border-radius: 16px; 
+        padding: 1.5rem; 
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); 
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        flex: 1; 
+        min-width: 160px; 
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+    }
+    .stat-card:hover { 
+        transform: translateY(-5px); 
+        box-shadow: 0 12px 20px -5px rgba(0,0,0,0.1); 
+    }
+    .stat-icon-wrapper {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+    .stat-card .value { font-size: 2.25rem; font-weight: 800; color: #1e293b; line-height: 1; }
+    .stat-card .label { font-size: 0.8rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 0.5rem; letter-spacing: 0.05em; }
 </style>
 
-<!-- TAB 1: TEAM REQUESTS -->
+
+<!-- ===== TAB 1: PENDING REQUESTS ===== -->
 <div id="requests-tab" class="tab-content" style="display: block;">
-    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
-        <div class="stat-card">
+
+    <!-- Stats Row -->
+    <div class="stats-grid" style="margin-bottom: 2rem;">
+        <!-- Total Pending -->
+        <div class="stat-card" style="border-top: 4px solid #6366f1;">
+            <div class="stat-icon-wrapper" style="background: #eef2ff; color: #6366f1;">
+                <i data-lucide="inbox" size="24"></i>
+            </div>
             <span class="value">{{ requests|length }}</span>
             <span class="label">Total Pending</span>
         </div>
-        <div class="stat-card">
-            <span class="value" style="color: #6366f1;">{{ leave_balance.carried_forward|default(0) }}</span>
+        <!-- Carried Forward -->
+        <div class="stat-card" style="border-top: 4px solid #8b5cf6;">
+            <div class="stat-icon-wrapper" style="background: #f5f3ff; color: #8b5cf6;">
+                <i data-lucide="arrow-right-circle" size="24"></i>
+            </div>
+            <span class="value">{{ "%.1f"|format(leave_balance.carried_forward|default(0)|float) }}</span>
             <span class="label">Carried Forward</span>
         </div>
-        <div class="stat-card">
-            <span class="value" style="color: #10b981;">{{ leave_balance.wfh_count|default(0) }}</span>
+        <!-- My WFH -->
+        <div class="stat-card" style="border-top: 4px solid #3b82f6;">
+            <div class="stat-icon-wrapper" style="background: #eff6ff; color: #3b82f6;">
+                <i data-lucide="home" size="24"></i>
+            </div>
+            <span class="value">{{ leave_balance.wfh_count|default(0)|int }}</span>
             <span class="label">My WFH</span>
         </div>
-        <div class="stat-card">
-            <span class="value" style="color: #f59e0b;">{{ leave_balance.half_days_taken|default(0) }}</span>
+        <!-- My Half Days -->
+        <div class="stat-card" style="border-top: 4px solid #f59e0b;">
+            <div class="stat-icon-wrapper" style="background: #fffbeb; color: #f59e0b;">
+                <i data-lucide="clock" size="24"></i>
+            </div>
+            <span class="value">{{ "%.1f"|format(leave_balance.half_days_taken|default(0)|float) }}</span>
             <span class="label">My Half Days</span>
         </div>
-        <div class="stat-card">
-            <span class="value" style="color: #ef4444;">{{ leave_balance.leaves_taken_this_year|default(0) }}</span>
+        <!-- Leaves Taken -->
+        <div class="stat-card" style="border-top: 4px solid #f43f5e;">
+            <div class="stat-icon-wrapper" style="background: #fff1f2; color: #f43f5e;">
+                <i data-lucide="calendar-off" size="24"></i>
+            </div>
+            <span class="value">{{ "%.1f"|format(leave_balance.leaves_taken_this_year|default(0)|float) }}</span>
             <span class="label">Leaves Taken</span>
         </div>
-        <div style="background: #1e293b; border: 1px solid #0f172a; padding: 1.5rem; border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; gap: 0.5rem; transition: var(--transition);">
-            <span class="value" style="color: #ffffff; font-size: 1.5rem; font-weight: 700;">{{ leave_balance.remaining_leaves|default(0) }}</span>
-            <span class="label" style="color: #94a3b8; font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">My Balance</span>
+        <!-- My Balance -->
+        <div class="stat-card" style="border-top: 4px solid #10b981; background: linear-gradient(to bottom right, #ffffff, #f0fdf4);">
+            <div class="stat-icon-wrapper" style="background: #d1fae5; color: #10b981;">
+                <i data-lucide="shield-check" size="24"></i>
+            </div>
+            <span class="value" style="color: #047857;">{{ "%.1f"|format(leave_balance.remaining_leaves|default(0)|float) }}</span>
+            <span class="label" style="color: #059669;">My Balance</span>
         </div>
     </div>
 
+    <!-- Pending Requests Table -->
     <div class="card">
         <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
             <i data-lucide="inbox" size="20"></i> Active Requests List
         </h3>
-        
         <div class="table-wrapper">
             {% if requests %}
             <table>
@@ -104,11 +175,19 @@
                         <td style="text-align: center;">
                             <div style="display: flex; gap: 0.5rem; justify-content: center;">
                                 <form method="POST" action="{{ url_for('action_request') }}" style="margin: 0;">
-                                    <input type="hidden" name="emp_id" value="{{ req.emp_id }}"><input type="hidden" name="date" value="{{ req.date }}"><input type="hidden" name="type" value="{{ req.type }}"><input type="hidden" name="timestamp" value="{{ req.timestamp }}"><input type="hidden" name="action" value="Approve">
+                                    <input type="hidden" name="emp_id" value="{{ req.emp_id }}">
+                                    <input type="hidden" name="date" value="{{ req.date }}">
+                                    <input type="hidden" name="type" value="{{ req.type }}">
+                                    <input type="hidden" name="timestamp" value="{{ req.timestamp }}">
+                                    <input type="hidden" name="action" value="Approve">
                                     <button type="submit" class="badge badge-approved" style="border: none; cursor: pointer; padding: 0.6rem 1rem;">Approve</button>
                                 </form>
                                 <form method="POST" action="{{ url_for('action_request') }}" style="margin: 0;">
-                                    <input type="hidden" name="emp_id" value="{{ req.emp_id }}"><input type="hidden" name="date" value="{{ req.date }}"><input type="hidden" name="type" value="{{ req.type }}"><input type="hidden" name="timestamp" value="{{ req.timestamp }}"><input type="hidden" name="action" value="Reject">
+                                    <input type="hidden" name="emp_id" value="{{ req.emp_id }}">
+                                    <input type="hidden" name="date" value="{{ req.date }}">
+                                    <input type="hidden" name="type" value="{{ req.type }}">
+                                    <input type="hidden" name="timestamp" value="{{ req.timestamp }}">
+                                    <input type="hidden" name="action" value="Reject">
                                     <button type="submit" class="badge badge-rejected" style="border: none; cursor: pointer; padding: 0.6rem 1rem;">Reject</button>
                                 </form>
                             </div>
@@ -127,15 +206,85 @@
     </div>
 </div>
 
-<!-- TAB 2: APPLY FOR LEAVE/WFH -->
+
+<!-- ===== TAB 2: RECENT ACTIVITY ===== -->
+<div id="activity-tab" class="tab-content">
+    <div class="card">
+        <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="history" size="20"></i> Recent Activity
+        </h3>
+
+        <!-- Date Filter -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <label style="font-weight: 600; font-size: 0.9rem;">From:</label>
+                <input id="filter-start" type="date" name="start_date" value="{{ start_date }}"
+                       onchange="filterByDate()"
+                       style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-family: inherit;">
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <label style="font-weight: 600; font-size: 0.9rem;">To:</label>
+                <input id="filter-end" type="date" name="end_date" value="{{ end_date }}"
+                       onchange="filterByDate()"
+                       style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-family: inherit;">
+            </div>
+            <button onclick="resetFilter()"
+                    style="padding: 0.5rem 1rem; background: white; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-weight: 600;">
+                Reset
+            </button>
+        </div>
+
+        <div class="table-wrapper">
+            {% if recent_requests %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Team</th>
+                        <th>Type</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in recent_requests %}
+                    <tr>
+                        <td style="font-weight: 700; padding: 1rem;">{{ req.emp_name }}</td>
+                        <td style="padding: 1rem;"><span class="badge" style="background:#f1f5f9;">{{ req.team }}</span></td>
+                        <td style="padding: 1rem;">{{ req.type }}</td>
+                        <td style="padding: 1rem;">{{ req.display_date }}</td>
+                        <td style="padding: 1rem;">
+                            {% if req.status == 'Approved' %}
+                            <span class="badge" style="background: #dcfce7; color: #166534;">Approved</span>
+                            {% elif req.status == 'Rejected' %}
+                            <span class="badge" style="background: #fee2e2; color: #991b1b;">Rejected</span>
+                            {% else %}
+                            <span class="badge" style="background: #f1f5f9;">{{ req.status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                <i data-lucide="clock" size="32" style="opacity: 0.4; margin-bottom: 0.5rem;"></i>
+                <p>No recent activity found for selected date range.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+
+<!-- ===== TAB 3: PERSONAL APPLY ===== -->
 <div id="apply-tab" class="tab-content">
     <div class="row">
         <div class="col-8">
             <div class="card">
                 <h3 style="margin-bottom: 2rem;"><i data-lucide="calendar-plus" size="22"></i> Personal Absence Application</h3>
-                
                 <form method="POST" action="{{ url_for('mark_request') }}">
-                    <!-- TYPE SELECTOR (Radio Buttons) -->
+                    <!-- Type Selector -->
                     <div style="margin-bottom: 2rem;">
                         <label style="display: block; font-weight: 700; margin-bottom: 1rem; font-size: 0.9rem; color: var(--text);">Select Request Type</label>
                         <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
@@ -163,7 +312,7 @@
                         </div>
                     </div>
 
-                    <!-- DATE RANGE -->
+                    <!-- Date Range -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
                         <div>
                             <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">Start Date</label>
@@ -201,24 +350,38 @@
     </div>
 </div>
 
-<style>
-    .radio-label { flex: 1; min-width: 120px; cursor: pointer; }
-    .radio-label input { display: none; }
-    .radio-card { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1rem; border: 2px solid var(--border); border-radius: 12px; transition: all 0.2s; background: white; }
-    .radio-label input:checked + .radio-card { border-color: var(--primary); background: #eff6ff; color: var(--primary); box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.1); }
-    .radio-card i { opacity: 0.7; }
-    .radio-label input:checked + .radio-card i { opacity: 1; }
-</style>
+
 <script>
     function showTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active-tab'));
         document.getElementById(tabId).style.display = 'block';
-        if(tabId === 'requests-tab') {
-            document.getElementById('btn-requests').classList.add('active-tab');
-        } else {
-            document.getElementById('btn-apply').classList.add('active-tab');
-        }
+        const btnMap = { 'requests-tab': 'btn-requests', 'activity-tab': 'btn-activity', 'apply-tab': 'btn-apply' };
+        document.getElementById(btnMap[tabId]).classList.add('active-tab');
+    }
+
+    function filterByDate() {
+        const startDate = document.getElementById('filter-start').value;
+        const endDate = document.getElementById('filter-end').value;
+        const url = new URL(window.location.href);
+        url.searchParams.set('start_date', startDate);
+        url.searchParams.set('end_date', endDate);
+        window.location.href = url.toString();
+    }
+
+    function resetFilter() {
+        const today = '{{ today }}';
+        const url = new URL(window.location.href);
+        url.searchParams.set('start_date', today);
+        url.searchParams.set('end_date', today);
+        window.location.href = url.toString();
+    }
+
+    // Re-open activity tab if URL has date filter params (user filtered from that tab)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('start_date') || urlParams.has('end_date')) {
+        showTab('activity-tab');
     }
 </script>
+
 {% endblock %}

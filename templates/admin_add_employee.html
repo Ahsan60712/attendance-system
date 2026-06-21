@@ -7,7 +7,7 @@
     <h2 style="font-size: 1.5rem;" class="d-flex align-items-center gap-2">
         <i data-lucide="user-plus" style="width: 24px; height: 24px;"></i> Add New Employee
     </h2>
-    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">
+    <a href="{% if session.get('user_type') == 'ceo' %}{{ url_for('ceo_dashboard') }}{% else %}{{ url_for('admin_dashboard') }}{% endif %}" class="btn btn-secondary btn-sm">
         <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back to Dashboard
     </a>
 </div>

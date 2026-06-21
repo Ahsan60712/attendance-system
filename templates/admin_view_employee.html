@@ -1,170 +1,467 @@
 {% extends "base.html" %}
 
-{% block title %}Employee Records: {{ employee.emp_name }} - Adlab Solutions{% endblock %}
+{% block title %}{{ employee.emp_name | replace('_', ' ') }} — Employee Details{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 animate-in">
-    <h2 style="font-size: 1.5rem;" class="d-flex align-items-center gap-2">
-        <i data-lucide="user" style="width: 24px; height: 24px;"></i> {{ employee.emp_name }}'s Records
-    </h2>
-    <div class="d-flex gap-2">
-        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">
-            <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Dashboard
-        </a>
-        <a href="{{ url_for('manage_employees_route') }}" class="btn btn-secondary btn-sm">
-            <i data-lucide="users" style="width: 16px; height: 16px;"></i> Directory
-        </a>
-    </div>
-</div>
+<style>
+    /* ─── Hero Banner ─── */
+    .emp-hero {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        color: white;
+        margin: -1.5rem -2rem 2.5rem -2rem;
+        padding: 2rem 2.5rem;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        position: relative;
+        overflow: hidden;
+    }
+    .emp-hero::before {
+        content: '';
+        position: absolute; top: -70px; right: -70px;
+        width: 240px; height: 240px;
+        background: rgba(255,255,255,0.04); border-radius: 50%;
+    }
+    .emp-hero::after {
+        content: '';
+        position: absolute; bottom: -40px; right: 150px;
+        width: 140px; height: 140px;
+        background: rgba(255,255,255,0.03); border-radius: 50%;
+    }
+    .hero-identity { display: flex; align-items: center; gap: 1.25rem; position: relative; z-index: 1; }
+    .hero-avatar {
+        width: 64px; height: 64px; border-radius: 18px;
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; font-weight: 800; color: white;
+        flex-shrink: 0; box-shadow: 0 4px 12px rgba(99,102,241,0.4);
+    }
+    .hero-name { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 0.3rem; }
+    .hero-meta { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .hero-chip {
+        display: inline-flex; align-items: center; gap: 0.35rem;
+        background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 999px; padding: 0.3rem 0.8rem;
+        font-size: 0.78rem; font-weight: 600; opacity: 0.9;
+    }
+    .hero-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; position: relative; z-index: 1; }
+    .btn-hero-back {
+        display: inline-flex; align-items: center; gap: 0.45rem;
+        padding: 0.6rem 1.15rem;
+        background: rgba(255,255,255,0.1); color: white;
+        border: 1px solid rgba(255,255,255,0.2); border-radius: 10px;
+        font-weight: 600; font-size: 0.85rem; text-decoration: none;
+        transition: background 0.2s; white-space: nowrap;
+    }
+    .btn-hero-back:hover { background: rgba(255,255,255,0.2); color: white; }
+    .btn-hero-edit {
+        display: inline-flex; align-items: center; gap: 0.45rem;
+        padding: 0.6rem 1.15rem;
+        background: #6366f1; color: white;
+        border: none; border-radius: 10px;
+        font-weight: 600; font-size: 0.85rem; text-decoration: none;
+        transition: background 0.2s; white-space: nowrap; cursor: pointer;
+    }
+    .btn-hero-edit:hover { background: #4f46e5; color: white; }
+    .btn-hero-delete {
+        display: inline-flex; align-items: center; gap: 0.45rem;
+        padding: 0.6rem 1.15rem;
+        background: rgba(239,68,68,0.15); color: #fca5a5;
+        border: 1px solid rgba(239,68,68,0.3); border-radius: 10px;
+        font-weight: 600; font-size: 0.85rem;
+        transition: background 0.2s; white-space: nowrap; cursor: pointer;
+    }
+    .btn-hero-delete:hover { background: rgba(239,68,68,0.28); }
 
-<div class="card mb-4 animate-in" style="animation-delay: 0.1s; background: linear-gradient(135deg, #f8fafc, #ffffff);">
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-4">
-        <div>
-            <h3 class="mb-2">{{ employee.emp_name }}</h3>
-            <p class="text-muted d-flex align-items-center gap-2 mb-1">
-                <i data-lucide="briefcase" style="width: 14px; height: 14px;"></i> {{ employee.emp_team }} Team
-            </p>
-            <p class="text-muted d-flex align-items-center gap-2 mb-1">
-                <i data-lucide="hash" style="width: 14px; height: 14px;"></i> Emp ID: {{ employee.emp_id }}
-            </p>
-            {% if employee.Contract_Type and employee.Contract_Type != 'Permanent' %}
-            <p class="text-muted small mt-2">
-                <span class="badge" style="background: var(--primary-light); color: var(--primary);">{{ employee.Contract_Type }}</span>
-                {{ employee.Contract_Start_Date }} to {{ employee.Contract_End_Date }}
-            </p>
-            {% endif %}
+    /* ─── Two-column grid ─── */
+    .detail-grid {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+        align-items: start;
+    }
+    @media (max-width: 860px) {
+        .detail-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ─── Info Panel ─── */
+    .info-panel {
+        background: white; border: 1px solid #f1f5f9;
+        border-radius: 16px; overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .info-panel-header {
+        padding: 1.1rem 1.4rem;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.75rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.06em;
+        color: #94a3b8; display: flex; align-items: center; gap: 0.4rem;
+    }
+    .info-row {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 0.85rem 1.4rem;
+        border-bottom: 1px solid #f8fafc;
+        font-size: 0.875rem;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-key { color: #94a3b8; font-weight: 600; }
+    .info-val { color: #0f172a; font-weight: 700; text-align: right; }
+
+    /* Role badge inside info panel */
+    .rbadge {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        padding: 0.25rem 0.7rem; border-radius: 999px;
+        font-size: 0.75rem; font-weight: 700;
+    }
+    .rbadge-admin    { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+    .rbadge-manager  { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
+    .rbadge-employee { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+    .rbadge-intern   { background: #fefce8; color: #a16207; border: 1px solid #fef08a; }
+
+    /* ─── Leave Balance Panel ─── */
+    .balance-panel {
+        background: white; border: 1px solid #f1f5f9;
+        border-radius: 16px; overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .balance-panel-header {
+        padding: 1.1rem 1.4rem;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.75rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.06em;
+        color: #94a3b8; display: flex; align-items: center; gap: 0.4rem;
+    }
+    .balance-kpis {
+        display: grid; grid-template-columns: repeat(3, 1fr);
+        border-bottom: 1px solid #f8fafc;
+    }
+    .balance-kpi {
+        padding: 1.2rem 1.4rem;
+        border-right: 1px solid #f8fafc;
+        text-align: center;
+    }
+    .balance-kpi:last-child { border-right: none; }
+    .bkpi-val {
+        font-size: 2rem; font-weight: 800; line-height: 1;
+        margin-bottom: 0.3rem; display: block;
+    }
+    .bkpi-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; }
+
+    /* Leave balance formula row */
+    .formula-row {
+        display: flex; align-items: center; gap: 0; overflow-x: auto;
+        padding: 1rem 1.4rem; flex-wrap: wrap; gap: 0.5rem;
+    }
+    .formula-item { text-align: center; min-width: 90px; }
+    .formula-val  { font-size: 1.35rem; font-weight: 800; display: block; line-height: 1; }
+    .formula-lbl  { font-size: 0.68rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+    .formula-op   { font-size: 1.25rem; font-weight: 700; color: #cbd5e1; padding: 0 0.25rem; align-self: flex-start; margin-top: 0.2rem; }
+
+    /* ─── Filter Card ─── */
+    .filter-card {
+        background: white; border: 1px solid #f1f5f9;
+        border-radius: 16px; padding: 1.25rem 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        margin-bottom: 1.5rem;
+    }
+    .filter-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; margin-bottom: 0.4rem; display: block; }
+    .filter-row { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; }
+    .filter-group { display: flex; flex-direction: column; flex: 1; min-width: 150px; }
+    .filter-input {
+        padding: 0.6rem 0.85rem; border: 1px solid #e2e8f0; border-radius: 10px;
+        font-size: 0.875rem; font-family: inherit; color: #0f172a;
+        outline: none; transition: border-color 0.2s, box-shadow 0.2s; background: white;
+    }
+    .filter-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+    .filter-btn {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        padding: 0.62rem 1.2rem; background: #6366f1; color: white;
+        border: none; border-radius: 10px; font-weight: 700;
+        font-size: 0.85rem; cursor: pointer; white-space: nowrap;
+        transition: background 0.2s;
+    }
+    .filter-btn:hover { background: #4f46e5; }
+    .filter-date-info { font-size: 0.78rem; color: #94a3b8; margin-top: 0.75rem; display: flex; align-items: center; gap: 0.35rem; }
+
+    /* ─── Stats row ─── */
+    .range-stats {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .range-stat {
+        background: white; border: 1px solid #f1f5f9;
+        border-radius: 14px; padding: 1.1rem 1.3rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        display: flex; flex-direction: column; gap: 0.3rem;
+    }
+    .rs-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem; }
+    .rs-val  { font-size: 1.75rem; font-weight: 800; line-height: 1; }
+    .rs-lbl  { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; }
+
+    /* ─── History Table ─── */
+    .history-card {
+        background: white; border: 1px solid #f1f5f9;
+        border-radius: 16px; overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .history-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 1.1rem 1.5rem; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; gap: 0.5rem;
+    }
+    .history-title { font-size: 0.95rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.4rem; }
+    .rec-count { font-size: 0.78rem; color: #94a3b8; font-weight: 600; }
+    .hist-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .hist-table thead th {
+        background: #f8fafc; padding: 0.8rem 1.2rem;
+        font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.06em; color: #94a3b8;
+        border-bottom: 1px solid #f1f5f9; white-space: nowrap;
+    }
+    .hist-table tbody tr { border-bottom: 1px solid #f8fafc; transition: background 0.15s; }
+    .hist-table tbody tr:last-child { border-bottom: none; }
+    .hist-table tbody tr:hover { background: #fafbff; }
+    .hist-table td { padding: 0.9rem 1.2rem; vertical-align: middle; color: #334155; }
+
+    /* Type badges */
+    .type-wfh     { background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; }
+    .type-leave   { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+    .type-halfday { background: #fefce8; color: #a16207; border: 1px solid #fef08a; }
+    .type-badge {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        padding: 0.25rem 0.65rem; border-radius: 999px;
+        font-size: 0.75rem; font-weight: 700;
+    }
+
+    /* Status badges */
+    .stat-approved  { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+    .stat-rejected  { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+    .stat-pending   { background: #fffbeb; color: #a16207; border: 1px solid #fde68a; }
+    .stat-cancelled { background: #f8fafc; color: #94a3b8; border: 1px solid #e2e8f0; }
+    .stat-badge {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        padding: 0.25rem 0.65rem; border-radius: 999px;
+        font-size: 0.75rem; font-weight: 700;
+    }
+
+    .empty-hist { text-align: center; padding: 3.5rem 1rem; color: #94a3b8; }
+    .empty-hist i { opacity: 0.3; margin-bottom: 0.75rem; }
+    .empty-hist p { font-size: 0.875rem; }
+</style>
+
+<!-- ─── Hero ─── -->
+<div class="emp-hero">
+    <div class="hero-identity">
+        <div class="hero-avatar">
+            {{ (employee.emp_name | replace('_', ' '))[:2] | upper }}
         </div>
-        <form method="POST" action="{{ url_for('delete_employee_route', emp_id=employee.emp_id) }}" style="margin: 0;" onsubmit="return confirm('Are you sure you want to remove this employee? This action cannot be undone.');">
-            <button type="submit" class="btn btn-danger btn-sm d-flex align-items-center gap-2">
-                <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Remove Employee
+        <div>
+            <div class="hero-name">{{ employee.emp_name | replace('_', ' ') }}</div>
+            <div class="hero-meta">
+                <span class="hero-chip"><i data-lucide="briefcase" size="12"></i> {{ employee.emp_team }} Team</span>
+                <span class="hero-chip"><i data-lucide="hash" size="12"></i> ID {{ employee.emp_id }}</span>
+                {% if employee.Contract_Type %}
+                <span class="hero-chip"><i data-lucide="file-text" size="12"></i> {{ employee.Contract_Type }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="hero-actions">
+        <a href="{{ url_for('manage_employees_route') }}" class="btn-hero-back">
+            <i data-lucide="arrow-left" size="15"></i> Back
+        </a>
+        <a href="{{ url_for('edit_employee_route', emp_id=employee.emp_id) }}" class="btn-hero-edit">
+            <i data-lucide="pencil" size="15"></i> Edit
+        </a>
+        <form method="POST" action="{{ url_for('delete_employee_route', emp_id=employee.emp_id) }}" style="margin:0;"
+              onsubmit="return confirm('Remove {{ employee.emp_name | replace('_', ' ') }}? This cannot be undone.');">
+            <button type="submit" class="btn-hero-delete">
+                <i data-lucide="trash-2" size="15"></i> Remove
             </button>
         </form>
     </div>
 </div>
 
-<!-- On-page Filter -->
-<div class="card mb-4 animate-in" style="animation-delay: 0.2s; padding: 1.5rem;">
-    <form method="GET" class="d-flex justify-content-between align-items-end flex-wrap gap-4" style="margin: 0;">
-        <input type="hidden" name="filter_type" value="custom">
-        <div class="d-flex gap-4 flex-wrap flex-1">
-            <div class="form-group mb-0 flex-1" style="min-width: 200px;">
-                <label class="text-muted small">From Date</label>
-                <input type="date" name="start_date" value="{{ start_date }}" class="form-control-sm w-full">
+<!-- ─── Details + Leave Balance ─── -->
+<div class="detail-grid">
+
+    <!-- Info Panel -->
+    <div class="info-panel">
+        <div class="info-panel-header"><i data-lucide="user" size="13"></i> Profile</div>
+        <div class="info-row">
+            <span class="info-key">Employee ID</span>
+            <span class="info-val" style="font-family:monospace; font-size:0.8rem;">#{{ employee.emp_id }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-key">Team</span>
+            <span class="info-val">{{ employee.emp_team }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-key">Role</span>
+            <span class="info-val">
+                {% if employee.is_admin %}
+                <span class="rbadge rbadge-admin"><i data-lucide="shield" size="11"></i> Admin</span>
+                {% elif employee.is_manager %}
+                <span class="rbadge rbadge-manager"><i data-lucide="briefcase" size="11"></i> Manager</span>
+                {% else %}
+                <span class="rbadge rbadge-employee"><i data-lucide="user" size="11"></i> Employee</span>
+                {% endif %}
+            </span>
+        </div>
+        <div class="info-row">
+            <span class="info-key">Contract</span>
+            <span class="info-val">
+                {% if employee.Contract_Type %}
+                <span class="rbadge rbadge-intern">{{ employee.Contract_Type }}</span>
+                {% else %}—{% endif %}
+            </span>
+        </div>
+        {% if employee.Contract_Start_Date and employee.Contract_Start_Date != 'None' %}
+        <div class="info-row">
+            <span class="info-key">Start Date</span>
+            <span class="info-val">{{ employee.Contract_Start_Date }}</span>
+        </div>
+        {% endif %}
+        {% if employee.Contract_End_Date and employee.Contract_End_Date != 'None' %}
+        <div class="info-row">
+            <span class="info-key">End Date</span>
+            <span class="info-val">{{ employee.Contract_End_Date }}</span>
+        </div>
+        {% endif %}
+        <div class="info-row">
+            <span class="info-key">Total Leaves</span>
+            <span class="info-val">{{ employee.Total_leaves | int }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-key">WFH Count</span>
+            <span class="info-val">{{ employee.WFH_count | int }}</span>
+        </div>
+    </div>
+
+    <!-- Right Column: Stats & Filters -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        
+        <!-- ─── Range Stats ─── -->
+        <div class="range-stats" style="margin-bottom: 0;">
+            <div class="range-stat">
+                <div class="rs-icon" style="background:#eff6ff;">
+                    <i data-lucide="home" size="16" style="color:#2563eb;"></i>
+                </div>
+                <span class="rs-val" style="color:#2563eb;">{{ employee.WFH_count | default(0) | format_number }}</span>
+                <span class="rs-lbl">WFH Days</span>
             </div>
-            <div class="form-group mb-0 flex-1" style="min-width: 200px;">
-                <label class="text-muted small">To Date</label>
-                <input type="date" name="end_date" value="{{ end_date }}" class="form-control-sm w-full">
+            <div class="range-stat">
+                <div class="rs-icon" style="background:#fefce8;">
+                    <i data-lucide="clock" size="16" style="color:#a16207;"></i>
+                </div>
+                <span class="rs-val" style="color:#a16207;">{{ employee.Half_Day | default(0) | format_number }}</span>
+                <span class="rs-lbl">Half Days</span>
+            </div>
+            <div class="range-stat">
+                <div class="rs-icon" style="background:#fff7ed;">
+                    <i data-lucide="plane" size="16" style="color:#c2410c;"></i>
+                </div>
+                <span class="rs-val" style="color:#c2410c;">{{ leave_balance.leaves_taken_this_year | default(0) | format_number }}</span>
+                <span class="rs-lbl">Leaves This Year</span>
+            </div>
+            <div class="range-stat" style="border: 1px solid #bbf7d0; background: #f0fdf4;">
+                <div class="rs-icon" style="background:#dcfce7;">
+                    <i data-lucide="shield-check" size="16" style="color:#15803d;"></i>
+                </div>
+                <span class="rs-val" style="color:#15803d;">{{ leave_balance.remaining_leaves | default(employee.Remaining_Leaves | default(0)) | format_number }}</span>
+                <span class="rs-lbl">Leaves Left</span>
             </div>
         </div>
-        <button type="submit" class="btn btn-primary btn-sm"><i data-lucide="filter" style="width: 14px; height: 14px;"></i> Filter Records</button>
-    </form>
-    <p class="text-muted small mt-3 mb-0 text-right">Showing records from {{ start_date }} to {{ end_date }}</p>
+
+        <!-- ─── Date Filter ─── -->
+        <div class="filter-card" style="margin-bottom: 0;">
+            <form method="GET" style="margin:0;">
+                <input type="hidden" name="filter_type" value="custom">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label class="filter-label">From Date</label>
+                        <input type="date" name="start_date" value="{{ start_date }}" class="filter-input">
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">To Date</label>
+                        <input type="date" name="end_date" value="{{ end_date }}" class="filter-input">
+                    </div>
+                    <button type="submit" class="filter-btn">
+                        <i data-lucide="filter" size="14"></i> Apply Filter
+                    </button>
+                </div>
+                <div class="filter-date-info">
+                    <i data-lucide="calendar-range" size="13"></i>
+                    Showing records from <strong style="color:#475569; margin:0 0.25rem;">{{ start_date }}</strong>
+                    to <strong style="color:#475569; margin-left:0.25rem;">{{ end_date }}</strong>
+                </div>
+            </form>
+        </div>
+
+    </div>
 </div>
 
-<!-- Stats Grid for Range -->
-<div class="stats-grid mb-4 animate-in" style="animation-delay: 0.3s;">
-    <div class="stat-card">
-        <div class="stat-value text-primary">{{ filtered_wfh|default(0) }}</div>
-        <div class="stat-label">WFH (Range)</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-value">{{ filtered_half_day|default(0) }}</div>
-        <div class="stat-label">Half Days (Range)</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-value text-warning">{{ filtered_leaves|default(0) }}</div>
-        <div class="stat-label">Leaves (Range)</div>
-    </div>
-    <div class="stat-card" style="border-left-color: var(--success); background: linear-gradient(135deg, #f0fdf4, #ffffff);">
-        <div class="stat-value text-success">{{ leave_balance.remaining_leaves|default(employee.Remaining_Leaves|default(0)) }}</div>
-        <div class="stat-label">Leaves Left</div>
-    </div>
-</div>
-
-{% if leave_balance and leave_balance.contract_year_start != 'N/A' %}
-<div class="leave-balance-panel animate-in mb-4" style="animation-delay: 0.4s;">
-    <div class="leave-balance-header">
-        <strong><i data-lucide="calendar" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 4px;"></i> Contract Year: {{ leave_balance.contract_year_start }} &rarr; {{ leave_balance.contract_year_end }}</strong>
-    </div>
-    <div class="leave-balance-body">
-        <div class="lb-item">
-            <span class="lb-label">Annual Entitlement</span>
-            <span class="lb-value">{{ leave_balance.total_leaves | int }}</span>
-        </div>
-        <div class="lb-sep">+</div>
-        <div class="lb-item">
-            <span class="lb-label">Carried Forward</span>
-            <span class="lb-value text-success">{{ leave_balance.carried_forward | int }}</span>
-        </div>
-        <div class="lb-sep">=</div>
-        <div class="lb-item">
-            <span class="lb-label">Total Available</span>
-            <span class="lb-value">{{ leave_balance.total_available | int }}</span>
-        </div>
-        <div class="lb-sep">&minus;</div>
-        <div class="lb-item">
-            <span class="lb-label">Taken This Year</span>
-            <span class="lb-value" style="color: var(--danger);">{{ leave_balance.leaves_taken_this_year }}</span>
-        </div>
-        <div class="lb-sep">=</div>
-        <div class="lb-item highlight-item">
-            <span class="lb-label">Remaining</span>
-            <span class="lb-value">{{ leave_balance.remaining_leaves }}</span>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-<div class="card animate-in" style="animation-delay: 0.5s;">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="mb-0 d-flex align-items-center gap-2"><i data-lucide="list"></i> Usage History</h3>
-        <p class="text-muted small mb-0">Total records: {{ records|length }}</p>
+<!-- ─── History Table ─── -->
+<div class="history-card">
+    <div class="history-header">
+        <span class="history-title"><i data-lucide="list" size="16"></i> Usage History</span>
+        <span class="rec-count">{{ records | length }} record{{ 's' if records | length != 1 else '' }}</span>
     </div>
 
     {% if records %}
-    <div class="table-container">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Reason</th>
-                    <th>Submitted At</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for record in records %}
-                <tr>
-                    <td><strong>{{ record.date }}</strong></td>
-                    <td>
-                        <span class="badge badge-{{ record.type.lower().replace(' ', '-') }}">{{ record.type }}</span>
-                    </td>
-                    <td>{{ record.reason }}</td>
-                    <td class="text-muted small">{{ record.timestamp }}</td>
-                    <td>
-                        {% if record.status == 'Pending' %}
-                        <span class="badge badge-pending">Pending</span>
-                        {% elif record.status == 'Approved' %}
-                        <span class="badge badge-approved">Approved</span>
-                        {% elif record.status == 'Rejected' %}
-                        <span class="badge badge-rejected">Rejected</span>
-                        {% elif record.status == 'Cancelled' %}
-                        <span class="badge" style="background: var(--border); color: var(--text-muted);">Cancelled</span>
-                        {% else %}
-                        <span class="badge badge-approved">{{ record.status|default('Approved') }}</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    <table class="hist-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Reason</th>
+                <th>Submitted</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records %}
+            <tr>
+                <td style="font-weight:700; color:#0f172a; white-space:nowrap;">{{ record.date }}</td>
+                <td>
+                    {% set t = record.type | lower %}
+                    {% if 'wfh' in t %}
+                    <span class="type-badge type-wfh"><i data-lucide="home" size="11"></i> WFH</span>
+                    {% elif 'half' in t %}
+                    <span class="type-badge type-halfday"><i data-lucide="clock" size="11"></i> Half Day</span>
+                    {% else %}
+                    <span class="type-badge type-leave"><i data-lucide="plane" size="11"></i> Leave</span>
+                    {% endif %}
+                </td>
+                <td style="color:#475569; max-width:280px;">{{ record.reason }}</td>
+                <td style="color:#94a3b8; font-size:0.8rem; white-space:nowrap;">{{ record.timestamp }}</td>
+                <td>
+                    {% set s = record.status %}
+                    {% if s == 'Approved' %}
+                    <span class="stat-badge stat-approved"><i data-lucide="check" size="11"></i> Approved</span>
+                    {% elif s == 'Rejected' %}
+                    <span class="stat-badge stat-rejected"><i data-lucide="x" size="11"></i> Rejected</span>
+                    {% elif s == 'Pending' %}
+                    <span class="stat-badge stat-pending"><i data-lucide="clock" size="11"></i> Pending</span>
+                    {% elif s == 'Cancelled' %}
+                    <span class="stat-badge stat-cancelled"><i data-lucide="minus" size="11"></i> Cancelled</span>
+                    {% else %}
+                    <span class="stat-badge stat-approved">{{ s }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
     {% else %}
-    <div class="p-4 text-center text-muted" style="background: var(--light); border-radius: 12px;">
-        <i data-lucide="inbox" style="width: 32px; height: 32px; opacity: 0.5; margin-bottom: 0.5rem;"></i>
-        <p>No WFH or Leave records found for this period.</p>
+    <div class="empty-hist">
+        <div><i data-lucide="inbox" size="34"></i></div>
+        <p>No records found for the selected date range.</p>
     </div>
     {% endif %}
 </div>
+
 {% endblock %}

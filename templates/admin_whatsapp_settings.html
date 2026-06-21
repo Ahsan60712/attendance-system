@@ -9,7 +9,7 @@
             <i data-lucide="message-circle" size="24" style="color: #25d366;"></i> WhatsApp Cloud API Controls
         </h2>
         <div class="btn-group">
-            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline">
+            <a href="{% if session.get('user_type') == 'ceo' %}{{ url_for('ceo_dashboard') }}{% else %}{{ url_for('admin_dashboard') }}{% endif %}" class="btn btn-outline">
                 <i data-lucide="arrow-left" size="18"></i> Back to Dashboard
             </a>
         </div>

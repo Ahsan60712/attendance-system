@@ -3,7 +3,6 @@ from attendance_manager import WFHLeaveManager
 from datetime import date, datetime, timedelta
 import os
 import logging
-import pandas as pd
 from dotenv import load_dotenv
 import threading
 
@@ -17,9 +16,47 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-change-this-in-production'
 
-# Initialize the WFH/Leave manager
+# Initialize the WFH/Leave manager (Ab yeh pure database se link hona chahiye)
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 manager = WFHLeaveManager(BASE_PATH)
+
+def _is_empty_or_nan(val):
+    """Helper function to replace pandas pd.isna check for database values"""
+    if val is None:
+        return True
+    s_val = str(val).strip().lower()
+    return s_val in ['', 'none', 'nan', 'nat', '<na>']
+
+def _attach_request_leave_balance(req, balance_cache):
+    """Set emp_balance from ATTENDANCE_REQUESTS-based calculation from Database."""
+    emp_id = req.get('emp_id')
+    if not emp_id:
+        req['emp_balance'] = 'N/A'
+        return
+    bal = manager.get_leave_balance_cached(emp_id, balance_cache)
+    req['emp_balance'] = bal.get('remaining_leaves', 'N/A')
+    req['total_allotted'] = bal.get('total_available', bal.get('total_leaves', 14))
+
+def _enrich_employees_leave_balances(employees):
+    """Refresh Remaining_Leaves on employee dicts from approved attendance requests in DB."""
+    balance_cache = {}
+    for emp in employees:
+        emp_id = emp.get('emp_id')
+        if not emp_id:
+            continue
+        bal = manager.get_leave_balance_cached(emp_id, balance_cache)
+        if bal:
+            emp['Remaining_Leaves'] = bal.get('remaining_leaves', emp.get('Remaining_Leaves', 0))
+            emp['Leaves_This_Year'] = bal.get('leaves_taken_this_year', emp.get('Leaves_This_Year', 0))
+            emp['WFH_count'] = bal.get('wfh_count', emp.get('WFH_count', 0))
+
+def _sync_all_balances_on_startup():
+    try:
+        manager.sync_all_employee_counters()
+    except Exception as e:
+        print(f"[Startup] Leave balance sync failed: {e}")
+
+# threading.Thread(target=_sync_all_balances_on_startup, daemon=True).start()
 
 # ── APScheduler — Automated Daily Summary & Absent Alert ─────────────────────
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -30,8 +67,23 @@ def privacy_policy():
     """Privacy policy page for Meta API compliance"""
     return render_template('privacy_policy.html')
 
+def _run_daily_leave_checks():
+    """Background job: Automatically check and apply rollover/expiry from DB daily."""
+    print("[Scheduler] ▶ Running daily leave expiry and rollover checks for all employees...")
+    try:
+        employees = manager.get_employees()
+        for emp in employees:
+            emp_id = emp.get('emp_id')
+            if emp_id:
+                manager.check_and_rollover_leaves(emp_id)
+                manager.check_and_apply_expiry(emp_id)
+        # manager.sync_all_employee_counters()  # Disabled to prevent overwriting manually entered data in EMPLOYEES table
+        print("[Scheduler] ✅ Daily leave checks completed for all employees.")
+    except Exception as e:
+        print(f"[Scheduler] ❌ Error in daily leave checks: {e}")
+
 def _send_daily_summaries():
-    """Background job: build per-team attendance summary and WhatsApp each manager."""
+    """Background job: build per-team attendance summary from DB and WhatsApp each manager."""
     today = date.today()
     # Skip weekends
     if today.weekday() >= 5:
@@ -48,7 +100,7 @@ def _send_daily_summaries():
             mgr_name = mgr.get('emp_name', 'Manager')
             mgr_team = str(mgr.get('emp_team', '')).strip()
 
-            if not mgr_phone or pd.isna(mgr_phone) or str(mgr_phone).strip() == '':
+            if _is_empty_or_nan(mgr_phone):
                 print(f"[Scheduler] Skipping {mgr_name} — no phone number.")
                 continue
 
@@ -85,7 +137,7 @@ def _send_absent_alerts():
             mgr_name = mgr.get('emp_name', 'Manager')
             mgr_team = str(mgr.get('emp_team', '')).strip()
 
-            if not mgr_phone or pd.isna(mgr_phone) or str(mgr_phone).strip() == '':
+            if _is_empty_or_nan(mgr_phone):
                 continue
 
             team_data = teams.get(mgr_team, {})
@@ -103,10 +155,9 @@ def _send_absent_alerts():
                 # ── Notify Each Absent Employee Directly ──
                 employees = manager.get_employees()
                 for emp_name in absent:
-                    # Find employee data to get their phone number
                     emp_info = next((e for e in employees if str(e.get('emp_name')).strip() == str(emp_name).strip()), {})
                     emp_phone = emp_info.get('phone', '')
-                    if emp_phone and not pd.isna(emp_phone):
+                    if not _is_empty_or_nan(emp_phone):
                         wa.notify_employee_absence(
                             emp_phone=str(emp_phone),
                             emp_name=emp_name,
@@ -117,13 +168,41 @@ def _send_absent_alerts():
         print(f"[Scheduler] ❌ Error sending absent alerts: {e}")
 
 
-# Schedule the jobs (Pakistan time = UTC+5)
+def _run_annual_contract_renewal():
+    """Scheduler job: runs on July 1st each year — advances all employee contract dates by 1 year."""
+    today = date.today()
+    print(f"[Scheduler] ▶ Running annual contract renewal for {today}...")
+    try:
+        results = manager.renew_all_contracts()
+        renewed  = [r for r in results if r['status'] == 'renewed']
+        skipped  = [r for r in results if r['status'] == 'skipped']
+        errors   = [r for r in results if r['status'] == 'error']
+        for r in renewed:
+            print(f"[Scheduler]   ✅ {r['emp']}: {r['old_start']} → {r['old_end']}  ⟹  {r['new_start']} → {r['new_end']}")
+        for r in skipped:
+            print(f"[Scheduler]   ⏭  {r['emp']}: skipped — {r['reason']}")
+        for r in errors:
+            print(f"[Scheduler]   ❌ {r['emp']}: ERROR — {r['reason']}")
+        print(f"[Scheduler] ✅ Contract renewal done — {len(renewed)} renewed, {len(skipped)} skipped, {len(errors)} errors.")
+    except Exception as e:
+        print(f"[Scheduler] ❌ Error in annual contract renewal: {e}")
+
 SUMMARY_HOUR = int(os.environ.get('DAILY_SUMMARY_HOUR', 9))
 SUMMARY_MINUTE = int(os.environ.get('DAILY_SUMMARY_MINUTE', 30))
 ALERT_HOUR = int(os.environ.get('ABSENT_ALERT_HOUR', 11))
-ALERT_MINUTE = int(os.environ.get('ABSENT_ALERT_MINUTE', 0))
+ALERT_MINUTE = int(os.environ.get('DAILY_SUMMARY_MINUTE', 0))
 
 scheduler = BackgroundScheduler(daemon=True)
+
+scheduler.add_job(
+    _run_daily_leave_checks,
+    trigger='cron',
+    hour=0,
+    minute=5,
+    id='daily_leave_checks',
+    name='Daily Leave Expiry and Rollover'
+)
+
 scheduler.add_job(
     _send_daily_summaries,
     trigger='cron',
@@ -142,20 +221,29 @@ scheduler.add_job(
     id='absent_alert',
     name='Absent Employee Alert'
 )
+scheduler.add_job(
+    _run_annual_contract_renewal,
+    trigger='cron',
+    month=7,
+    day=1,
+    hour=0,
+    minute=1,
+    id='annual_contract_renewal',
+    name='Annual Contract Renewal (Jul 1)'
+)
+
 scheduler.start()
 atexit.register(lambda: scheduler.shutdown(wait=False))
-print(f"[Scheduler] ✅ Started — Daily summary at {SUMMARY_HOUR:02d}:{SUMMARY_MINUTE:02d}, Absent alert at {ALERT_HOUR:02d}:{ALERT_MINUTE:02d} (Mon–Fri)")
+print(f"[Scheduler] ✅ Started — Leave checks at 00:05, Daily summary at {SUMMARY_HOUR:02d}:{SUMMARY_MINUTE:02d}, Absent alert at {ALERT_HOUR:02d}:{ALERT_MINUTE:02d}")
 
 @app.route('/')
 def index():
-    """Landing page with links to employee and admin login"""
     return render_template('index.html')
 
 # ===== EMPLOYEE ROUTES =====
 
 @app.route('/employee-login', methods=['GET', 'POST'])
 def employee_login():
-    """Employee login page"""
     if request.method == 'POST':
         emp_name = request.form.get('emp_name')
         password = request.form.get('password')
@@ -163,11 +251,9 @@ def employee_login():
         try:
             user = manager.authenticate_user(emp_name, password)
             if user:
-                # Clear any existing flash messages from previous failed attempts
                 session.pop('_flashes', None)
                 session['logged_in'] = True
 
-                # Still check if they are technically a manager acting as an employee
                 if user.get('is_manager', 0) == 1:
                     session['user_type'] = 'manager'
                     session['emp_id'] = user['emp_id']
@@ -187,62 +273,68 @@ def employee_login():
     
     return render_template('employee_login.html')
 
+def _dashboard_url_for_user_type(user_type):
+    if user_type == 'admin':
+        return url_for('admin_dashboard')
+    if user_type == 'ceo':
+        return url_for('ceo_dashboard')
+    if user_type == 'manager':
+        return url_for('manager_dashboard')
+    return url_for('employee_dashboard')
+
 @app.route('/change-password', methods=['GET', 'POST'])
 def change_password():
-    """Change password page"""
-    if not session.get('emp_id'):
+    if not session.get('logged_in') or not session.get('emp_id'):
         return redirect(url_for('index'))
-        
+
+    user_type = session.get('user_type')
+    if user_type not in ('employee', 'manager', 'admin', 'ceo'):
+        return redirect(url_for('index'))
+
     if request.method == 'POST':
-        new_password = request.form.get('new_password')
-        confirm_password = request.form.get('confirm_password')
-        
-        if new_password != confirm_password:
-            flash('Passwords do not match', 'error')
+        current_password = request.form.get('current_password', '')
+        new_password = request.form.get('new_password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        if not current_password or not new_password or not confirm_password:
+            flash('All fields are required.', 'error')
+        elif new_password != confirm_password:
+            flash('New password and confirm password do not match.', 'error')
+        elif len(new_password) < 4:
+            flash('New password must be at least 4 characters.', 'error')
+        elif new_password == current_password:
+            flash('New password must be different from your current password.', 'error')
         else:
             try:
-                manager.change_password(session.get('emp_id'), new_password)
-                # Redirect based on role
-                if session.get('user_type') == 'admin':
-                    return redirect(url_for('admin_dashboard'))
-                elif session.get('user_type') == 'manager':
-                    return redirect(url_for('manager_dashboard'))
-                else:
-                    return redirect(url_for('employee_dashboard'))
+                manager.change_password(session['emp_id'], current_password, new_password)
+                flash('Your password has been updated successfully.', 'success')
+                return redirect(_dashboard_url_for_user_type(user_type))
             except Exception as e:
-                flash(f'Error changing password: {str(e)}', 'error')
-                
+                flash(str(e), 'error')
+
     return render_template('change_password.html')
 
 @app.route('/employee-dashboard')
 def employee_dashboard():
-    """Employee dashboard"""
     if session.get('user_type') != 'employee':
         return redirect(url_for('employee_login'))
     
     emp_id = session.get('emp_id')
     today = date.today()
     
-    # Auto-rollover contract year leaves if anniversary passed
     manager.check_and_rollover_leaves(emp_id)
     manager.check_and_apply_expiry(emp_id)
 
-    # Get all employees to find current emp data
     employees = manager.get_employees()
     current_emp = next((e for e in employees if str(e['emp_id']) == str(emp_id)), {})
 
-    # Rich leave balance for display
     leave_balance = manager.get_leave_balance_info(emp_id)
-    
-    # --- History Filtering Logic ---
     filter_type = request.args.get('filter_type', 'default')
     
     if filter_type == 'monthly':
         month = int(request.args.get('month', today.month))
         year = int(request.args.get('year', today.year))
-        # First day of month
         start_date = date(year, month, 1)
-        # Last day of month
         if month == 12:
             end_date = date(year + 1, 1, 1) - timedelta(days=1)
         else:
@@ -263,7 +355,7 @@ def employee_dashboard():
             start_date = today - timedelta(days=30)
             end_date = today + timedelta(days=365)
             
-    else: # Default view (Last 30 days + Future)
+    else:
         start_date = today - timedelta(days=30)
         end_date = today + timedelta(days=365)
 
@@ -281,12 +373,10 @@ def employee_dashboard():
 
 @app.route('/manager-mark-attendance', methods=['POST'])
 def manager_mark_attendance():
-    """Allow managers to mark attendance for team members for any past date"""
     if session.get('user_type') != 'manager':
         return redirect(url_for('manager_login'))
     
     try:
-        # Get the employee to mark attendance for
         target_emp_id = request.form.get('target_emp_id')
         request_type = request.form.get('request_type')
         reason = request.form.get('reason')
@@ -301,16 +391,13 @@ def manager_mark_attendance():
             flash('Reason is required', 'error')
             return redirect(url_for('manager_dashboard'))
         
-        # Get target employee info
         target_emp = manager.get_employee_by_id(target_emp_id)
         if not target_emp:
             flash('Employee not found', 'error')
             return redirect(url_for('manager_dashboard'))
         
-        # Parse dates
         start_date = date.fromisoformat(start_date_str)
         
-        # Managers can mark for any past date - no restriction
         if end_date_str and len(end_date_str.strip()) > 5:
             try:
                 end_date = date.fromisoformat(end_date_str)
@@ -321,7 +408,6 @@ def manager_mark_attendance():
         else:
             end_date = start_date
         
-        # Handle date range
         dates_to_mark = []
         current = start_date
         while current <= end_date:
@@ -338,7 +424,7 @@ def manager_mark_attendance():
                 date=d,
                 request_type=request_type,
                 reason=reason,
-                status='Approved',  # Manager marks are auto-approved
+                status='Approved',
                 manager_name=manager_name
             )
         
@@ -351,12 +437,10 @@ def manager_mark_attendance():
 
 @app.route('/mark-request', methods=['POST'])
 def mark_request():
-    """Handle WFH/Leave request from employee or manager"""
     user_type = session.get('user_type')
     if user_type not in ['employee', 'manager']:
         return redirect(url_for('employee_login'))
     
-    # Managers are auto-approved for their own requests
     status = 'Approved' if user_type == 'manager' else 'Pending'
     manager_name = session.get('emp_name') if user_type == 'manager' else ''
     redirect_target = 'manager_dashboard' if user_type == 'manager' else 'employee_dashboard'
@@ -371,34 +455,24 @@ def mark_request():
             flash('Reason is required', 'error')
             return redirect(url_for(redirect_target))
         
-        # --- DEEP DEBUG ---
-        print(f"[DEBUG] Raw Date: {start_date_str}, Raw End Date: {end_date_str}")
-        
         start_date = date.fromisoformat(start_date_str)
         
-        # --- TIMEZONE FIX: Use UTC+5 for Today's Date (Pakistan/User Time) ---
         from datetime import timezone
         today = (datetime.now(timezone.utc) + timedelta(hours=5)).date()
         
-        # --- PAST DATE RESTRICTION ---
-        # Employees can mark attendance up to 2 days back
-        # Managers marking for themselves have no restriction
         max_days_back = 2 if user_type == 'employee' else 0
         min_allowed_date = today - timedelta(days=max_days_back)
         
         if start_date < min_allowed_date:
-            print(f"[DEBUG] Blocking Past Date: Start {start_date} < Min Allowed {min_allowed_date}")
             if user_type == 'employee':
                 flash(f'Error: You cannot apply for dates more than 2 days back. Today is {today.strftime("%d %b %Y")}.', 'error')
             else:
                 flash(f'Error: Invalid date selected.', 'error')
             return redirect(url_for(redirect_target))
             
-        # Determine end_date safely with auto-correction
         if end_date_str and len(end_date_str.strip()) > 5:
             try:
                 end_date = date.fromisoformat(end_date_str)
-                # Auto-correction instead of error!
                 if end_date < start_date:
                     end_date = start_date
             except:
@@ -406,9 +480,6 @@ def mark_request():
         else:
             end_date = start_date
 
-        print(f"[DEBUG] Range Accepted: {start_date} to {end_date} (Today is {today})")
-
-        # Handle date range
         dates_to_mark = []
         current = start_date
         while current <= end_date:
@@ -428,15 +499,12 @@ def mark_request():
             )
             success_msg = f'{request_type} applied successfully!'
 
-        # ── WhatsApp: notify the team manager about the new request ──────────
         if user_type == 'employee':
             try:
                 emp_team = session.get('emp_team', '')
                 team_manager = manager.get_manager_for_team(emp_team)
-                # ── WhatsApp: notify the team manager about the new request ──────────
                 mgr_phone = team_manager.get('phone', '')
-                print(f"[DEBUG] Triggering WhatsApp to Manager: {mgr_phone}")
-                wa_success = wa.notify_manager_new_request(
+                wa.notify_manager_new_request(
                     manager_phone=mgr_phone or '',
                     manager_name=team_manager.get('emp_name', 'Manager'),
                     emp_name=session.get('emp_name', ''),
@@ -445,7 +513,6 @@ def mark_request():
                     reason=reason
                 )
                 
-                # ── Notify the Employee themselves (Confirmation) ──
                 emp_id = session.get('emp_id')
                 emp_phone = manager.get_employee_phone(emp_id)
                 if emp_phone:
@@ -457,8 +524,6 @@ def mark_request():
                     )
             except Exception as wa_err:
                 flash(f"WhatsApp Error: {str(wa_err)}", 'danger')
-                print(f"[WhatsApp] Could not notify manager or employee: {wa_err}")
-        # ─────────────────────────────────────────────────────────────────────
 
         flash(success_msg, 'success')
         return redirect(url_for(redirect_target))
@@ -471,13 +536,11 @@ def mark_request():
 
 @app.route('/manager-login', methods=['GET', 'POST'])
 def manager_login():
-    """Manager login page"""
     if request.method == 'POST':
         emp_name = request.form.get('emp_name')
         password = request.form.get('password')
         
         try:
-            # Check manager authentication
             user = manager.authenticate_user(emp_name, password, role='manager')
             if user:
                 session['logged_in'] = True
@@ -495,9 +558,6 @@ def manager_login():
 
 @app.route('/manager-dashboard')
 def manager_dashboard():
-    """Manager dashboard showing pending requests and personal application form"""
-    import time
-    start = time.time()
     try:
         if session.get('user_type') not in ['manager', 'admin']:
             return redirect(url_for('employee_login'))
@@ -506,20 +566,15 @@ def manager_dashboard():
         emp_name = session.get('emp_name', '')
         today = date.today()
 
-        # Get filter dates from query params
         start_date_str = request.args.get('start_date', (today - timedelta(days=30)).strftime('%Y-%m-%d'))
         end_date_str = request.args.get('end_date', today.strftime('%Y-%m-%d'))
 
-        # Auto-rollover contract year leaves if anniversary passed
         manager.check_and_rollover_leaves(emp_id)
         manager.check_and_apply_expiry(emp_id)
         
-        # Get manager's own data from the master list
         employees = manager.get_employees()
-        emp_id = session.get('emp_id')
         current_emp = next((e for e in employees if str(e.get('emp_id')) == str(emp_id)), {})
         
-        # If for some reason manager isn't found in employees list, use session name
         if not current_emp:
             current_emp = {
                 'emp_id': emp_id,
@@ -527,19 +582,14 @@ def manager_dashboard():
                 'emp_team': session.get('emp_team', 'General')
             }
 
-        # Rich leave balance for display
         leave_balance = manager.get_leave_balance_info(emp_id)
-        
-        # Check if this is Sajeel_Fasihi (special manager role)
         is_sajeel = 'sajeel' in emp_name.lower()
         
-        # Get pending requests for approval (from others)
         all_pending_requests = manager.get_pending_requests(req_status='Pending')
         manager_team = (current_emp.get('emp_team') or session.get('emp_team', '')).strip().lower()
         
-        # Only include pending requests from the manager's exact team
-        # For Sajeel, show Poppi team requests instead of his own team
         pending_requests = []
+        leave_balance_cache = {}
         for req in all_pending_requests:
             req_emp_id = req.get('emp_id')
             if str(req_emp_id) == str(emp_id):
@@ -548,16 +598,12 @@ def manager_dashboard():
             req_emp_data = next((e for e in employees if str(e.get('emp_id')) == str(req_emp_id)), {})
             req_emp_team = (req_emp_data.get('emp_team') or '').strip().lower()
             
-            # For Sajeel: show Poppi team requests
-            # For others: show their own team requests
             target_team = 'poppi' if is_sajeel else manager_team
             
             if req_emp_team == target_team:
-                req['emp_balance'] = req_emp_data.get('Remaining_Leaves', 'N/A')
-                req['total_allotted'] = req_emp_data.get('Total_leaves', 14)
+                _attach_request_leave_balance(req, leave_balance_cache)
                 pending_requests.append(req)
                 
-        # Get approved requests (from others)
         all_approved_requests = manager.get_pending_requests(req_status='Approved')
         team_approved = []
         for req in all_approved_requests:
@@ -568,12 +614,9 @@ def manager_dashboard():
             req_emp_data = next((e for e in employees if str(e.get('emp_id')) == str(req_emp_id)), {})
             req_emp_team = (req_emp_data.get('emp_team') or '').strip().lower()
             
-            # For Sajeel: show all teams' approved requests (admin-like access)
-            # For others: show only their own team approved requests
             if is_sajeel or req_emp_team == manager_team:
                 team_approved.append(req)
 
-        # Then filter approved requests by date range
         approved_requests = []
         try:
             sd = datetime.strptime(start_date_str, '%Y-%m-%d').date()
@@ -588,51 +631,57 @@ def manager_dashboard():
                     if sd <= req_date <= ed:
                         approved_requests.append(req)
         except Exception as e:
-            approved_requests = team_approved  # Fallback: show all
+            approved_requests = team_approved
 
-        # Get manager's own records
         my_records = manager.get_employee_records(emp_id, start_date_str, end_date_str)
         
         if not isinstance(leave_balance, dict):
             leave_balance = {}
         
-        # Get Overstock team members for schedule dropdowns
         overstock_members = manager.get_overstock_team_members()
-        
-        # Get team members for manager override feature
         target_team = 'poppi' if is_sajeel else manager_team
         team_members = [e for e in employees if (e.get('emp_team') or '').strip().lower() == target_team]
         
-        # Fetch schedule data for Beyond Schedule tab
+        # Sajeel's team (Poppi) should only show Najm and Sajeel in the list
+        if target_team == 'poppi':
+            team_members = [e for e in team_members if any(name in e.get('emp_name', '').lower() for name in ['sajeel', 'najm'])]
+        
         schedules = manager.get_shift_schedules()
-        print(f"[DEBUG] Fetched schedules: {schedules}")
+        if schedules:
+            latest_submitted_schedule = max(schedules, key=lambda s: s.get('submitted_at') or s.get('valid_from'))
+            latest_date = latest_submitted_schedule.get('valid_from')
+            if latest_date:
+                schedules = [s for s in schedules if s.get('valid_from') == latest_date]
+        
         emp_dict = {str(e.get('emp_id')): e.get('emp_name') for e in manager.get_employees()}
+        emp_teams = {str(e.get('emp_id')): (e.get('emp_team') or '').strip().lower() for e in manager.get_employees()}
+        
         schedule_map = {}
         meeting_lead_week1 = None
         meeting_lead_week2 = None
         weekly_report_week1 = None
         weekly_report_week2 = None
         
-        for s in schedules:
+        for s in reversed(schedules):
             shift_name = s.get('shift_name')
             emp_id = s.get('emp_id')
             schedule_type = s.get('schedule_type')
-            print(f"[DEBUG] Processing schedule: shift={shift_name}, emp_id={emp_id}, type={schedule_type}")
+            
+            # Filter: only display Overstock team members
+            emp_id_str = str(emp_id)
+            if emp_teams.get(emp_id_str) != 'overstock':
+                continue
             
             if schedule_type == 'meeting_lead_week1':
-                meeting_lead_week1 = emp_dict.get(str(emp_id), 'Not Assigned')
+                meeting_lead_week1 = emp_dict.get(emp_id_str, 'Not Assigned')
             elif schedule_type == 'meeting_lead_week2':
-                meeting_lead_week2 = emp_dict.get(str(emp_id), 'Not Assigned')
+                meeting_lead_week2 = emp_dict.get(emp_id_str, 'Not Assigned')
             elif schedule_type == 'weekly_report_week1':
-                weekly_report_week1 = emp_dict.get(str(emp_id), 'Not Assigned')
+                weekly_report_week1 = emp_dict.get(emp_id_str, 'Not Assigned')
             elif schedule_type == 'weekly_report_week2':
-                weekly_report_week2 = emp_dict.get(str(emp_id), 'Not Assigned')
+                weekly_report_week2 = emp_dict.get(emp_id_str, 'Not Assigned')
             elif schedule_type == 'main':
-                schedule_map[shift_name] = emp_dict.get(str(emp_id), 'Not Assigned')
-        
-        print(f"[DEBUG] Final schedule_map: {schedule_map}")
-        print(f"[DEBUG] Meeting Lead W1: {meeting_lead_week1}, W2: {meeting_lead_week2}")
-        print(f"[DEBUG] Weekly Report W1: {weekly_report_week1}, W2: {weekly_report_week2}")
+                schedule_map[shift_name] = emp_dict.get(emp_id_str, 'Not Assigned')
         
         return render_template('manager_dashboard.html', 
                                manager_name=session.get('emp_name', 'Manager'),
@@ -653,13 +702,20 @@ def manager_dashboard():
                                meeting_lead_week2=meeting_lead_week2,
                                weekly_report_week1=weekly_report_week1,
                                weekly_report_week2=weekly_report_week2,
-                               team_members=team_members)
+                team_members=team_members)
     except Exception as e:
         return f"<h2>⚠️ Dashboard Crash!</h2><p>Error Type: {type(e).__name__}</p><p>Message: {str(e)}</p>"
 
+@app.template_filter('format_number')
+def format_number_filter(value):
+    try:
+        f_val = float(value)
+        return int(f_val) if f_val.is_integer() else f_val
+    except:
+        return value
+
 @app.route('/action-request', methods=['POST'])
 def action_request():
-    """Approve or Reject a pending request"""
     if session.get('user_type') not in ['manager', 'admin']:
         if request.headers.get('Content-Type') == 'application/json' or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'error': 'Unauthorized'}), 401
@@ -669,7 +725,7 @@ def action_request():
     req_date = request.form.get('date')
     req_type = request.form.get('type')
     timestamp = request.form.get('timestamp')
-    action = request.form.get('action') # 'Approve' or 'Reject'
+    action = request.form.get('action')
     
     try:
         new_status = 'Approved' if action == 'Approve' else 'Rejected'
@@ -682,12 +738,10 @@ def action_request():
             manager_name=session.get('emp_name')
         )
         
-        # ── WhatsApp: notify employee of the decision (background thread) ─────────────────────
         def send_whatsapp_notification():
             try:
                 emp_phone = manager.get_employee_phone(emp_id)
                 if emp_phone:
-                    # Get employee name from the request form or records
                     employees = manager.get_employees()
                     emp_info = next((e for e in employees if str(e['emp_id']) == str(emp_id)), {})
                     wa.notify_employee_decision(
@@ -701,17 +755,12 @@ def action_request():
             except Exception as wa_err:
                 print(f"[WhatsApp] Could not notify employee: {wa_err}")
         
-        # Run WhatsApp notification in background thread
         threading.Thread(target=send_whatsapp_notification, daemon=True).start()
-        # ─────────────────────────────────────────────────────────────────
         
-        # Check if AJAX request
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': True, 'status': new_status})
         
         flash(f'Request successfully {new_status.lower()}!', 'success')
-        
-        # Redirect back to whoever called it (Admin might use this too)
         return redirect(request.referrer or url_for('manager_dashboard'))
     except Exception as e:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -721,7 +770,6 @@ def action_request():
 
 @app.route('/cancel-request', methods=['POST'])
 def cancel_request():
-    """Cancel a pending or approved request"""
     if not session.get('logged_in'):
         return redirect(url_for('index'))
         
@@ -729,7 +777,6 @@ def cancel_request():
     req_date = request.form.get('date')
     timestamp = request.form.get('timestamp')
     
-    # Employees can only cancel their OWN requests.
     if session.get('user_type') == 'employee' and str(emp_id) != str(session.get('emp_id')):
         flash('You are not authorized to cancel this request.', 'danger')
         return redirect(request.referrer or url_for('employee_dashboard'))
@@ -743,7 +790,6 @@ def cancel_request():
         )
         flash('Request successfully cancelled!', 'success')
 
-        # ── WhatsApp: notify the team manager of the cancellation ─────────
         try:
             employees = manager.get_employees()
             emp_info = next((e for e in employees if str(e['emp_id']) == str(emp_id)), {})
@@ -753,7 +799,6 @@ def cancel_request():
                 team_manager = manager.get_manager_for_team(emp_team)
                 mgr_phone = team_manager.get('phone', '')
                 if mgr_phone and str(emp_id) != str(session.get('emp_id')):
-                    # Only notify manager if it's an employee cancelling (not the manager themselves)
                     wa.notify_manager_request_cancelled(
                         manager_phone=mgr_phone,
                         manager_name=team_manager.get('emp_name', 'Manager'),
@@ -763,7 +808,6 @@ def cancel_request():
                     )
         except Exception as wa_err:
             print(f"[WhatsApp] Could not notify manager of cancellation: {wa_err}")
-        # ─────────────────────────────────────────────────────────────────
 
     except Exception as e:
         flash(f'Error cancelling request: {str(e)}', 'danger')
@@ -775,68 +819,72 @@ def cancel_request():
 
 @app.route('/admin-login', methods=['GET', 'POST'])
 def admin_login():
-    """Admin login page"""
     if request.method == 'POST':
         emp_name = request.form.get('emp_name')
         password = request.form.get('password')
         
         try:
-            # Check manager first, then employee
             user = manager.authenticate_user(emp_name, password, role='admin')
-            
             if user:
                 session['logged_in'] = True
-                session['user_type'] = 'admin'
                 session['emp_id'] = user['emp_id']
                 session['emp_name'] = user['emp_name']
-                return redirect(url_for('admin_dashboard'))
+                # CEO users (IS_CEO flag) get their own portal
+                if user.get('is_ceo'):
+                    session['user_type'] = 'ceo'
+                    return redirect(url_for('ceo_dashboard'))
+                else:
+                    session['user_type'] = 'admin'
+                    return redirect(url_for('admin_dashboard'))
             else:
-                flash('Invalid admin credentials', 'error')
+                flash('Invalid credentials. Please check your username and password.', 'error')
         except Exception as e:
             flash(f'Login failed: {str(e)}', 'error')
     
     return render_template('admin_login.html')
 
-@app.route('/admin-dashboard') # CEO Oversight Hub
+@app.route('/admin-dashboard')
 def admin_dashboard():
-    """CEO Oversight Dashboard with global activity monitoring"""
     if session.get('user_type') != 'admin':
         return redirect(url_for('admin_login'))
     
     emp_id = session.get('emp_id')
-    today = date.today()
+    employees = manager.get_employees()
     
-    # Get filter dates from query params (default to today)
+    # Fail-safe: if user is CEO in database, redirect them to CEO dashboard
+    current_emp = next((e for e in employees if str(e.get('emp_id')) == str(emp_id)), {})
+    if current_emp.get('is_ceo'):
+        session['user_type'] = 'ceo'
+        return redirect(url_for('ceo_dashboard'))
+        
+    today = date.today()
     start_date_str = request.args.get('start_date', today.strftime('%Y-%m-%d'))
     end_date_str = request.args.get('end_date', today.strftime('%Y-%m-%d'))
     
-    # Get all employees data for the directory/lookup
-    employees = manager.get_employees()
-    
-    # Leave balance for the admin themself
     leave_balance = manager.get_leave_balance_info(emp_id)
     if not isinstance(leave_balance, dict):
         leave_balance = {}
 
-    # Get all pending requests globally (except their own)
     all_pending_requests = manager.get_pending_requests(req_status='Pending')
     pending_requests = []
+    leave_balance_cache = {}
     for req in all_pending_requests:
         if str(req.get('emp_id')) == str(emp_id):
             continue
         req_emp_id = req.get('emp_id')
         req_emp_data = next((e for e in employees if str(e.get('emp_id')) == str(req_emp_id)), {})
-        req['emp_balance'] = req_emp_data.get('Remaining_Leaves', 'N/A')
-        req['total_allotted'] = req_emp_data.get('Total_leaves', 14)
+        req_emp_team = (req_emp_data.get('emp_team') or '').strip().lower()
+        # Admin (Sajeel) only approves Poppi team requests
+        if req_emp_team != 'poppi':
+            continue
+        _attach_request_leave_balance(req, leave_balance_cache)
         req['team'] = req_emp_data.get('emp_team', 'N/A')
         pending_requests.append(req)
     
-    # Get approved/rejected requests and filter by date range
     all_approved_requests = manager.get_pending_requests(req_status='Approved')
     all_rejected_requests = manager.get_pending_requests(req_status='Rejected')
     recent_requests = []
     
-    # Combine approved and rejected
     for req in all_approved_requests + all_rejected_requests:
         if str(req.get('emp_id')) == str(emp_id):
             continue
@@ -845,7 +893,6 @@ def admin_dashboard():
         req['team'] = req_emp_data.get('emp_team', 'N/A')
         recent_requests.append(req)
     
-    # Filter by date range
     filtered_requests = []
     try:
         sd = datetime.strptime(start_date_str, '%Y-%m-%d').date()
@@ -860,14 +907,14 @@ def admin_dashboard():
                 if sd <= req_date <= ed:
                     filtered_requests.append(req)
     except Exception as e:
-        filtered_requests = recent_requests  # Fallback: show all
+        filtered_requests = recent_requests
     
-    # Sort by date descending
     filtered_requests.sort(key=lambda x: x.get('date', ''), reverse=True)
 
-    return render_template('ceo_dashboard.html',
+    # recent_requests: all teams visible to admin for history
+    return render_template('admin_dashboard.html',
                          admin_name=session.get('emp_name'),
-                         emp_data={'emp_team': 'Global Administration'},
+                         emp_data={'emp_team': 'Poppi'},
                          leave_balance=leave_balance,
                          requests=pending_requests,
                          recent_requests=filtered_requests,
@@ -876,38 +923,83 @@ def admin_dashboard():
                          end_date=end_date_str,
                          today=today.strftime('%Y-%m-%d'))
 
+
+# ===== CEO DASHBOARD =====
+
+@app.route('/ceo-dashboard')
+def ceo_dashboard():
+    if session.get('user_type') != 'ceo':
+        return redirect(url_for('admin_login'))
+
+    today = date.today()
+    start_date_str = request.args.get('start_date', today.strftime('%Y-%m-%d'))
+    end_date_str = request.args.get('end_date', today.strftime('%Y-%m-%d'))
+
+    employees = manager.get_employees()
+
+    # Company-wide approved + rejected requests for history view
+    all_approved = manager.get_pending_requests(req_status='Approved')
+    all_rejected = manager.get_pending_requests(req_status='Rejected')
+    recent_requests = []
+    emp_id = session.get('emp_id')
+    for req in all_approved + all_rejected:
+        req_emp_id = req.get('emp_id')
+        req_emp_data = next((e for e in employees if str(e.get('emp_id')) == str(req_emp_id)), {})
+        req['team'] = req_emp_data.get('emp_team', 'N/A')
+        recent_requests.append(req)
+
+    # Date filter
+    filtered_requests = []
+    try:
+        sd = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        ed = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        for req in recent_requests:
+            req_date_raw = req.get('date')
+            if req_date_raw:
+                if isinstance(req_date_raw, (date, datetime)):
+                    req_date = req_date_raw if isinstance(req_date_raw, date) else req_date_raw.date()
+                else:
+                    req_date = datetime.strptime(str(req_date_raw).split(' ')[0], '%Y-%m-%d').date()
+                if sd <= req_date <= ed:
+                    filtered_requests.append(req)
+    except Exception:
+        filtered_requests = recent_requests
+
+    filtered_requests.sort(key=lambda x: x.get('date', ''), reverse=True)
+
+    return render_template('ceo_dashboard.html',
+                           ceo_name=session.get('emp_name'),
+                           employees=employees,
+                           recent_requests=filtered_requests,
+                           start_date=start_date_str,
+                           end_date=end_date_str,
+                           today=today.strftime('%Y-%m-%d'))
+
+
 @app.route('/admin/performance-report')
 def admin_performance_report():
-    """View all employees performance report"""
     if session.get('user_type') != 'admin':
         return redirect(url_for('admin_login'))
     
-    # Get all employees with their data
     employees = manager.get_employees()
+    _enrich_employees_leave_balances(employees)
     
-    # Sort by Remaining Leaves (descending) as a default useful view
-    # Handle existing NaN/Null values safely
     employees.sort(key=lambda x: x.get('Remaining_Leaves', 0) or 0, reverse=True)
-    
     return render_template('admin_performance.html', employees=employees)
 
 
 @app.route('/admin/view-employee/<int:emp_id>')
 def admin_view_employee(emp_id):
-    """View specific employee's WFH/Leave records with filtering"""
-    if session.get('user_type') != 'admin':
+    if session.get('user_type') not in ('admin', 'ceo'):
         return redirect(url_for('admin_login'))
     
-    # Get filter parameters
     filter_type = request.args.get('filter_type', 'custom')
-    
     today = date.today()
     
     if filter_type == 'monthly':
         month = int(request.args.get('month', today.month))
         year = int(request.args.get('year', today.year))
         start_date = date(year, month, 1)
-        # Last day of month
         if month == 12:
             end_date = date(year, 12, 31)
         else:
@@ -918,43 +1010,30 @@ def admin_view_employee(emp_id):
         start_date = date(year, 1, 1)
         end_date = date(year, 12, 31)
     
-    else:  # custom
+    else:
         start_date_str = request.args.get('start_date', (today - timedelta(days=30)).strftime('%Y-%m-%d'))
         end_date_str = request.args.get('end_date', today.strftime('%Y-%m-%d'))
         start_date = date.fromisoformat(start_date_str)
         end_date = date.fromisoformat(end_date_str)
     
-    # Get employee records
     records = manager.get_employee_records(emp_id, start_date, end_date)
     
-    # Calculate counts specifically for the returned records
-    filtered_wfh_count = sum(1 for r in records if r['type'] == 'WFH')
-    filtered_half_day_count = sum(1 for r in records if r['type'] == 'Half Day')
-    filtered_leaves_count = sum(1 for r in records if r['type'] == 'Leave')
-    
-    # Get employee info
     employees = manager.get_employees()
     emp_info = next((e for e in employees if str(e['emp_id']) == str(emp_id)), None)
 
-    # Get rich leave balance info
     leave_balance = manager.get_leave_balance_info(emp_id)
     
     return render_template('admin_view_employee.html',
                          employee=emp_info,
                          leave_balance=leave_balance,
                          records=records,
-                         filtered_wfh=filtered_wfh_count,
-                         filtered_half_day=filtered_half_day_count,
-                         filtered_leaves=filtered_leaves_count,
                          filter_type=filter_type,
                          start_date=start_date.strftime('%Y-%m-%d'),
                          end_date=end_date.strftime('%Y-%m-%d'))
 
 @app.route('/logout')
 def logout():
-    """Logout for both employee and admin"""
     session.clear()
-    # Clear all session keys explicitly
     session.pop('logged_in', None)
     session.pop('user_type', None)
     session.pop('emp_id', None)
@@ -963,14 +1042,12 @@ def logout():
     session.pop('is_manager', None)
     session.pop('is_admin', None)
     response = redirect(url_for('index'))
-    # Clear session cookie
     response.delete_cookie('session')
     return response
 
 @app.route('/admin/add-employee', methods=['GET', 'POST'])
 def add_employee_route():
-    """Handle adding new employees"""
-    if session.get('user_type') != 'admin':
+    if session.get('user_type') not in ('admin', 'ceo'):
         return redirect(url_for('admin_login'))
         
     if request.method == 'POST':
@@ -994,7 +1071,6 @@ def add_employee_route():
             is_admin = (role == 'admin')
             is_manager = (role == 'manager')
             
-            # Use 'SecurePass2026!' as default password
             manager.add_employee(
                 emp_name=emp_name,
                 emp_team=emp_team,
@@ -1005,19 +1081,16 @@ def add_employee_route():
                 contract_end_date=contract_end_date,
                 total_leaves=total_leaves
             )
-            
             return redirect(url_for('admin_dashboard'))
             
         except Exception as e:
             flash(f"Error adding employee: {str(e)}", 'error')
             
-    # GET request
     return render_template('admin_add_employee.html', admin_name=session.get('emp_name'))
 
 @app.route('/admin/manage-employees')
 def manage_employees_route():
-    """List all employees with delete options"""
-    if session.get('user_type') != 'admin':
+    if session.get('user_type') not in ('admin', 'ceo'):
         return redirect(url_for('admin_login'))
     
     try:
@@ -1029,8 +1102,7 @@ def manage_employees_route():
 
 @app.route('/admin/edit-employee/<int:emp_id>', methods=['GET', 'POST'])
 def edit_employee_route(emp_id):
-    """Handle editing existing employees"""
-    if session.get('user_type') != 'admin':
+    if session.get('user_type') not in ('admin', 'ceo'):
         return redirect(url_for('admin_login'))
         
     try:
@@ -1046,7 +1118,6 @@ def edit_employee_route(emp_id):
             emp_team = request.form.get('emp_team') or employee.get('emp_team')
             role = request.form.get('role')
             
-            # Default to existing if role not submitted
             if not role:
                 if employee.get('is_admin'): role = 'admin'
                 elif employee.get('is_manager'): role = 'manager'
@@ -1065,10 +1136,10 @@ def edit_employee_route(emp_id):
                 carried_forward = 0
             else:
                 total_leaves = int(raw_leaves) if raw_leaves else employee.get('Total_leaves', 14)
-                if pd.isna(total_leaves): total_leaves = 14
+                if total_leaves is None: total_leaves = 14
                 
                 carried_forward = float(raw_carried) if raw_carried else employee.get('Leaves_Carried_Forward', 0)
-                if pd.isna(carried_forward): carried_forward = 0
+                if carried_forward is None: carried_forward = 0
             
             is_admin = (role == 'admin')
             is_manager = (role == 'manager')
@@ -1098,12 +1169,14 @@ def edit_employee_route(emp_id):
 
 @app.route('/admin/delete-employee/<int:emp_id>', methods=['POST'])
 def delete_employee_route(emp_id):
-    """Handle employee deletion"""
-    if session.get('user_type') != 'admin':
+    if session.get('user_type') not in ('admin', 'ceo'):
         return redirect(url_for('admin_login'))
         
     try:
         manager.delete_employee(emp_id)
+        # Redirect to the appropriate dashboard depending on who deleted
+        if session.get('user_type') == 'ceo':
+            return redirect(url_for('ceo_dashboard'))
         return redirect(url_for('admin_dashboard'))
     except Exception as e:
         flash(f"Error deleting employee: {str(e)}", 'error')
@@ -1114,8 +1187,7 @@ def delete_employee_route(emp_id):
 
 @app.route('/admin/send-daily-summary', methods=['POST'])
 def admin_send_daily_summary():
-    """Manually trigger today's daily attendance summary to all managers."""
-    if session.get('user_type') != 'admin':
+    if session.get('user_type') not in ('admin', 'ceo'):
         return redirect(url_for('admin_login'))
 
     try:
@@ -1129,8 +1201,7 @@ def admin_send_daily_summary():
 
 @app.route('/admin/send-absent-alert', methods=['POST'])
 def admin_send_absent_alert():
-    """Manually trigger today's absent employee alert to all managers."""
-    if session.get('user_type') != 'admin':
+    if session.get('user_type') not in ('admin', 'ceo'):
         return redirect(url_for('admin_login'))
 
     try:
@@ -1144,22 +1215,18 @@ def admin_send_absent_alert():
 
 @app.route('/admin/whatsapp-settings')
 def admin_whatsapp_settings():
-    """Show WhatsApp Cloud API configuration status and scheduled jobs."""
-    if session.get('user_type') != 'admin':
+    if session.get('user_type') not in ('admin', 'ceo'):
         return redirect(url_for('admin_login'))
 
-    # API status
     token_set = bool(wa.WHATSAPP_ACCESS_TOKEN)
     phone_id_set = bool(wa.WHATSAPP_PHONE_NUMBER_ID)
     enabled = wa.WHATSAPP_ENABLED
     api_version = wa.GRAPH_API_VERSION
 
-    # Managers with phone numbers
     all_managers = manager.get_all_managers()
-    managers_with_phone = [m for m in all_managers if m.get('phone') and not pd.isna(m.get('phone')) and str(m.get('phone')).strip()]
+    managers_with_phone = [m for m in all_managers if m.get('phone') and str(m.get('phone')).strip() not in ['', 'None', 'nan', 'NaN']]
     managers_without_phone = [m for m in all_managers if m not in managers_with_phone]
 
-    # Scheduler status
     jobs = []
     for job in scheduler.get_jobs():
         jobs.append({
@@ -1180,46 +1247,22 @@ def admin_whatsapp_settings():
                            scheduled_jobs=jobs)
 
 
-
 @app.route('/admin/reset-system-balances')
 def reset_system_balances():
-    """Hidden admin route to reset all balances (Final Initialization)"""
+    """Route updated to trigger database-only initialization logic"""
     try:
-        import pandas as pd
-        file_path = manager.emp_data_file
-        df = pd.read_excel(file_path, engine='openpyxl')
-
-        # Reset Logic
-        results = []
-        for idx in df.index:
-            name = df.at[idx, 'emp_name']
-            c_start = df.at[idx, 'Contract_Start_Date']
-            year_start, _ = manager.get_contract_year_window(str(c_start))
-            year_start_str = year_start.strftime('%Y-%m-%d') if year_start else ""
-
-            df.at[idx, 'Leaves_Carried_Forward'] = 0
-            df.at[idx, 'Leaves_This_Year'] = 0
-            df.at[idx, 'Leaves'] = 0
-            df.at[idx, 'Half_Day'] = 0
-            df.at[idx, 'Remaining_Leaves'] = df.at[idx, 'Total_leaves']
-            df.at[idx, 'Contract_Year_Start'] = year_start_str
-            df.at[idx, 'Carried_Forward_Expiry'] = ""
-            results.append(f"{name}: Reset to 14 total, 0 carried. Year Start: {year_start_str}")
-
-        df.to_excel(file_path, index=False, engine='openpyxl')
-        return "✅ FINAL RESET SUCCESSFUL:<br>" + "<br>".join(results)
+        # Excel logic completely removed. Database balance reset function triggered.
+        results = manager.reset_all_balances_in_db()
+        return "✅ FINAL RESET SUCCESSFUL IN SNOWFLAKE DATABASE:<br>" + "<br>".join(results)
     except Exception as e:
         return f"❌ Reset Failed: {str(e)}"
 
 @app.route('/save-schedule', methods=['POST'])
 def save_schedule():
-    """Save shift schedule from manager dashboard"""
     if session.get('user_type') not in ['manager', 'admin']:
         return redirect(url_for('employee_login'))
     
     emp_id = session.get('emp_id')
-    
-    # Check if Overstock team
     employees = manager.get_employees()
     current_emp = next((e for e in employees if str(e.get('emp_id')) == str(emp_id)), {})
     if current_emp.get('emp_team', '').lower() != 'overstock' and session.get('user_type') != 'admin':
@@ -1227,11 +1270,9 @@ def save_schedule():
         return redirect(url_for('manager_dashboard'))
     
     try:
-        # Get validity dates
         valid_from = request.form.get('valid_from')
         valid_until = request.form.get('valid_until')
         
-        # Collect schedule data from form
         schedule_data = []
         shift_fields = {
             'shift_weekend_night_emp_id': 'Weekend Night',
@@ -1252,13 +1293,11 @@ def save_schedule():
                     'emp_id': emp_id_field
                 })
         
-        # Get Meeting Lead and Weekly Report data
         meeting_lead_week1 = request.form.get('meeting_lead_week1_emp_id')
         meeting_lead_week2 = request.form.get('meeting_lead_week2_emp_id')
         weekly_report_week1 = request.form.get('weekly_report_week1_emp_id')
         weekly_report_week2 = request.form.get('weekly_report_week2_emp_id')
         
-        # Save to database
         success = manager.save_shift_schedule(
             valid_from, valid_until, schedule_data,
             meeting_lead_week1, meeting_lead_week2,
@@ -1276,39 +1315,55 @@ def save_schedule():
 
 @app.route('/view-beyond-schedule')
 def view_beyond_schedule():
-    """View beyond schedule for CEO/Admin"""
-    if session.get('user_type') not in ['admin', 'manager']:
+    user_type = session.get('user_type')
+    emp_team = (session.get('emp_team') or '').strip().lower()
+    
+    is_allowed = False
+    if user_type in ['admin', 'manager', 'ceo']:
+        is_allowed = True
+    elif user_type == 'employee' and emp_team == 'overstock':
+        is_allowed = True
+        
+    if not is_allowed:
         return redirect(url_for('employee_login'))
     
-    # Fetch schedule data from database
     schedules = manager.get_shift_schedules()
-    
-    # Get employee names for display
+    if schedules:
+        latest_submitted_schedule = max(schedules, key=lambda s: s.get('submitted_at') or s.get('valid_from'))
+        latest_date = latest_submitted_schedule.get('valid_from')
+        if latest_date:
+            schedules = [s for s in schedules if s.get('valid_from') == latest_date]
+            
     employees = manager.get_employees()
     emp_dict = {str(e.get('emp_id')): e.get('emp_name') for e in employees}
+    emp_teams = {str(e.get('emp_id')): (e.get('emp_team') or '').strip().lower() for e in employees}
     
-    # Organize schedule data
     schedule_map = {}
     meeting_lead_week1 = None
     meeting_lead_week2 = None
     weekly_report_week1 = None
     weekly_report_week2 = None
     
-    for s in schedules:
+    for s in reversed(schedules):
         shift_name = s.get('shift_name')
         emp_id = s.get('emp_id')
         schedule_type = s.get('schedule_type')
         
+        # Filter: only display Overstock team members
+        emp_id_str = str(emp_id)
+        if emp_teams.get(emp_id_str) != 'overstock':
+            continue
+            
         if schedule_type == 'meeting_lead_week1':
-            meeting_lead_week1 = emp_dict.get(str(emp_id), 'Not Assigned')
+            meeting_lead_week1 = emp_dict.get(emp_id_str, 'Not Assigned')
         elif schedule_type == 'meeting_lead_week2':
-            meeting_lead_week2 = emp_dict.get(str(emp_id), 'Not Assigned')
+            meeting_lead_week2 = emp_dict.get(emp_id_str, 'Not Assigned')
         elif schedule_type == 'weekly_report_week1':
-            weekly_report_week1 = emp_dict.get(str(emp_id), 'Not Assigned')
+            weekly_report_week1 = emp_dict.get(emp_id_str, 'Not Assigned')
         elif schedule_type == 'weekly_report_week2':
-            weekly_report_week2 = emp_dict.get(str(emp_id), 'Not Assigned')
+            weekly_report_week2 = emp_dict.get(emp_id_str, 'Not Assigned')
         elif schedule_type == 'main':
-            schedule_map[shift_name] = emp_dict.get(str(emp_id), 'Not Assigned')
+            schedule_map[shift_name] = emp_dict.get(emp_id_str, 'Not Assigned')
     
     return render_template('view_beyond_schedule.html', 
                           admin_name=session.get('emp_name', 'Admin'),

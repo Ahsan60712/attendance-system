@@ -1,84 +1,233 @@
 {% extends "base.html" %}
 
-{% block title %}Edit Employee Data - Adlab Solutions{% endblock %}
+{% block title %}Edit {{ employee.emp_name | replace('_', ' ') }} - Adlab Solutions{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 animate-in">
-    <h2 style="font-size: 1.5rem;" class="d-flex align-items-center gap-2">
-        <i data-lucide="edit-3" style="width: 24px; height: 24px;"></i> Edit {{ employee.emp_name }}
-    </h2>
-    <a href="{{ url_for('manage_employees_route') }}" class="btn btn-secondary btn-sm">
-        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back to Manage
-    </a>
+<style>
+    /* ─── Hero Banner ─── */
+    .edit-hero {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        color: white;
+        margin: -1.5rem -2rem 2.5rem -2rem;
+        padding: 2rem 2.5rem;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        position: relative;
+        overflow: hidden;
+    }
+    .edit-hero::before {
+        content: '';
+        position: absolute; top: -70px; right: -70px;
+        width: 240px; height: 240px;
+        background: rgba(255,255,255,0.04); border-radius: 50%;
+    }
+    .edit-hero::after {
+        content: '';
+        position: absolute; bottom: -40px; right: 150px;
+        width: 140px; height: 140px;
+        background: rgba(255,255,255,0.03); border-radius: 50%;
+    }
+    .hero-identity { display: flex; align-items: center; gap: 1.25rem; position: relative; z-index: 1; }
+    .hero-avatar {
+        width: 56px; height: 56px; border-radius: 16px;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.25rem; font-weight: 800; color: white;
+        flex-shrink: 0; box-shadow: 0 4px 12px rgba(245,158,11,0.3);
+    }
+    .hero-name { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 0.2rem; }
+    .hero-subtitle { font-size: 0.85rem; font-weight: 500; opacity: 0.75; }
+    
+    .btn-hero-back {
+        display: inline-flex; align-items: center; gap: 0.45rem;
+        padding: 0.6rem 1.15rem;
+        background: rgba(255,255,255,0.1); color: white;
+        border: 1px solid rgba(255,255,255,0.2); border-radius: 10px;
+        font-weight: 600; font-size: 0.85rem; text-decoration: none;
+        transition: background 0.2s; white-space: nowrap; position: relative; z-index: 1;
+    }
+    .btn-hero-back:hover { background: rgba(255,255,255,0.2); color: white; }
+
+    /* ─── Form Card ─── */
+    .edit-card {
+        background: white; border: 1px solid #f1f5f9;
+        border-radius: 16px; padding: 2.5rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        max-width: 800px; margin: 0 auto;
+    }
+    .form-section-title {
+        font-size: 1.1rem; font-weight: 800; color: #0f172a;
+        margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;
+        border-bottom: 2px solid #f1f5f9; padding-bottom: 0.75rem;
+    }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-label {
+        font-size: 0.85rem; font-weight: 700; color: #334155;
+        margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;
+    }
+    .form-control {
+        width: 100%; padding: 0.75rem 1rem;
+        background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+        font-size: 0.95rem; font-family: inherit; color: #0f172a;
+        transition: all 0.2s;
+    }
+    .form-control:focus {
+        background: white; border-color: #f59e0b;
+        box-shadow: 0 0 0 4px rgba(245,158,11,0.1); outline: none;
+    }
+    
+    /* Grid layout for fields */
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 640px) { .form-row { grid-template-columns: 1fr; } }
+
+    /* Radio Cards for Contract Type */
+    .radio-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .radio-card {
+        position: relative; display: flex; align-items: center; gap: 0.75rem;
+        padding: 1rem; border: 2px solid #e2e8f0; border-radius: 12px;
+        cursor: pointer; transition: all 0.2s; background: white;
+    }
+    .radio-card input[type="radio"] {
+        width: 18px; height: 18px; accent-color: #f59e0b; cursor: pointer;
+    }
+    .radio-card:has(input:checked) {
+        border-color: #f59e0b; background: #fffbeb;
+    }
+    .radio-card-title { font-weight: 700; color: #0f172a; font-size: 0.95rem; }
+    .radio-card-desc { font-size: 0.75rem; color: #64748b; margin-top: 0.1rem; }
+
+    /* Helper text */
+    .help-text {
+        font-size: 0.8rem; color: #64748b; margin-top: 0.4rem;
+        display: flex; align-items: center; gap: 0.3rem;
+    }
+
+    /* Submit Button */
+    .btn-submit {
+        width: 100%; padding: 0.85rem;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white; border: none; border-radius: 12px;
+        font-weight: 800; font-size: 1rem; cursor: pointer;
+        display: flex; justify-content: center; align-items: center; gap: 0.5rem;
+        box-shadow: 0 4px 12px rgba(245,158,11,0.3); transition: all 0.2s;
+        margin-top: 1rem;
+    }
+    .btn-submit:hover {
+        transform: translateY(-2px); box-shadow: 0 6px 16px rgba(245,158,11,0.4);
+    }
+</style>
+
+<!-- ─── Hero ─── -->
+<div class="edit-hero">
+    <div class="hero-identity">
+        <div class="hero-avatar">
+            <i data-lucide="pencil" size="24"></i>
+        </div>
+        <div>
+            <div class="hero-name">Edit {{ employee.emp_name | replace('_', ' ') }}</div>
+            <div class="hero-subtitle">Update employee profile, role, and leave entitlements</div>
+        </div>
+    </div>
+    <div class="hero-actions">
+        <a href="{{ url_for('manage_employees_route') }}" class="btn-hero-back">
+            <i data-lucide="arrow-left" size="15"></i> Cancel &amp; Go Back
+        </a>
+    </div>
 </div>
 
-<div class="card animate-in" style="max-width: 600px; margin: 0 auto; animation-delay: 0.1s;">
-    <h3 class="mb-4">Update Details</h3>
-
+<!-- ─── Form ─── -->
+<div class="edit-card">
     <form method="POST" action="{{ url_for('edit_employee_route', emp_id=employee.emp_id) }}">
-        <div class="form-group">
-            <label>Employee Name</label>
-            <input type="text" name="emp_name" value="{{ employee.emp_name }}">
+        
+        <!-- Section 1: Basic Info -->
+        <div class="form-section-title">
+            <i data-lucide="user" size="18" style="color:#f59e0b;"></i> Profile Information
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" name="emp_name" class="form-control" value="{{ employee.emp_name | replace('_', ' ') }}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Team / Department</label>
+                <input type="text" name="emp_team" class="form-control" value="{{ employee.emp_team }}" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">System Role</label>
+                <select name="role" class="form-control" style="cursor:pointer;">
+                    <option value="employee" {% if not employee.is_admin and not employee.is_manager %}selected{% endif %}>Employee</option>
+                    <option value="manager" {% if employee.is_manager %}selected{% endif %}>Manager</option>
+                    <option value="admin" {% if employee.is_admin %}selected{% endif %}>Admin</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">WhatsApp Number</label>
+                <input type="text" name="phone" class="form-control" value="{{ employee.phone if employee.phone and employee.phone != 'nan' else '' }}" placeholder="+923001234567">
+                <div class="help-text"><i data-lucide="info" size="12"></i> Include country code (e.g. +92)</div>
+            </div>
         </div>
 
-        <div class="form-group">
-            <label>Team / Department</label>
-            <input type="text" name="emp_team" value="{{ employee.emp_team }}">
+        <!-- Section 2: Contract Info -->
+        <div class="form-section-title" style="margin-top: 1rem;">
+            <i data-lucide="file-signature" size="18" style="color:#f59e0b;"></i> Contract Details
         </div>
-
         <div class="form-group">
-            <label>Role</label>
-            <select name="role">
-                <option value="employee" {% if not employee.is_admin and not employee.is_manager %}selected{% endif %}>Employee</option>
-                <option value="manager" {% if employee.is_manager %}selected{% endif %}>Manager</option>
-                <option value="admin" {% if employee.is_admin %}selected{% endif %}>Admin</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Contract Type</label>
-            <div class="radio-group" style="background: var(--light); padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
-                <label class="radio-label">
+            <label class="form-label">Employment Type</label>
+            <div class="radio-card-grid">
+                <label class="radio-card">
                     <input type="radio" name="contract_type" value="Contract" onchange="toggleDuration()" {% if employee.Contract_Type != 'Internship' %}checked{% endif %}>
-                    <span>Contract / Permanent</span>
+                    <div>
+                        <div class="radio-card-title">Contract / Permanent</div>
+                        <div class="radio-card-desc">Standard employment with leave benefits</div>
+                    </div>
                 </label>
-                <label class="radio-label">
+                <label class="radio-card">
                     <input type="radio" name="contract_type" value="Internship" onchange="toggleDuration()" {% if employee.Contract_Type == 'Internship' %}checked{% endif %}>
-                    <span>Internship</span>
+                    <div>
+                        <div class="radio-card-title">Internship</div>
+                        <div class="radio-card-desc">Fixed term without standard leave policy</div>
+                    </div>
                 </label>
             </div>
         </div>
-
-        <div class="d-flex gap-4 mb-4" style="flex-wrap: wrap;">
-            <div class="form-group mb-0 flex-1">
-                <label>Contract Start Date</label>
-                <input type="date" name="contract_start_date" value="{{ employee.Contract_Start_Date }}">
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Contract Start Date</label>
+                <input type="date" name="contract_start_date" class="form-control" value="{{ employee.Contract_Start_Date_Raw }}" required>
             </div>
-            <div class="form-group mb-0 flex-1">
-                <label>Contract End Date</label>
-                <input type="date" name="contract_end_date" value="{{ employee.Contract_End_Date }}">
+            <div class="form-group">
+                <label class="form-label">Contract End Date</label>
+                <input type="date" name="contract_end_date" class="form-control" value="{{ employee.Contract_End_Date_Raw }}" required>
             </div>
         </div>
 
-        <div class="form-group" id="total-leaves-group">
-            <label><i data-lucide="calendar" style="width:14px;height:14px;display:inline-block;"></i> Total Leaves Allowed (Per Year)</label>
-            <input type="number" name="total_leaves" value="{{ employee.Total_leaves }}" min="0">
+        <!-- Section 3: Leave Entitlements -->
+        <div id="leave-section">
+            <div class="form-section-title" style="margin-top: 1rem;">
+                <i data-lucide="calendar-heart" size="18" style="color:#f59e0b;"></i> Leave Entitlements
+            </div>
+            <div class="form-row">
+                <div class="form-group" id="total-leaves-group">
+                    <label class="form-label">Annual Quota (Leaves per year)</label>
+                    <input type="number" name="total_leaves" class="form-control" value="{{ employee.Total_leaves | int }}" min="0" step="0.5">
+                </div>
+                <div class="form-group" id="carried-forward-group">
+                    <label class="form-label">Carried Forward</label>
+                    <input type="number" name="carried_forward" class="form-control" value="{{ employee.Leaves_Carried_Forward | default(0) | int }}" min="0" step="0.5">
+                    <div class="help-text"><i data-lucide="info" size="12"></i> Unused leaves rolled over</div>
+                </div>
+            </div>
         </div>
 
-        <div class="form-group" id="carried-forward-group">
-            <label><i data-lucide="corner-down-right" style="width:14px;height:14px;display:inline-block;"></i> Carried Forward Leaves</label>
-            <input type="number" name="carried_forward" value="{{ employee.Leaves_Carried_Forward|default(0) }}" step="0.5" min="0">
-            <small class="text-muted"><i data-lucide="info" style="width: 12px; height: 12px; display: inline;"></i> Unused leaves rolled over from the previous contract year.</small>
-        </div>
-
-        <div class="form-group">
-            <label><i data-lucide="smartphone" style="width:14px;height:14px;display:inline-block;"></i> WhatsApp Phone Number</label>
-            <input type="text" name="phone" value="{{ employee.phone if employee.phone and employee.phone != 'nan' else '' }}" placeholder="+923001234567 (include country code)">
-            <small class="text-muted"><i data-lucide="info" style="width: 12px; height: 12px; display: inline;"></i> Used to send WhatsApp notifications. Leave blank to disable.</small>
-        </div>
-
-        <button type="submit" class="btn btn-warning w-full mt-4 d-flex justify-content-center gap-2" style="background:#f59e0b; color: white;">
-            <i data-lucide="save" style="width:18px;height:18px;"></i> Update Employee Data
+        <button type="submit" class="btn-submit">
+            <i data-lucide="save" size="18"></i> Save Changes
         </button>
     </form>
 </div>
@@ -90,24 +239,29 @@
         for (let i = 0; i < radios.length; i++) {
             if (radios[i].checked) { type = radios[i].value; break; }
         }
-        const totalLeavesGroup = document.getElementById('total-leaves-group');
+        
+        const leaveSection = document.getElementById('leave-section');
         const totalLeavesInput = document.querySelector('input[name="total_leaves"]');
+        const carriedForwardInput = document.querySelector('input[name="carried_forward"]');
 
         if (type === 'Internship') {
-            if (totalLeavesGroup) totalLeavesGroup.style.display = 'none';
+            if (leaveSection) leaveSection.style.display = 'none';
             if (totalLeavesInput) {
                 totalLeavesInput.value = 0;
                 totalLeavesInput.required = false;
-                totalLeavesInput.disabled = true;
+            }
+            if (carriedForwardInput) {
+                carriedForwardInput.value = 0;
             }
         } else {
-            if (totalLeavesGroup) totalLeavesGroup.style.display = 'block';
+            if (leaveSection) leaveSection.style.display = 'block';
             if (totalLeavesInput) {
                 totalLeavesInput.required = true;
-                totalLeavesInput.disabled = false;
             }
         }
     }
+    
+    // Run on page load to set correct initial state
     document.addEventListener('DOMContentLoaded', toggleDuration);
 </script>
 {% endblock %}
