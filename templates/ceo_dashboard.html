@@ -5,7 +5,7 @@
 {% block content %}
 
 <!-- CEO Hero Header -->
-<div style="background: linear-gradient(135deg, #0f172a, #1e3a5f, #0c4a6e); color: white; border: none; margin: -1.5rem -2rem 2rem -2rem; padding: 2rem 2.5rem; border-radius: 16px; position: relative; overflow: hidden;">
+<div class="page-hero" style="background: linear-gradient(135deg, #0f172a, #1e3a5f, #0c4a6e); color: white; border: none; margin: -1.5rem -2rem 2rem -2rem; padding: 2rem 2.5rem; border-radius: 16px; position: relative; overflow: hidden;">
     <div style="position: absolute; top: -30px; right: -30px; width: 180px; height: 180px; background: rgba(255,255,255,0.04); border-radius: 50%;"></div>
     <div style="position: absolute; bottom: -20px; right: 100px; width: 100px; height: 100px; background: rgba(255,255,255,0.04); border-radius: 50%;"></div>
     <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem;">
@@ -20,7 +20,7 @@
 </div>
 
 <!-- Shortcut Buttons -->
-<div style="display: flex; gap: 1rem; margin-bottom: 2rem; overflow-x: auto; padding-bottom: 0.5rem; flex-wrap: wrap;">
+<div class="shortcut-buttons" style="display: flex; gap: 1rem; margin-bottom: 2rem; overflow-x: auto; padding-bottom: 0.5rem; flex-wrap: wrap;">
     <a href="{{ url_for('manage_employees_route') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap; min-width: 160px;">
         <i data-lucide="users" size="18"></i> Add or Remove Employee
     </a>
@@ -180,7 +180,7 @@
     </h3>
 
     <!-- Date Filter -->
-    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap;">
+    <div class="flex-form-row" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap;">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
             <label style="font-weight: 600; font-size: 0.9rem;">From:</label>
             <input id="filter-start" type="date" name="start_date" value="{{ start_date }}"

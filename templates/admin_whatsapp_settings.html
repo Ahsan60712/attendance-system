@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="page-container">
-    <div class="header" style="margin-bottom: 2rem; border-radius: 12px; border: 1px solid var(--border);">
+    <div class="header page-header" style="margin-bottom: 2rem; border-radius: 12px; border: 1px solid var(--border);">
         <h2 class="header-brand" style="margin: 0; display: flex; align-items: center; gap: 0.75rem;">
             <i data-lucide="message-circle" size="24" style="color: #25d366;"></i> WhatsApp Cloud API Controls
         </h2>
@@ -75,7 +75,7 @@
                 </div>
             {% endif %}
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="grid-2col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                 <form action="{{ url_for('admin_send_daily_summary') }}" method="POST" style="margin: 0;">
                     <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; font-size: 0.8rem;">
                         <i data-lucide="zap" size="14"></i> Force Summary
@@ -99,7 +99,7 @@
         </div>
         <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 2.5rem;">Managers below will receive automatic summaries and attendance alerts for their teams via WhatsApp.</p>
         
-        <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; align-items: start;">
+        <div class="dashboard-grid grid-2col" style="grid-template-columns: 1fr 1fr; align-items: start;">
             <!-- CONFIGURED -->
             <div>
                 <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--success); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.4rem;">

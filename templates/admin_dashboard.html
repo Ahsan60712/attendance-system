@@ -11,7 +11,7 @@
 </div>
 
 <!-- Shortcut Buttons -->
-<div style="display: flex; gap: 1rem; margin-bottom: 2rem; overflow-x: auto; padding-bottom: 0.5rem; flex-wrap: wrap;">
+<div class="shortcut-buttons" style="display: flex; gap: 1rem; margin-bottom: 2rem; overflow-x: auto; padding-bottom: 0.5rem; flex-wrap: wrap;">
     <a href="{{ url_for('manage_employees_route') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap; min-width: 160px;">
         <i data-lucide="users" size="18"></i> Add &amp; Remove Employee
     </a>
@@ -27,7 +27,7 @@
 </div>
 
 <!-- Tab Navigation -->
-<div style="display: flex; gap: 0.25rem; margin-bottom: 2rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; overflow-x: auto;">
+<div class="tabs-container" style="display: flex; gap: 0.25rem; margin-bottom: 2rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; overflow-x: auto;">
     <button onclick="showTab('requests-tab')" class="tab-btn active-tab" id="btn-requests">
         <i data-lucide="inbox" size="18"></i> Pending Requests
         {% if requests %}<span style="background:#ef4444; color:white; border-radius:999px; padding:0.1rem 0.55rem; font-size:0.75rem; margin-left:0.25rem;">{{ requests|length }}</span>{% endif %}
@@ -215,7 +215,7 @@
         </h3>
 
         <!-- Date Filter -->
-        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap;">
+        <div class="flex-form-row" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 0.5rem;">
                 <label style="font-weight: 600; font-size: 0.9rem;">From:</label>
                 <input id="filter-start" type="date" name="start_date" value="{{ start_date }}"
@@ -287,7 +287,7 @@
                     <!-- Type Selector -->
                     <div style="margin-bottom: 2rem;">
                         <label style="display: block; font-weight: 700; margin-bottom: 1rem; font-size: 0.9rem; color: var(--text);">Select Request Type</label>
-                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <div class="radio-selectors" style="display: flex; gap: 1rem; flex-wrap: wrap;">
                             <label class="radio-label">
                                 <input type="radio" name="request_type" value="WFH" checked>
                                 <span class="radio-card">
@@ -313,7 +313,7 @@
                     </div>
 
                     <!-- Date Range -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <div class="grid-2col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
                         <div>
                             <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.85rem;">Start Date</label>
                             <input type="date" name="date" value="{{ today }}" min="{{ today }}" required style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border);">

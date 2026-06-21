@@ -111,7 +111,7 @@
 
 <!-- Shortcut Buttons -->
 {% if emp_data.emp_team|lower == 'overstock' %}
-<div style="display: flex; gap: 1rem; margin-bottom: 2rem; overflow-x: auto; padding-bottom: 0.5rem; flex-wrap: wrap;">
+<div class="shortcut-buttons" style="display: flex; gap: 1rem; margin-bottom: 2rem; overflow-x: auto; padding-bottom: 0.5rem; flex-wrap: wrap;">
     <a href="{{ url_for('view_beyond_schedule') }}" class="btn btn-outline" style="border-radius: 8px; flex: 1; justify-content: center; background: white; color: #0f172a; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap; min-width: 160px; border: 1px solid #cbd5e1; display: inline-flex; align-items: center; gap: 0.5rem;">
         <i data-lucide="table" size="18" style="color: #6366f1;"></i> Beyond Schedule
     </a>
@@ -119,7 +119,7 @@
 {% endif %}
 
 <!-- Stats Grid -->
-<div style="display: flex; gap: 1.25rem; margin-bottom: 2.5rem; flex-wrap: wrap;">
+<div class="stats-grid" style="display: flex; gap: 1.25rem; margin-bottom: 2.5rem; flex-wrap: wrap;">
     <div class="stat-card" style="border-top: 4px solid #8b5cf6;">
         <div class="stat-icon-wrapper" style="background: #f5f3ff; color: #8b5cf6;">
             <i data-lucide="arrow-right-circle" size="24"></i>
@@ -181,7 +181,7 @@
                 <!-- Category -->
                 <div style="margin-bottom: 2rem;">
                     <label style="display: block; font-weight: 700; margin-bottom: 1rem; font-size: 0.95rem; color: #334155;">Select Category</label>
-                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <div class="radio-selectors" style="display: flex; gap: 1rem; flex-wrap: wrap;">
                         <label class="radio-label">
                             <input type="radio" name="request_type" value="WFH" checked>
                             <span class="radio-card">
@@ -207,7 +207,7 @@
                 </div>
 
                 <!-- Date Selection -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; background: linear-gradient(to right, #faf5ff, #f3e8ff); padding: 1.5rem; border-radius: 16px; border: 1px solid #e9d5ff;">
+                <div class="grid-2col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; background: linear-gradient(to right, #faf5ff, #f3e8ff); padding: 1.5rem; border-radius: 16px; border: 1px solid #e9d5ff;">
                     <div>
                         <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.9rem; color: #6b21a8;">Start Date</label>
                         <input type="date" name="date" value="{{ today }}" min="{{ today }}" required class="custom-input" style="border-color: #d8b4fe; background: white;">
@@ -242,7 +242,7 @@
                 <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin: 0;">Recent Activity</h3>
             </div>
             
-            <div style="overflow-x: auto; border-radius: 12px; border: 1px solid #f1f5f9;">
+            <div class="table-wrapper" style="overflow-x: auto; border-radius: 12px; border: 1px solid #f1f5f9;">
                 <table class="table-modern">
                     <thead>
                         <tr>

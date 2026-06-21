@@ -3,7 +3,7 @@
 {% block title %}Beyond Schedule - Adlab Solutions{% endblock %}
 
 {% block content %}
-<div class="card" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; border: none; margin: -1.5rem -2rem 2rem -2rem; padding: 2rem; border-radius: 16px;">
+<div class="page-hero" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; border: none; margin: -1.5rem -2rem 2rem -2rem; padding: 2rem; border-radius: 16px;">
     <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem; font-weight: 700;">Beyond Schedule</h1>
     <p style="opacity: 0.9; font-size: 1.1rem;">
         {% if session.get('user_type') == 'ceo' %}
@@ -34,7 +34,7 @@
         </button>
     </div>
     
-    <div style="overflow-x: auto; border: 1px solid #cbd5e1; border-radius: 2px;">
+    <div class="table-wrapper" style="overflow-x: auto; border: 1px solid #cbd5e1; border-radius: 2px;">
         <table style="width: 100%; border-collapse: collapse; min-width: 900px; font-family: 'Inter', system-ui, sans-serif; font-size: 0.8rem;">
             <thead>
                 <tr style="background: #f1f5f9; border-bottom: 2px solid #94a3b8;">

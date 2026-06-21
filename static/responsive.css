@@ -1,0 +1,424 @@
+/* ==========================================
+   Adlab Solutions - Responsive Stylesheet
+   ========================================== */
+
+/* Touch Target and Layout Base */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem !important;
+    }
+    
+    /* Make buttons and inputs easy to tap (min 44px height) */
+    .btn, button, input, select, textarea {
+        min-height: 44px;
+    }
+}
+
+/* ==========================================
+   Header & Mobile Navigation Toggle
+   ========================================== */
+.mobile-menu-toggle {
+    display: none;
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.mobile-menu-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+    header {
+        position: relative;
+        padding: 0.75rem 1rem !important;
+    }
+    
+    .mobile-menu-toggle {
+        display: flex;
+    }
+    
+    .header-nav {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #1e1b4b; /* Solid color to cover content */
+        padding: 1.5rem 1rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        gap: 1rem !important;
+        align-items: stretch !important;
+        z-index: 9999;
+    }
+    
+    .header-nav.active {
+        display: flex !important;
+    }
+    
+    .header-nav .user-greeting {
+        text-align: center;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 0.25rem;
+    }
+}
+
+/* ==========================================
+   Welcome Hero / Banner
+   ========================================== */
+@media (max-width: 768px) {
+    .welcome-banner, .welcome-hero {
+        padding: 1.5rem 1rem !important;
+        margin-bottom: 1.5rem !important;
+        border-radius: 12px !important;
+    }
+    
+    .welcome-banner h1, .welcome-hero h1 {
+        font-size: 1.6rem !important;
+    }
+    
+    .welcome-banner p, .welcome-hero p {
+        font-size: 0.95rem !important;
+    }
+    
+    /* If the banner uses inline negative margins, reset them on mobile */
+    [style*="margin: -1.5rem -2rem"] {
+        margin: 0 0 1.5rem 0 !important;
+    }
+}
+
+/* ==========================================
+   Stats Grid and Cards
+   ========================================== */
+@media (max-width: 768px) {
+    .stats-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.75rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+    
+    .stat-card {
+        padding: 1rem !important;
+        border-radius: 12px !important;
+        min-width: 0 !important; /* Allow shrinking below min-width */
+    }
+    
+    .stat-card .value {
+        font-size: 1.5rem !important;
+    }
+    
+    .stat-card .label {
+        font-size: 0.7rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ==========================================
+   Tabs Navigation
+   ========================================== */
+@media (max-width: 768px) {
+    .tabs-container {
+        padding: 0.25rem !important;
+        border-radius: 12px !important;
+        margin-bottom: 1.25rem !important;
+        gap: 0.25rem !important;
+    }
+    
+    .tab-btn {
+        padding: 0.6rem 0.8rem !important;
+        font-size: 0.85rem !important;
+        border-radius: 8px !important;
+    }
+}
+
+/* ==========================================
+   Forms & Grids
+   ========================================== */
+@media (max-width: 768px) {
+    /* Responsive forms */
+    .form-grid, .grid-2col, .grid-3col {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+    
+    /* Stack side-by-side flex layouts in forms */
+    .flex-form-row {
+        flex-direction: column !important;
+        gap: 1rem !important;
+    }
+    
+    .flex-form-row > * {
+        width: 100% !important;
+    }
+    
+    /* Customize radio selectors on mobile */
+    .radio-selectors {
+        flex-direction: column !important;
+        gap: 0.5rem !important;
+    }
+    
+    .radio-label {
+        width: 100% !important;
+    }
+    
+    .radio-card {
+        padding: 1rem !important;
+        flex-direction: row !important;
+        justify-content: flex-start !important;
+        gap: 1rem !important;
+    }
+}
+
+/* ==========================================
+   Tables Scroll Container
+   ========================================== */
+.table-wrapper, .table-responsive {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: var(--radius-sm, 8px);
+    margin-bottom: 1.5rem;
+}
+
+/* Ensure wide tables don't squish completely */
+.table-modern, table {
+    min-width: 600px;
+}
+
+@media (max-width: 768px) {
+    th, td {
+        padding: 0.75rem 0.5rem !important;
+        font-size: 0.8rem !important;
+    }
+}
+
+/* ==========================================
+   Shortcut and Action Buttons Row
+   ========================================== */
+@media (max-width: 768px) {
+    /* Shortcut button rows wrapper */
+    div[style*="display: flex; gap: 1rem;"][style*="flex-wrap: wrap;"] {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.5rem !important;
+    }
+    
+    div[style*="display: flex; gap: 1rem;"][style*="flex-wrap: wrap;"] > a,
+    div[style*="display: flex; gap: 1rem;"][style*="flex-wrap: wrap;"] > button {
+        min-width: 0 !important;
+        font-size: 0.8rem !important;
+        padding: 0.5rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    div[style*="display: flex; gap: 1rem;"][style*="flex-wrap: wrap;"] {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ==========================================
+   Modals & Popups Overrides
+   ========================================== */
+@media (max-width: 576px) {
+    /* Override inline styles for manager dashboard transient popups */
+    div[style*="position: fixed;"][style*="top: 20px;"] {
+        left: 10px !important;
+        right: 10px !important;
+        top: 10px !important;
+        font-size: 0.85rem !important;
+        text-align: center;
+    }
+    
+    /* Ensure sweetalert modals fit screen */
+    .swal2-popup {
+        width: 90% !important;
+        padding: 1rem !important;
+    }
+    .swal2-title {
+        font-size: 1.25rem !important;
+    }
+}
+
+/* ==========================================
+   Row and Column Grid Stacking
+   ========================================== */
+@media (max-width: 768px) {
+    .row {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 1.5rem !important;
+    }
+    
+    .col-8, .col-6, .col-4 {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+}
+
+/* ==========================================
+   Page Hero & Toolbar Responsive Updates
+   ========================================== */
+@media (max-width: 768px) {
+    .page-hero {
+        padding: 1.5rem 1rem !important;
+        margin: 0 0 1.5rem 0 !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        text-align: center !important;
+        border-radius: 12px !important;
+    }
+    
+    .hero-left {
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 0.75rem !important;
+    }
+    
+    .btn-back {
+        justify-content: center !important;
+        width: 100% !important;
+    }
+    
+    .toolbar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 1rem !important;
+    }
+    
+    .toolbar > div {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+    
+    .toolbar style + div {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.5rem !important;
+    }
+    
+    .search-wrap {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+    
+    .btn-add {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+}
+
+/* ==========================================
+   Employee Detail (Profile View) Page
+   ========================================== */
+@media (max-width: 768px) {
+    .emp-hero, .edit-hero {
+        padding: 1.5rem 1rem !important;
+        margin: 0 0 1.5rem 0 !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        text-align: center !important;
+        border-radius: 12px !important;
+    }
+    
+    .hero-identity {
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 0.75rem !important;
+    }
+    
+    .hero-avatar {
+        margin-right: 0 !important;
+    }
+    
+    .hero-meta {
+        justify-content: center !important;
+        gap: 0.5rem !important;
+    }
+    
+    .hero-actions {
+        margin-top: 1rem !important;
+        justify-content: center !important;
+    }
+    
+    .hero-actions > * {
+        flex: 1 !important;
+        justify-content: center !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .balance-kpis {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .balance-kpi {
+        border-right: none !important;
+        border-bottom: 1px solid #f8fafc !important;
+    }
+    
+    .balance-kpi:last-child {
+        border-bottom: none !important;
+    }
+    
+    .radio-card-grid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .kpi-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
+}
+
+/* ==========================================
+   Page Header (Performance / Settings) Page
+   ========================================== */
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 1rem !important;
+        text-align: center !important;
+        border-radius: 12px !important;
+        padding: 1rem !important;
+    }
+    
+    .page-header h2 {
+        justify-content: center !important;
+        font-size: 1.2rem !important;
+    }
+    
+    .page-header .btn-group {
+        display: flex !important;
+        justify-content: center !important;
+    }
+}
+
+/* ==========================================
+   Dashboard Grid Stacking
+   ========================================== */
+@media (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 1rem !important;
+    }
+}

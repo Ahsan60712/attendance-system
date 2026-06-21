@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='responsive.css') }}">
     <style>
         :root {
             --primary: #6366f1;
@@ -46,14 +47,17 @@
     {% if session.get('logged_in') or session.get('emp_name') %}
     <header>
         <a href="/" class="logo"><i data-lucide="shield-check" color="#a5b4fc"></i> Adlab Solutions</a>
-        <div style="display: flex; align-items: center; gap: 1rem;">
-            <span style="font-weight: 600; font-size: 0.9rem; color: #e0e7ff;">{{ session.get('emp_name') | replace('_', ' ') }}</span>
+        <button class="mobile-menu-toggle" aria-label="Toggle Navigation" onclick="toggleMobileMenu()">
+            <i data-lucide="menu" id="menu-icon"></i>
+        </button>
+        <div class="header-nav" id="headerNav">
+            <span class="user-greeting" style="font-weight: 600; font-size: 0.9rem; color: #e0e7ff;">{{ session.get('emp_name') | replace('_', ' ') }}</span>
             {% if session.get('logged_in') and session.get('user_type') in ['employee', 'manager', 'admin', 'ceo'] %}
-            <a href="{{ url_for('change_password') }}" class="btn" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(4px);">
+            <a href="{{ url_for('change_password') }}" class="btn btn-change-pw" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(4px);">
                 <i data-lucide="key" size="16"></i> Change Password
             </a>
             {% endif %}
-            <a href="{{ url_for('logout') }}" class="btn" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);">
+            <a href="{{ url_for('logout') }}" class="btn btn-logout" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);">
                 <i data-lucide="log-out" size="16"></i> Logout
             </a>
         </div>
@@ -108,6 +112,20 @@
         {% block content %}{% endblock %}
     </main>
 
-    <script>lucide.createIcons();</script>
+    <script>
+        lucide.createIcons();
+
+        function toggleMobileMenu() {
+            const nav = document.getElementById('headerNav');
+            const icon = document.getElementById('menu-icon');
+            nav.classList.toggle('active');
+            if (nav.classList.contains('active')) {
+                icon.setAttribute('data-lucide', 'x');
+            } else {
+                icon.setAttribute('data-lucide', 'menu');
+            }
+            lucide.createIcons();
+        }
+    </script>
 </body>
 </html>
