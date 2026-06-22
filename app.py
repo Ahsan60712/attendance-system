@@ -49,6 +49,8 @@ def _enrich_employees_leave_balances(employees):
             emp['Remaining_Leaves'] = bal.get('remaining_leaves', emp.get('Remaining_Leaves', 0))
             emp['Leaves_This_Year'] = bal.get('leaves_taken_this_year', emp.get('Leaves_This_Year', 0))
             emp['WFH_count'] = bal.get('wfh_count', emp.get('WFH_count', 0))
+            emp['Half_Day'] = bal.get('half_days_taken', emp.get('Half_Day', 0))
+            emp['Total_leaves'] = bal.get('total_leaves', emp.get('Total_leaves', 14))
 
 def _sync_all_balances_on_startup():
     try:
@@ -850,6 +852,7 @@ def admin_dashboard():
     
     emp_id = session.get('emp_id')
     employees = manager.get_employees()
+    _enrich_employees_leave_balances(employees)
     
     # Fail-safe: if user is CEO in database, redirect them to CEO dashboard
     current_emp = next((e for e in employees if str(e.get('emp_id')) == str(emp_id)), {})
