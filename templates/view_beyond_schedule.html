@@ -29,9 +29,9 @@
         <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem; color: #1e293b;">
             <i data-lucide="file-spreadsheet" size="22" style="color: #10b981;"></i> Beyond Schedule Grid
         </h3>
-        <button onclick="showPopup('Export to Excel feature coming soon!', 'success')" style="background: #10b981; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; font-weight: 600; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+        <a href="{{ url_for('export_beyond_schedule') }}" style="background: #10b981; color: white; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; font-weight: 600; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;">
             <i data-lucide="download" size="14"></i> Export to Excel
-        </button>
+        </a>
     </div>
     
     <div class="table-wrapper" style="overflow-x: auto; border: 1px solid #cbd5e1; border-radius: 2px;">

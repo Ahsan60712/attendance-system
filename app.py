@@ -1377,6 +1377,245 @@ def view_beyond_schedule():
                           weekly_report_week1=weekly_report_week1,
                           weekly_report_week2=weekly_report_week2)
 
+@app.route('/export-beyond-schedule')
+def export_beyond_schedule():
+    import io
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    from flask import send_file
+
+    user_type = session.get('user_type')
+    emp_team = (session.get('emp_team') or '').strip().lower()
+    
+    is_allowed = False
+    if user_type in ['admin', 'manager', 'ceo']:
+        is_allowed = True
+    elif user_type == 'employee' and emp_team == 'overstock':
+        is_allowed = True
+        
+    if not is_allowed:
+        return redirect(url_for('employee_login'))
+    
+    schedules = manager.get_shift_schedules()
+    if schedules:
+        latest_submitted_schedule = max(schedules, key=lambda s: s.get('submitted_at') or s.get('valid_from'))
+        latest_date = latest_submitted_schedule.get('valid_from')
+        if latest_date:
+            schedules = [s for s in schedules if s.get('valid_from') == latest_date]
+            
+    employees = manager.get_employees()
+    emp_dict = {str(e.get('emp_id')): e.get('emp_name') for e in employees}
+    emp_teams = {str(e.get('emp_id')): (e.get('emp_team') or '').strip().lower() for e in employees}
+    
+    schedule_map = {}
+    meeting_lead_week1 = 'Not Assigned'
+    meeting_lead_week2 = 'Not Assigned'
+    weekly_report_week1 = 'Not Assigned'
+    weekly_report_week2 = 'Not Assigned'
+    
+    for s in reversed(schedules):
+        shift_name = s.get('shift_name')
+        emp_id = s.get('emp_id')
+        schedule_type = s.get('schedule_type')
+        
+        # Filter: only display Overstock team members
+        emp_id_str = str(emp_id)
+        if emp_teams.get(emp_id_str) != 'overstock':
+            continue
+            
+        if schedule_type == 'meeting_lead_week1':
+            meeting_lead_week1 = emp_dict.get(emp_id_str, 'Not Assigned')
+        elif schedule_type == 'meeting_lead_week2':
+            meeting_lead_week2 = emp_dict.get(emp_id_str, 'Not Assigned')
+        elif schedule_type == 'weekly_report_week1':
+            weekly_report_week1 = emp_dict.get(emp_id_str, 'Not Assigned')
+        elif schedule_type == 'weekly_report_week2':
+            weekly_report_week2 = emp_dict.get(emp_id_str, 'Not Assigned')
+        elif schedule_type == 'main':
+            schedule_map[shift_name] = emp_dict.get(emp_id_str, 'Not Assigned')
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Beyond Schedule"
+    ws.views.sheetView[0].showGridLines = True
+
+    # Borders
+    thin_border_side = Side(border_style="thin", color="CBD5E1")
+    thin_border = Border(left=thin_border_side, right=thin_border_side, top=thin_border_side, bottom=thin_border_side)
+    
+    # Styles
+    font_header = Font(name="Segoe UI", size=11, bold=True, color="FFFFFF")
+    fill_header = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+    align_center = Alignment(horizontal="center", vertical="center")
+    align_left = Alignment(horizontal="left", vertical="center")
+    
+    # Headers
+    headers = ["SHIFT", "EMPLOYEE NAME", "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
+    ws.append(headers)
+    for col_idx in range(1, 10):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.font = font_header
+        cell.fill = fill_header
+        cell.alignment = align_center if col_idx > 2 else align_left
+        cell.border = thin_border
+        
+    font_body = Font(name="Segoe UI", size=10, bold=False, color="000000")
+    font_body_bold = Font(name="Segoe UI", size=10, bold=True, color="000000")
+    font_on = Font(name="Segoe UI", size=10, bold=True, color="FFFFFF")
+    font_dash = Font(name="Segoe UI", size=10, color="94A3B8")
+    
+    fill_gray_shift = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+    
+    rows_data = [
+        {
+            "shift": "Weekend Night",
+            "employee": schedule_map.get('Weekend Night', 'N/A'),
+            "days": ["-", "-", "ON", "ON", "-", "ON", "ON"],
+            "on_fill": "8B5CF6"
+        },
+        {
+            "shift": "Weekend Morning",
+            "employee": schedule_map.get('Weekend Morning', 'N/A'),
+            "days": ["ON", "ON", "-", "-", "-", "ON", "ON"],
+            "on_fill": "F97316"
+        },
+        {
+            "shift": "Night",
+            "employee": schedule_map.get('Night', 'N/A'),
+            "days": ["ON", "ON", "ON", "ON", "ON", "-", "-"],
+            "on_fill": "4F46E5"
+        },
+        {
+            "shift": "Morning",
+            "employee": schedule_map.get('Morning', 'N/A'),
+            "days": ["ON", "ON", "ON", "ON", "ON", "-", "-"],
+            "on_fill": "0EA5E9"
+        },
+        {
+            "shift": "Primary (P1)",
+            "employee": schedule_map.get('Primary (P1)', 'N/A'),
+            "days": ["ON", "ON", "ON", "ON", "ON", "-", "-"],
+            "on_fill": "10B981"
+        },
+        {
+            "shift": "Primary (P2)",
+            "employee": schedule_map.get('Primary (P2)', 'N/A'),
+            "days": ["ON", "ON", "ON", "ON", "ON", "-", "-"],
+            "on_fill": "059669"
+        },
+        {
+            "shift": "Dev Office",
+            "employee": schedule_map.get('Development Office', 'N/A'),
+            "days": ["ON", "ON", "ON", "ON", "ON", "-", "-"],
+            "on_fill": "EC4899"
+        },
+        {
+            "shift": "Dev Office 2",
+            "employee": schedule_map.get('Development office', 'N/A'),
+            "days": ["ON", "ON", "ON", "ON", "ON", "-", "-"],
+            "on_fill": "EC4899"
+        }
+    ]
+    
+    row_idx = 2
+    for rdata in rows_data:
+        ws.cell(row=row_idx, column=1, value=rdata["shift"]).font = font_body_bold
+        ws.cell(row=row_idx, column=1).alignment = align_left
+        ws.cell(row=row_idx, column=1).fill = fill_gray_shift
+        ws.cell(row=row_idx, column=1).border = thin_border
+        
+        ws.cell(row=row_idx, column=2, value=rdata["employee"]).font = font_body
+        ws.cell(row=row_idx, column=2).alignment = align_left
+        ws.cell(row=row_idx, column=2).border = thin_border
+        
+        fill_on = PatternFill(start_color=rdata["on_fill"], end_color=rdata["on_fill"], fill_type="solid")
+        for d_idx, day_val in enumerate(rdata["days"]):
+            cell_col = 3 + d_idx
+            cell = ws.cell(row=row_idx, column=cell_col, value=day_val)
+            cell.alignment = align_center
+            cell.border = thin_border
+            if day_val == "ON":
+                cell.fill = fill_on
+                cell.font = font_on
+            else:
+                cell.font = font_dash
+        row_idx += 1
+
+    # Meeting Lead
+    ws.cell(row=row_idx, column=1, value="Meeting Lead").font = font_body_bold
+    ws.cell(row=row_idx, column=1).alignment = align_left
+    ws.cell(row=row_idx, column=1).fill = fill_gray_shift
+    ws.cell(row=row_idx, column=1).border = thin_border
+    
+    ws.cell(row=row_idx, column=2, value="-").font = font_dash
+    ws.cell(row=row_idx, column=2).alignment = align_center
+    ws.cell(row=row_idx, column=2).border = thin_border
+    
+    ws.merge_cells(start_row=row_idx, start_column=3, end_row=row_idx, end_column=5)
+    cell_w1 = ws.cell(row=row_idx, column=3, value=f"W1: {meeting_lead_week1}")
+    cell_w1.font = Font(name="Segoe UI", size=10, bold=True, color="1E3A8A")
+    cell_w1.alignment = align_center
+    
+    ws.merge_cells(start_row=row_idx, start_column=6, end_row=row_idx, end_column=9)
+    cell_w2 = ws.cell(row=row_idx, column=6, value=f"W2: {meeting_lead_week2}")
+    cell_w2.font = Font(name="Segoe UI", size=10, bold=True, color="1E3A8A")
+    cell_w2.alignment = align_center
+    
+    for col in range(3, 10):
+        ws.cell(row=row_idx, column=col).border = thin_border
+        ws.cell(row=row_idx, column=col).fill = PatternFill(start_color="EFF6FF", end_color="EFF6FF", fill_type="solid")
+    row_idx += 1
+    
+    # Weekly Report
+    ws.cell(row=row_idx, column=1, value="Weekly Report").font = font_body_bold
+    ws.cell(row=row_idx, column=1).alignment = align_left
+    ws.cell(row=row_idx, column=1).fill = fill_gray_shift
+    ws.cell(row=row_idx, column=1).border = thin_border
+    
+    ws.cell(row=row_idx, column=2, value="-").font = font_dash
+    ws.cell(row=row_idx, column=2).alignment = align_center
+    ws.cell(row=row_idx, column=2).border = thin_border
+    
+    ws.merge_cells(start_row=row_idx, start_column=3, end_row=row_idx, end_column=5)
+    cell_w1_r = ws.cell(row=row_idx, column=3, value=f"W1: {weekly_report_week1}")
+    cell_w1_r.font = Font(name="Segoe UI", size=10, bold=True, color="065F46")
+    cell_w1_r.alignment = align_center
+    
+    ws.merge_cells(start_row=row_idx, start_column=6, end_row=row_idx, end_column=9)
+    cell_w2_r = ws.cell(row=row_idx, column=6, value=f"W2: {weekly_report_week2}")
+    cell_w2_r.font = Font(name="Segoe UI", size=10, bold=True, color="065F46")
+    cell_w2_r.alignment = align_center
+    
+    for col in range(3, 10):
+        ws.cell(row=row_idx, column=col).border = thin_border
+        ws.cell(row=row_idx, column=col).fill = PatternFill(start_color="ECFDF5", end_color="ECFDF5", fill_type="solid")
+
+    for col in ws.columns:
+        col_letter = get_column_letter(col[0].column)
+        if col_letter in ['A', 'B']:
+            max_len = 0
+            for cell in col:
+                if cell.row < 10:
+                    val_str = str(cell.value or '')
+                    max_len = max(max_len, len(val_str))
+            ws.column_dimensions[col_letter].width = max(max_len + 4, 18)
+        else:
+            ws.column_dimensions[col_letter].width = 12
+
+    out = io.BytesIO()
+    wb.save(out)
+    out.seek(0)
+    
+    today = date.today()
+    file_name = f"beyond_schedule_{today.strftime('%Y-%m-%d')}.xlsx"
+    return send_file(
+        out,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name=file_name
+    )
+
 @app.after_request
 def add_header(response):
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'

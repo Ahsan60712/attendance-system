@@ -52,10 +52,23 @@ def test_ceo_dashboard():
         else:
              print("❌ CEO dashboard MISSING Employees Leave Directory tab")
 
+def test_export_beyond_schedule():
+    with app.test_client() as client:
+        with client.session_transaction() as sess:
+            sess['user_type'] = 'admin'
+            sess['emp_name'] = 'Admin User'
+            sess['emp_id'] = 999
+        
+        response = client.get('/export-beyond-schedule')
+        assert response.status_code == 200
+        assert response.mimetype == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        print("✅ Beyond Schedule Export to Excel route works successfully")
+
 if __name__ == "__main__":
     try:
         test_admin_dashboard_date_filter()
         test_ceo_dashboard()
+        test_export_beyond_schedule()
         print("Tests Complete")
     except Exception as e:
         print(f"Test Failed: {e}")
