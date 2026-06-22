@@ -939,6 +939,7 @@ def ceo_dashboard():
     end_date_str = request.args.get('end_date', today.strftime('%Y-%m-%d'))
 
     employees = manager.get_employees()
+    _enrich_employees_leave_balances(employees)
 
     # Company-wide approved + rejected requests for history view
     all_approved = manager.get_pending_requests(req_status='Approved')

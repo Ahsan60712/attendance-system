@@ -35,9 +35,27 @@ def test_admin_dashboard_date_filter():
         else:
              print("❌ 'Muhammad Ahsan' NOT found in 20-Jan View")
 
+def test_ceo_dashboard():
+    with app.test_client() as client:
+        # Mock session
+        with client.session_transaction() as sess:
+            sess['user_type'] = 'ceo'
+            sess['emp_name'] = 'CEO User'
+            sess['emp_id'] = 17 # CEO Najm is ID 17
+        
+        response = client.get('/ceo-dashboard')
+        assert response.status_code == 200
+        content = response.data.decode('utf-8')
+        print(f"CEO View Content Length: {len(content)}")
+        if 'Employees Leave Directory' in content:
+             print("✅ CEO dashboard contains Employees Leave Directory tab")
+        else:
+             print("❌ CEO dashboard MISSING Employees Leave Directory tab")
+
 if __name__ == "__main__":
     try:
         test_admin_dashboard_date_filter()
-        print("Test Complete")
+        test_ceo_dashboard()
+        print("Tests Complete")
     except Exception as e:
         print(f"Test Failed: {e}")
