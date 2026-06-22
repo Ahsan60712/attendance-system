@@ -46,7 +46,19 @@
 <body>
     {% if session.get('logged_in') or session.get('emp_name') %}
     <header>
-        <a href="/" class="logo"><i data-lucide="shield-check" color="#a5b4fc"></i> Adlab Solutions</a>
+        {% if session.get('user_type') == 'employee' %}
+            <a href="{{ url_for('employee_dashboard') }}" class="logo">
+        {% elif session.get('user_type') == 'manager' %}
+            <a href="{{ url_for('manager_dashboard') }}" class="logo">
+        {% elif session.get('user_type') == 'admin' %}
+            <a href="{{ url_for('admin_dashboard') }}" class="logo">
+        {% elif session.get('user_type') == 'ceo' %}
+            <a href="{{ url_for('ceo_dashboard') }}" class="logo">
+        {% else %}
+            <a href="/" class="logo">
+        {% endif %}
+            <i data-lucide="shield-check" color="#a5b4fc"></i> Adlab Solutions
+        </a>
         <button class="mobile-menu-toggle" aria-label="Toggle Navigation" onclick="toggleMobileMenu()">
             <i data-lucide="menu" id="menu-icon"></i>
         </button>
