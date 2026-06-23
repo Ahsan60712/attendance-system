@@ -656,34 +656,107 @@ def manager_dashboard():
                 schedules = [s for s in schedules if s.get('valid_from') == latest_date]
         
         emp_dict = {str(e.get('emp_id')): e.get('emp_name') for e in manager.get_employees()}
-        emp_teams = {str(e.get('emp_id')): (e.get('emp_team') or '').strip().lower() for e in manager.get_employees()}
+            # Invert schedules to find who is assigned to what main shift
+        emp_to_shift = {}
+        meeting_lead_week1 = 'Not Assigned'
+        meeting_lead_week2 = 'Not Assigned'
+        weekly_report_week1 = 'Not Assigned'
+        weekly_report_week2 = 'Not Assigned'
         
-        schedule_map = {}
-        meeting_lead_week1 = None
-        meeting_lead_week2 = None
-        weekly_report_week1 = None
-        weekly_report_week2 = None
-        
-        for s in reversed(schedules):
-            shift_name = s.get('shift_name')
-            emp_id = s.get('emp_id')
+        for s in schedules:
+            emp_id_str = str(s.get('emp_id'))
             schedule_type = s.get('schedule_type')
+            shift_name = s.get('shift_name')
             
-            # Filter: only display Overstock team members
-            emp_id_str = str(emp_id)
-            if emp_teams.get(emp_id_str) != 'overstock':
-                continue
+            # Resolve names for weekly roles
+            resolved_name = next((e.get('emp_name') for e in employees if str(e.get('emp_id')) == emp_id_str), 'Not Assigned')
             
             if schedule_type == 'meeting_lead_week1':
-                meeting_lead_week1 = emp_dict.get(emp_id_str, 'Not Assigned')
+                meeting_lead_week1 = resolved_name
             elif schedule_type == 'meeting_lead_week2':
-                meeting_lead_week2 = emp_dict.get(emp_id_str, 'Not Assigned')
+                meeting_lead_week2 = resolved_name
             elif schedule_type == 'weekly_report_week1':
-                weekly_report_week1 = emp_dict.get(emp_id_str, 'Not Assigned')
+                weekly_report_week1 = resolved_name
             elif schedule_type == 'weekly_report_week2':
-                weekly_report_week2 = emp_dict.get(emp_id_str, 'Not Assigned')
+                weekly_report_week2 = resolved_name
             elif schedule_type == 'main':
-                schedule_map[shift_name] = emp_dict.get(emp_id_str, 'Not Assigned')
+                emp_to_shift[emp_id_str] = shift_name
+                
+        # Shift schedules definitions
+        SHIFT_SCHEDULES = {
+            'Weekend Night': {
+                'MON': 'Off Day', 'TUE': 'Off Day', 'WED': 'Weekend Night', 'THU': 'Weekend Night', 
+                'FRI': 'Off Day', 'SAT': 'Weekend Night', 'SUN': 'Weekend Night'
+            },
+            'Weekend Morning': {
+                'MON': 'Weekend Morning', 'TUE': 'Weekend Morning', 'WED': 'Off Day', 'THU': 'Off Day', 
+                'FRI': 'Off Day', 'SAT': 'Weekend Morning', 'SUN': 'Weekend Morning'
+            },
+            'Night': {
+                'MON': 'Night', 'TUE': 'Night', 'WED': 'Night', 'THU': 'Night', 
+                'FRI': 'Night', 'SAT': 'Off Day', 'SUN': 'Off Day'
+            },
+            'Morning': {
+                'MON': 'Morning', 'TUE': 'Morning', 'WED': 'Morning', 'THU': 'Morning', 
+                'FRI': 'Morning', 'SAT': 'Off Day', 'SUN': 'Off Day'
+            },
+            'Primary (P1)': {
+                'MON': 'Primary (P1)', 'TUE': 'Primary (P1)', 'WED': 'Primary (P1)', 'THU': 'Primary (P1)', 
+                'FRI': 'Primary (P1)', 'SAT': 'Off Day', 'SUN': 'Off Day'
+            },
+            'Primary (P2)': {
+                'MON': 'Primary (P2)', 'TUE': 'Primary (P2)', 'WED': 'Primary (P2)', 'THU': 'Primary (P2)', 
+                'FRI': 'Primary (P2)', 'SAT': 'Off Day', 'SUN': 'Off Day'
+            },
+            'Development Office': {
+                'MON': 'Dev 1', 'TUE': 'Dev 1', 'WED': 'Dev 1', 'THU': 'Dev 1', 
+                'FRI': 'Dev 1', 'SAT': 'Off Day', 'SUN': 'Off Day'
+            },
+            'Development office': {
+                'MON': 'Dev 2', 'TUE': 'Dev 2', 'WED': 'Dev 2', 'THU': 'Dev 2', 
+                'FRI': 'Dev 2', 'SAT': 'Off Day', 'SUN': 'Off Day'
+            }
+        }
+        
+        SHIFT_DISPLAY = {
+            'Weekend Night': 'Weekend Night',
+            'Weekend Morning': 'Weekend Morning',
+            'Night': 'Night',
+            'Morning': 'Morning',
+            'Primary (P1)': 'Primary (P1)',
+            'Primary (P2)': 'Primary (P2)',
+            'Development Office': 'Dev 1',
+            'Development office': 'Dev 2'
+        }
+        
+        # Filter: only display Overstock team members (employees and managers)
+        overstock_employees = [e for e in employees if (e.get('emp_team') or '').strip().lower() == 'overstock']
+        # Sort managers to the top, then by name
+        overstock_employees.sort(key=lambda e: (not e.get('is_manager', False), e.get('emp_name', '').lower()))
+        
+        grid_data = []
+        for emp in overstock_employees:
+            emp_id_str = str(emp.get('emp_id'))
+            emp_name = emp.get('emp_name')
+            is_manager = emp.get('is_manager', False)
+            
+            assigned_shift = emp_to_shift.get(emp_id_str)
+            
+            days_schedule = {}
+            for d in ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']:
+                if assigned_shift and assigned_shift in SHIFT_SCHEDULES:
+                    days_schedule[d] = SHIFT_SCHEDULES[assigned_shift][d]
+                else:
+                    days_schedule[d] = 'Off Day'
+                    
+            grid_data.append({
+                'emp_id': emp.get('emp_id'),
+                'emp_name': emp_name,
+                'is_manager': is_manager,
+                'assigned_shift': assigned_shift or 'Not Assigned',
+                'assigned_shift_display': SHIFT_DISPLAY.get(assigned_shift, 'Not Assigned') if assigned_shift else 'Not Assigned',
+                'days': days_schedule
+            })
         
         return render_template('manager_dashboard.html', 
                                manager_name=session.get('emp_name', 'Manager'),
@@ -699,12 +772,12 @@ def manager_dashboard():
                                remaining_leaves=leave_balance.get('remaining_leaves', 0),
                                today=today.strftime('%Y-%m-%d'),
                                overstock_members=overstock_members,
-                               schedule_map=schedule_map,
+                               grid_data=grid_data,
                                meeting_lead_week1=meeting_lead_week1,
                                meeting_lead_week2=meeting_lead_week2,
                                weekly_report_week1=weekly_report_week1,
                                weekly_report_week2=weekly_report_week2,
-                team_members=team_members)
+                               team_members=team_members)
     except Exception as e:
         return f"<h2>⚠️ Dashboard Crash!</h2><p>Error Type: {type(e).__name__}</p><p>Message: {str(e)}</p>"
 
@@ -1339,39 +1412,112 @@ def view_beyond_schedule():
             schedules = [s for s in schedules if s.get('valid_from') == latest_date]
             
     employees = manager.get_employees()
-    emp_dict = {str(e.get('emp_id')): e.get('emp_name') for e in employees}
-    emp_teams = {str(e.get('emp_id')): (e.get('emp_team') or '').strip().lower() for e in employees}
     
-    schedule_map = {}
-    meeting_lead_week1 = None
-    meeting_lead_week2 = None
-    weekly_report_week1 = None
-    weekly_report_week2 = None
+    # Filter: only display Overstock team members (employees and managers)
+    overstock_employees = [e for e in employees if (e.get('emp_team') or '').strip().lower() == 'overstock']
+    # Sort managers to the top, then by name
+    overstock_employees.sort(key=lambda e: (not e.get('is_manager', False), e.get('emp_name', '').lower()))
     
-    for s in reversed(schedules):
-        shift_name = s.get('shift_name')
-        emp_id = s.get('emp_id')
+    # Invert schedules to find who is assigned to what main shift
+    emp_to_shift = {}
+    meeting_lead_week1 = 'Not Assigned'
+    meeting_lead_week2 = 'Not Assigned'
+    weekly_report_week1 = 'Not Assigned'
+    weekly_report_week2 = 'Not Assigned'
+    
+    for s in schedules:
+        emp_id_str = str(s.get('emp_id'))
         schedule_type = s.get('schedule_type')
+        shift_name = s.get('shift_name')
         
-        # Filter: only display Overstock team members
-        emp_id_str = str(emp_id)
-        if emp_teams.get(emp_id_str) != 'overstock':
-            continue
-            
+        # Resolve names for weekly roles
+        resolved_name = next((e.get('emp_name') for e in employees if str(e.get('emp_id')) == emp_id_str), 'Not Assigned')
+        
         if schedule_type == 'meeting_lead_week1':
-            meeting_lead_week1 = emp_dict.get(emp_id_str, 'Not Assigned')
+            meeting_lead_week1 = resolved_name
         elif schedule_type == 'meeting_lead_week2':
-            meeting_lead_week2 = emp_dict.get(emp_id_str, 'Not Assigned')
+            meeting_lead_week2 = resolved_name
         elif schedule_type == 'weekly_report_week1':
-            weekly_report_week1 = emp_dict.get(emp_id_str, 'Not Assigned')
+            weekly_report_week1 = resolved_name
         elif schedule_type == 'weekly_report_week2':
-            weekly_report_week2 = emp_dict.get(emp_id_str, 'Not Assigned')
+            weekly_report_week2 = resolved_name
         elif schedule_type == 'main':
-            schedule_map[shift_name] = emp_dict.get(emp_id_str, 'Not Assigned')
+            emp_to_shift[emp_id_str] = shift_name
+            
+    # Shift schedules definitions
+    SHIFT_SCHEDULES = {
+        'Weekend Night': {
+            'MON': 'Off Day', 'TUE': 'Off Day', 'WED': 'Weekend Night', 'THU': 'Weekend Night', 
+            'FRI': 'Off Day', 'SAT': 'Weekend Night', 'SUN': 'Weekend Night'
+        },
+        'Weekend Morning': {
+            'MON': 'Weekend Morning', 'TUE': 'Weekend Morning', 'WED': 'Off Day', 'THU': 'Off Day', 
+            'FRI': 'Off Day', 'SAT': 'Weekend Morning', 'SUN': 'Weekend Morning'
+        },
+        'Night': {
+            'MON': 'Night', 'TUE': 'Night', 'WED': 'Night', 'THU': 'Night', 
+            'FRI': 'Night', 'SAT': 'Off Day', 'SUN': 'Off Day'
+        },
+        'Morning': {
+            'MON': 'Morning', 'TUE': 'Morning', 'WED': 'Morning', 'THU': 'Morning', 
+            'FRI': 'Morning', 'SAT': 'Off Day', 'SUN': 'Off Day'
+        },
+        'Primary (P1)': {
+            'MON': 'Primary (P1)', 'TUE': 'Primary (P1)', 'WED': 'Primary (P1)', 'THU': 'Primary (P1)', 
+            'FRI': 'Primary (P1)', 'SAT': 'Off Day', 'SUN': 'Off Day'
+        },
+        'Primary (P2)': {
+            'MON': 'Primary (P2)', 'TUE': 'Primary (P2)', 'WED': 'Primary (P2)', 'THU': 'Primary (P2)', 
+            'FRI': 'Primary (P2)', 'SAT': 'Off Day', 'SUN': 'Off Day'
+        },
+        'Development Office': {
+            'MON': 'Dev 1', 'TUE': 'Dev 1', 'WED': 'Dev 1', 'THU': 'Dev 1', 
+            'FRI': 'Dev 1', 'SAT': 'Off Day', 'SUN': 'Off Day'
+        },
+        'Development office': {
+            'MON': 'Dev 2', 'TUE': 'Dev 2', 'WED': 'Dev 2', 'THU': 'Dev 2', 
+            'FRI': 'Dev 2', 'SAT': 'Off Day', 'SUN': 'Off Day'
+        }
+    }
     
+    SHIFT_DISPLAY = {
+        'Weekend Night': 'Weekend Night',
+        'Weekend Morning': 'Weekend Morning',
+        'Night': 'Night',
+        'Morning': 'Morning',
+        'Primary (P1)': 'Primary (P1)',
+        'Primary (P2)': 'Primary (P2)',
+        'Development Office': 'Dev 1',
+        'Development office': 'Dev 2'
+    }
+    
+    grid_data = []
+    for emp in overstock_employees:
+        emp_id_str = str(emp.get('emp_id'))
+        emp_name = emp.get('emp_name')
+        is_manager = emp.get('is_manager', False)
+        
+        assigned_shift = emp_to_shift.get(emp_id_str)
+        
+        days_schedule = {}
+        for d in ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']:
+            if assigned_shift and assigned_shift in SHIFT_SCHEDULES:
+                days_schedule[d] = SHIFT_SCHEDULES[assigned_shift][d]
+            else:
+                days_schedule[d] = 'Off Day'
+                
+        grid_data.append({
+            'emp_id': emp.get('emp_id'),
+            'emp_name': emp_name,
+            'is_manager': is_manager,
+            'assigned_shift': assigned_shift or 'Not Assigned',
+            'assigned_shift_display': SHIFT_DISPLAY.get(assigned_shift, 'Not Assigned') if assigned_shift else 'Not Assigned',
+            'days': days_schedule
+        })
+        
     return render_template('view_beyond_schedule.html', 
                           admin_name=session.get('emp_name', 'Admin'),
-                          schedule_map=schedule_map,
+                          grid_data=grid_data,
                           meeting_lead_week1=meeting_lead_week1,
                           meeting_lead_week2=meeting_lead_week2,
                           weekly_report_week1=weekly_report_week1,
@@ -1405,35 +1551,51 @@ def export_beyond_schedule():
             schedules = [s for s in schedules if s.get('valid_from') == latest_date]
             
     employees = manager.get_employees()
-    emp_dict = {str(e.get('emp_id')): e.get('emp_name') for e in employees}
-    emp_teams = {str(e.get('emp_id')): (e.get('emp_team') or '').strip().lower() for e in employees}
-    
-    schedule_map = {}
+    # Invert schedules to find who is assigned to what main shift
+    emp_to_shift = {}
     meeting_lead_week1 = 'Not Assigned'
     meeting_lead_week2 = 'Not Assigned'
     weekly_report_week1 = 'Not Assigned'
     weekly_report_week2 = 'Not Assigned'
     
-    for s in reversed(schedules):
-        shift_name = s.get('shift_name')
-        emp_id = s.get('emp_id')
+    for s in schedules:
+        emp_id_str = str(s.get('emp_id'))
         schedule_type = s.get('schedule_type')
+        shift_name = s.get('shift_name')
         
-        # Filter: only display Overstock team members
-        emp_id_str = str(emp_id)
-        if emp_teams.get(emp_id_str) != 'overstock':
-            continue
-            
+        resolved_name = next((e.get('emp_name') for e in employees if str(e.get('emp_id')) == emp_id_str), 'Not Assigned')
+        
         if schedule_type == 'meeting_lead_week1':
-            meeting_lead_week1 = emp_dict.get(emp_id_str, 'Not Assigned')
+            meeting_lead_week1 = resolved_name
         elif schedule_type == 'meeting_lead_week2':
-            meeting_lead_week2 = emp_dict.get(emp_id_str, 'Not Assigned')
+            meeting_lead_week2 = resolved_name
         elif schedule_type == 'weekly_report_week1':
-            weekly_report_week1 = emp_dict.get(emp_id_str, 'Not Assigned')
+            weekly_report_week1 = resolved_name
         elif schedule_type == 'weekly_report_week2':
-            weekly_report_week2 = emp_dict.get(emp_id_str, 'Not Assigned')
+            weekly_report_week2 = resolved_name
         elif schedule_type == 'main':
-            schedule_map[shift_name] = emp_dict.get(emp_id_str, 'Not Assigned')
+            emp_to_shift[emp_id_str] = shift_name
+            
+    # Shift schedules definitions
+    SHIFT_SCHEDULES = {
+        'Weekend Night': {'MON': 'Off Day', 'TUE': 'Off Day', 'WED': 'Weekend Night', 'THU': 'Weekend Night', 'FRI': 'Off Day', 'SAT': 'Weekend Night', 'SUN': 'Weekend Night'},
+        'Weekend Morning': {'MON': 'Weekend Morning', 'TUE': 'Weekend Morning', 'WED': 'Off Day', 'THU': 'Off Day', 'FRI': 'Off Day', 'SAT': 'Weekend Morning', 'SUN': 'Weekend Morning'},
+        'Night': {'MON': 'Night', 'TUE': 'Night', 'WED': 'Night', 'THU': 'Night', 'FRI': 'Night', 'SAT': 'Off Day', 'SUN': 'Off Day'},
+        'Morning': {'MON': 'Morning', 'TUE': 'Morning', 'WED': 'Morning', 'THU': 'Morning', 'FRI': 'Morning', 'SAT': 'Off Day', 'SUN': 'Off Day'},
+        'Primary (P1)': {'MON': 'Primary (P1)', 'TUE': 'Primary (P1)', 'WED': 'Primary (P1)', 'THU': 'Primary (P1)', 'FRI': 'Primary (P1)', 'SAT': 'Off Day', 'SUN': 'Off Day'},
+        'Primary (P2)': {'MON': 'Primary (P2)', 'TUE': 'Primary (P2)', 'WED': 'Primary (P2)', 'THU': 'Primary (P2)', 'FRI': 'Primary (P2)', 'SAT': 'Off Day', 'SUN': 'Off Day'},
+        'Development Office': {'MON': 'Dev 1', 'TUE': 'Dev 1', 'WED': 'Dev 1', 'THU': 'Dev 1', 'FRI': 'Dev 1', 'SAT': 'Off Day', 'SUN': 'Off Day'},
+        'Development office': {'MON': 'Dev 2', 'TUE': 'Dev 2', 'WED': 'Dev 2', 'THU': 'Dev 2', 'FRI': 'Dev 2', 'SAT': 'Off Day', 'SUN': 'Off Day'}
+    }
+    
+    SHIFT_DISPLAY = {
+        'Weekend Night': 'Weekend Night', 'Weekend Morning': 'Weekend Morning', 'Night': 'Night', 'Morning': 'Morning',
+        'Primary (P1)': 'Primary (P1)', 'Primary (P2)': 'Primary (P2)', 'Development Office': 'Dev 1', 'Development office': 'Dev 2'
+    }
+    
+    # Filter: only display Overstock team members
+    overstock_employees = [e for e in employees if (e.get('emp_team') or '').strip().lower() == 'overstock']
+    overstock_employees.sort(key=lambda e: (not e.get('is_manager', False), e.get('emp_name', '').lower()))
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -1447,17 +1609,18 @@ def export_beyond_schedule():
     # Styles
     font_header = Font(name="Segoe UI", size=11, bold=True, color="FFFFFF")
     fill_header = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+    fill_gray_shift = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
     align_center = Alignment(horizontal="center", vertical="center")
     align_left = Alignment(horizontal="left", vertical="center")
     
     # Headers
-    headers = ["SHIFT", "EMPLOYEE NAME", "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
+    headers = ["EMPLOYEE NAME", "ROLE", "ASSIGNED SHIFT", "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
     ws.append(headers)
-    for col_idx in range(1, 10):
+    for col_idx in range(1, 11):
         cell = ws.cell(row=1, column=col_idx)
         cell.font = font_header
         cell.fill = fill_header
-        cell.alignment = align_center if col_idx > 2 else align_left
+        cell.alignment = align_center if col_idx > 3 else align_left
         cell.border = thin_border
         
     font_body = Font(name="Segoe UI", size=10, bold=False, color="000000")
@@ -1465,80 +1628,51 @@ def export_beyond_schedule():
     font_on = Font(name="Segoe UI", size=10, bold=True, color="FFFFFF")
     font_dash = Font(name="Segoe UI", size=10, color="94A3B8")
     
-    fill_gray_shift = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
-    
-    rows_data = [
-        {
-            "shift": "Weekend Night",
-            "employee": schedule_map.get('Weekend Night', 'N/A'),
-            "days": ["-", "-", "ON", "ON", "-", "ON", "ON"],
-            "on_fill": "8B5CF6"
-        },
-        {
-            "shift": "Weekend Morning",
-            "employee": schedule_map.get('Weekend Morning', 'N/A'),
-            "days": ["ON", "ON", "-", "-", "-", "ON", "ON"],
-            "on_fill": "F97316"
-        },
-        {
-            "shift": "Night",
-            "employee": schedule_map.get('Night', 'N/A'),
-            "days": ["ON", "ON", "ON", "ON", "ON", "-", "-"],
-            "on_fill": "4F46E5"
-        },
-        {
-            "shift": "Morning",
-            "employee": schedule_map.get('Morning', 'N/A'),
-            "days": ["ON", "ON", "ON", "ON", "ON", "-", "-"],
-            "on_fill": "0EA5E9"
-        },
-        {
-            "shift": "Primary (P1)",
-            "employee": schedule_map.get('Primary (P1)', 'N/A'),
-            "days": ["ON", "ON", "ON", "ON", "ON", "-", "-"],
-            "on_fill": "10B981"
-        },
-        {
-            "shift": "Primary (P2)",
-            "employee": schedule_map.get('Primary (P2)', 'N/A'),
-            "days": ["ON", "ON", "ON", "ON", "ON", "-", "-"],
-            "on_fill": "059669"
-        },
-        {
-            "shift": "Dev Office",
-            "employee": schedule_map.get('Development Office', 'N/A'),
-            "days": ["ON", "ON", "ON", "ON", "ON", "-", "-"],
-            "on_fill": "EC4899"
-        },
-        {
-            "shift": "Dev Office 2",
-            "employee": schedule_map.get('Development office', 'N/A'),
-            "days": ["ON", "ON", "ON", "ON", "ON", "-", "-"],
-            "on_fill": "EC4899"
-        }
-    ]
-    
     row_idx = 2
-    for rdata in rows_data:
-        ws.cell(row=row_idx, column=1, value=rdata["shift"]).font = font_body_bold
+    for emp in overstock_employees:
+        emp_id_str = str(emp.get('emp_id'))
+        emp_name = emp.get('emp_name')
+        is_manager = emp.get('is_manager', False)
+        
+        assigned_shift = emp_to_shift.get(emp_id_str)
+        assigned_shift_disp = SHIFT_DISPLAY.get(assigned_shift, 'Not Assigned') if assigned_shift else 'Not Assigned'
+        
+        clean_name = str(emp_name).replace('_', ' ').title()
+        ws.cell(row=row_idx, column=1, value=clean_name).font = font_body_bold
         ws.cell(row=row_idx, column=1).alignment = align_left
-        ws.cell(row=row_idx, column=1).fill = fill_gray_shift
         ws.cell(row=row_idx, column=1).border = thin_border
         
-        clean_emp = str(rdata["employee"]).replace('_', ' ').title()
-        ws.cell(row=row_idx, column=2, value=clean_emp).font = font_body
+        role_val = "Manager" if is_manager else "Employee"
+        ws.cell(row=row_idx, column=2, value=role_val).font = font_body
         ws.cell(row=row_idx, column=2).alignment = align_left
         ws.cell(row=row_idx, column=2).border = thin_border
         
-        fill_on = PatternFill(start_color=rdata["on_fill"], end_color=rdata["on_fill"], fill_type="solid")
-        for d_idx, day_val in enumerate(rdata["days"]):
-            cell_col = 3 + d_idx
-            display_val = "Off Day" if day_val == "-" else day_val
+        ws.cell(row=row_idx, column=3, value=assigned_shift_disp).font = font_body
+        ws.cell(row=row_idx, column=3).alignment = align_left
+        ws.cell(row=row_idx, column=3).border = thin_border
+        
+        for d_idx, day_name in enumerate(["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]):
+            day_val = 'Off Day'
+            if assigned_shift and assigned_shift in SHIFT_SCHEDULES:
+                day_val = SHIFT_SCHEDULES[assigned_shift].get(day_name, 'Off Day')
+                
+            cell_col = 4 + d_idx
+            display_val = "Off Day" if day_val == "Off Day" else "ON"
             cell = ws.cell(row=row_idx, column=cell_col, value=display_val)
             cell.alignment = align_center
             cell.border = thin_border
-            if day_val == "ON":
-                cell.fill = fill_on
+            
+            if day_val != "Off Day":
+                on_fill = "4F46E5" # Default Night indigo
+                if day_val == 'Weekend Night': on_fill = "8B5CF6"
+                elif day_val == 'Weekend Morning': on_fill = "F97316"
+                elif day_val == 'Night': on_fill = "4F46E5"
+                elif day_val == 'Morning': on_fill = "0EA5E9"
+                elif day_val == 'Primary (P1)': on_fill = "10B981"
+                elif day_val == 'Primary (P2)': on_fill = "059669"
+                elif day_val in ['Dev 1', 'Dev 2', 'Dev Office', 'Dev Office 2', 'Development Office', 'Development office']: on_fill = "EC4899"
+                
+                cell.fill = PatternFill(start_color=on_fill, end_color=on_fill, fill_type="solid")
                 cell.font = font_on
             else:
                 cell.fill = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
@@ -1551,23 +1685,28 @@ def export_beyond_schedule():
     ws.cell(row=row_idx, column=1).fill = fill_gray_shift
     ws.cell(row=row_idx, column=1).border = thin_border
     
-    ws.cell(row=row_idx, column=2, value="Off Day").font = font_dash
-    ws.cell(row=row_idx, column=2).alignment = align_center
+    ws.merge_cells(start_row=row_idx, start_column=2, end_row=row_idx, end_column=3)
+    cell_day1 = ws.cell(row=row_idx, column=2, value="Monday")
+    cell_day1.font = Font(name="Segoe UI", size=10, bold=True, color="1E3A8A")
+    cell_day1.alignment = align_center
+    cell_day1.fill = PatternFill(start_color="EFF6FF", end_color="EFF6FF", fill_type="solid")
     ws.cell(row=row_idx, column=2).border = thin_border
+    ws.cell(row=row_idx, column=3).border = thin_border
+    ws.cell(row=row_idx, column=3).fill = PatternFill(start_color="EFF6FF", end_color="EFF6FF", fill_type="solid")
     
-    ws.merge_cells(start_row=row_idx, start_column=3, end_row=row_idx, end_column=5)
+    ws.merge_cells(start_row=row_idx, start_column=4, end_row=row_idx, end_column=6)
     clean_ml1 = str(meeting_lead_week1).replace('_', ' ').title()
-    cell_w1 = ws.cell(row=row_idx, column=3, value=f"W1: {clean_ml1}")
+    cell_w1 = ws.cell(row=row_idx, column=4, value=f"W1: {clean_ml1}")
     cell_w1.font = Font(name="Segoe UI", size=10, bold=True, color="1E3A8A")
     cell_w1.alignment = align_center
     
-    ws.merge_cells(start_row=row_idx, start_column=6, end_row=row_idx, end_column=9)
+    ws.merge_cells(start_row=row_idx, start_column=7, end_row=row_idx, end_column=10)
     clean_ml2 = str(meeting_lead_week2).replace('_', ' ').title()
-    cell_w2 = ws.cell(row=row_idx, column=6, value=f"W2: {clean_ml2}")
+    cell_w2 = ws.cell(row=row_idx, column=7, value=f"W2: {clean_ml2}")
     cell_w2.font = Font(name="Segoe UI", size=10, bold=True, color="1E3A8A")
     cell_w2.alignment = align_center
     
-    for col in range(3, 10):
+    for col in range(4, 11):
         ws.cell(row=row_idx, column=col).border = thin_border
         ws.cell(row=row_idx, column=col).fill = PatternFill(start_color="EFF6FF", end_color="EFF6FF", fill_type="solid")
     row_idx += 1
@@ -1578,32 +1717,37 @@ def export_beyond_schedule():
     ws.cell(row=row_idx, column=1).fill = fill_gray_shift
     ws.cell(row=row_idx, column=1).border = thin_border
     
-    ws.cell(row=row_idx, column=2, value="Off Day").font = font_dash
-    ws.cell(row=row_idx, column=2).alignment = align_center
+    ws.merge_cells(start_row=row_idx, start_column=2, end_row=row_idx, end_column=3)
+    cell_day2 = ws.cell(row=row_idx, column=2, value="Tuesday")
+    cell_day2.font = Font(name="Segoe UI", size=10, bold=True, color="065F46")
+    cell_day2.alignment = align_center
+    cell_day2.fill = PatternFill(start_color="ECFDF5", end_color="ECFDF5", fill_type="solid")
     ws.cell(row=row_idx, column=2).border = thin_border
+    ws.cell(row=row_idx, column=3).border = thin_border
+    ws.cell(row=row_idx, column=3).fill = PatternFill(start_color="ECFDF5", end_color="ECFDF5", fill_type="solid")
     
-    ws.merge_cells(start_row=row_idx, start_column=3, end_row=row_idx, end_column=5)
+    ws.merge_cells(start_row=row_idx, start_column=4, end_row=row_idx, end_column=6)
     clean_wr1 = str(weekly_report_week1).replace('_', ' ').title()
-    cell_w1_r = ws.cell(row=row_idx, column=3, value=f"W1: {clean_wr1}")
+    cell_w1_r = ws.cell(row=row_idx, column=4, value=f"W1: {clean_wr1}")
     cell_w1_r.font = Font(name="Segoe UI", size=10, bold=True, color="065F46")
     cell_w1_r.alignment = align_center
     
-    ws.merge_cells(start_row=row_idx, start_column=6, end_row=row_idx, end_column=9)
+    ws.merge_cells(start_row=row_idx, start_column=7, end_row=row_idx, end_column=10)
     clean_wr2 = str(weekly_report_week2).replace('_', ' ').title()
-    cell_w2_r = ws.cell(row=row_idx, column=6, value=f"W2: {clean_wr2}")
+    cell_w2_r = ws.cell(row=row_idx, column=7, value=f"W2: {clean_wr2}")
     cell_w2_r.font = Font(name="Segoe UI", size=10, bold=True, color="065F46")
     cell_w2_r.alignment = align_center
     
-    for col in range(3, 10):
+    for col in range(4, 11):
         ws.cell(row=row_idx, column=col).border = thin_border
         ws.cell(row=row_idx, column=col).fill = PatternFill(start_color="ECFDF5", end_color="ECFDF5", fill_type="solid")
 
     for col in ws.columns:
         col_letter = get_column_letter(col[0].column)
-        if col_letter in ['A', 'B']:
+        if col_letter in ['A', 'B', 'C']:
             max_len = 0
             for cell in col:
-                if cell.row < 10:
+                if cell.row < 15:
                     val_str = str(cell.value or '')
                     max_len = max(max_len, len(val_str))
             ws.column_dimensions[col_letter].width = max(max_len + 4, 18)

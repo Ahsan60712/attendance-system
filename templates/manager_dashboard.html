@@ -130,6 +130,308 @@
     .shift-dot-p1 { background: #10b981; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3); }
     .shift-dot-p2 { background: #059669; box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3); }
     .shift-dot-dev { background: #ec4899; box-shadow: 0 2px 4px rgba(236, 72, 153, 0.3); }
+
+    /* Beyond Schedule Grid Specific Styling */
+    .beyond-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+        border: 1px solid #e2e8f0;
+        padding: 2rem;
+        margin-top: 1.5rem;
+    }
+    
+    .table-header-flex {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .table-title {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: #0f172a;
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+    
+    .export-btn {
+        background: #10b981;
+        color: white;
+        text-decoration: none;
+        padding: 0.6rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+        border: none;
+    }
+    
+    .export-btn:hover {
+        background: #059669;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
+    }
+    
+    .grid-table-wrapper {
+        overflow-x: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.01);
+    }
+    
+    .grid-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: 1000px;
+        font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    }
+    
+    .grid-table th {
+        background: #f8fafc;
+        border-bottom: 2px solid #e2e8f0;
+        border-right: 1px solid #e2e8f0;
+        padding: 1rem 0.75rem;
+        text-align: center;
+        font-weight: 700;
+        font-size: 0.75rem;
+        color: #475569;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+    
+    .grid-table th:first-child,
+    .grid-table th:nth-child(2),
+    .grid-table th:nth-child(3) {
+        text-align: left;
+    }
+    
+    .grid-table th:last-child {
+        border-right: none;
+    }
+    
+    .grid-table td {
+        border-bottom: 1px solid #e2e8f0;
+        border-right: 1px solid #e2e8f0;
+        padding: 0.85rem 0.75rem;
+        vertical-align: middle;
+        font-size: 0.85rem;
+    }
+    
+    .grid-table td:last-child {
+        border-right: none;
+    }
+    
+    .grid-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    /* Shift Column */
+    .shift-col {
+        font-weight: 700;
+        color: #0f172a;
+        background: #fcfcfc;
+        width: 16%;
+    }
+    
+    .shift-info {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+    
+    /* Employee Column */
+    .emp-col {
+        width: 20%;
+    }
+    
+    .emp-container {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .emp-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+        color: #4338ca;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.8rem;
+        box-shadow: inset 0 0 0 1px rgba(67, 56, 202, 0.1);
+        text-transform: uppercase;
+        flex-shrink: 0;
+        letter-spacing: -0.02em;
+    }
+    
+    .emp-avatar-na {
+        background: #f1f5f9;
+        border: 1px dashed #cbd5e1;
+        color: #94a3b8;
+    }
+    
+    .emp-name {
+        font-weight: 600;
+        color: #1e293b;
+    }
+    
+    .emp-name-na {
+        color: #94a3b8;
+        font-style: italic;
+        font-weight: 500;
+    }
+    
+    /* Status ON cell */
+    .status-on-cell {
+        text-align: center;
+        padding: 0.5rem 0.4rem !important;
+    }
+    
+    .status-badge-on {
+        display: block;
+        padding: 0.45rem 0;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 0.75rem;
+        text-align: center;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+    
+    /* Shift Color Palettes */
+    .status-badge-weekend-night {
+        background: #f5f3ff;
+        color: #7c3aed;
+        border: 1px solid #ddd6fe;
+    }
+    .status-badge-weekend-morning {
+        background: #fff7ed;
+        color: #ea580c;
+        border: 1px solid #ffedd5;
+    }
+    .status-badge-night {
+        background: #eef2ff;
+        color: #4f46e5;
+        border: 1px solid #e0e7ff;
+    }
+    .status-badge-morning {
+        background: #f0f9ff;
+        color: #0284c7;
+        border: 1px solid #e0f2fe;
+    }
+    .status-badge-primary-p1 {
+        background: #ecfdf5;
+        color: #059669;
+        border: 1px solid #d1fae5;
+    }
+    .status-badge-primary-p2 {
+        background: #f0fdf4;
+        color: #16a34a;
+        border: 1px solid #dcfce7;
+    }
+    .status-badge-dev {
+        background: #fdf2f8;
+        color: #db2777;
+        border: 1px solid #fce7f3;
+    }
+    
+    /* Off Day Styling */
+    .status-off-cell {
+        text-align: center;
+        padding: 0.5rem 0.4rem !important;
+        background: #fdfdfd;
+    }
+    
+    .status-off-badge {
+        display: block;
+        padding: 0.45rem 0;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.72rem;
+        text-align: center;
+        background: #f8fafc;
+        color: #94a3b8;
+        border: 1px solid #e2e8f0;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+    }
+    
+    /* Meeting Lead and Weekly Report styling */
+    .weekly-role-row {
+        background: #fafafa;
+    }
+    
+    .weekly-role-badge-blue {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        padding: 0.5rem;
+    }
+    
+    .weekly-role-badge-green {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        border-radius: 8px;
+        padding: 0.5rem;
+    }
+    
+    .weekly-role-label-blue {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #2563eb;
+        background: #dbeafe;
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
+        letter-spacing: 0.05em;
+    }
+    
+    .weekly-role-label-green {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #059669;
+        background: #d1fae5;
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
+        letter-spacing: 0.05em;
+    }
+    
+    .weekly-role-name-blue {
+        font-weight: 600;
+        color: #1e3a8a;
+        font-size: 0.85rem;
+    }
+    
+    .weekly-role-name-green {
+        font-weight: 600;
+        color: #064e3b;
+        font-size: 0.85rem;
+    }
 </style>
 
 <!-- Team Dashboard Button -->
@@ -499,7 +801,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td><span style="color: #ec4899; background: #fdf2f8; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; display: inline-block;">Dev Office</span></td>
+                            <td><span style="color: #ec4899; background: #fdf2f8; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; display: inline-block;">Dev 1</span></td>
                             <td>
                                 <select name="shift_dev_office_emp_id" class="custom-select">
                                     <option value="">Select Employee</option>
@@ -510,7 +812,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td><span style="color: #ec4899; background: #fdf2f8; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; display: inline-block;">Dev Office 2</span></td>
+                            <td><span style="color: #ec4899; background: #fdf2f8; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; display: inline-block;">Dev 2</span></td>
                             <td>
                                 <select name="shift_dev_office2_emp_id" class="custom-select">
                                     <option value="">Select Employee</option>
@@ -624,144 +926,155 @@
 </div>
 {% endif %}
 
+{% macro render_employee(raw_name) %}
+    {% set clean_name = raw_name | replace('_', ' ') | title %}
+    {% if not raw_name or raw_name == 'N/A' or raw_name == 'Not Assigned' %}
+        <div class="emp-container">
+            <div class="emp-avatar emp-avatar-na">
+                <i data-lucide="user-x" size="14"></i>
+            </div>
+            <span class="emp-name-na">Not Assigned</span>
+        </div>
+    {% else %}
+        {% set name_parts = clean_name.split(' ') %}
+        {% set initials = (name_parts[0][0] | default('')) + (name_parts[1][0] | default('')) if name_parts|length > 1 else name_parts[0][0] | default('') %}
+        <div class="emp-container">
+            <div class="emp-avatar">
+                {{ initials }}
+            </div>
+            <span class="emp-name">{{ clean_name }}</span>
+        </div>
+    {% endif %}
+{% endmacro %}
+
+{% macro render_day_status(status_val) %}
+    {% if status_val == 'Off Day' %}
+        <span class="status-off-badge">Off Day</span>
+    {% elif status_val == 'Weekend Night' %}
+        <span class="status-badge-on status-badge-weekend-night">ON</span>
+    {% elif status_val == 'Weekend Morning' %}
+        <span class="status-badge-on status-badge-weekend-morning">ON</span>
+    {% elif status_val == 'Night' %}
+        <span class="status-badge-on status-badge-night">ON</span>
+    {% elif status_val == 'Morning' %}
+        <span class="status-badge-on status-badge-morning">ON</span>
+    {% elif status_val == 'Primary (P1)' %}
+        <span class="status-badge-on status-badge-primary-p1">ON</span>
+    {% elif status_val == 'Primary (P2)' %}
+        <span class="status-badge-on status-badge-primary-p2">ON</span>
+    {% elif status_val == 'Dev 1' or status_val == 'Dev Office' or status_val == 'Development Office' %}
+        <span class="status-badge-on status-badge-dev">ON</span>
+    {% elif status_val == 'Dev 2' or status_val == 'Dev Office 2' or status_val == 'Development office' %}
+        <span class="status-badge-on status-badge-dev">ON</span>
+    {% else %}
+        <span class="status-badge-on" style="background: #e2e8f0; color: #475569;">{{ status_val }}</span>
+    {% endif %}
+{% endmacro %}
+
 <!-- TAB 4: BEYOND SCHEDULE -->
 {% if emp_data.emp_team|lower == 'overstock' or 'sajeel' in session.get('emp_name', '')|lower or 'najm' in session.get('emp_name', '')|lower or session.get('user_type') in ['admin', 'ceo'] %}
 <div id="beyond-schedule-tab" class="tab-content">
-    <div class="card" style="padding: 1.5rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem; color: #1e293b;">
+    <div class="beyond-card">
+        <div class="table-header-flex">
+            <h3 class="table-title">
                 <i data-lucide="file-spreadsheet" size="22" style="color: #10b981;"></i> Beyond Schedule Grid
             </h3>
-            <button onclick="showPopup('Export to Excel feature coming soon!', 'success')" style="background: #10b981; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; font-weight: 600; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+            <a href="{{ url_for('export_beyond_schedule') }}" class="export-btn">
                 <i data-lucide="download" size="14"></i> Export to Excel
-            </button>
+            </a>
         </div>
         
-        <div class="table-wrapper" style="overflow-x: auto; border: 1px solid #cbd5e1; border-radius: 2px;">
-            <table style="width: 100%; border-collapse: collapse; min-width: 900px; font-family: 'Inter', system-ui, sans-serif; font-size: 0.8rem;">
+        <div class="grid-table-wrapper">
+            <table class="grid-table">
                 <thead>
-                    <tr style="background: #f1f5f9; border-bottom: 2px solid #94a3b8;">
-                        <th style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: left; font-weight: 700; color: #334155; width: 15%;">SHIFT</th>
-                        <th style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: left; font-weight: 700; color: #334155; width: 20%;">EMPLOYEE NAME</th>
-                        <th style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #334155; width: 9%;">MON</th>
-                        <th style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #334155; width: 9%;">TUE</th>
-                        <th style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #334155; width: 9%;">WED</th>
-                        <th style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #334155; width: 9%;">THU</th>
-                        <th style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #334155; width: 9%;">FRI</th>
-                        <th style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #334155; width: 9%;">SAT</th>
-                        <th style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #334155; width: 9%;">SUN</th>
+                    <tr>
+                        <th style="width: 18%;">EMPLOYEE NAME</th>
+                        <th style="width: 10%;">ROLE</th>
+                        <th style="width: 14%;">ASSIGNED SHIFT</th>
+                        <th style="width: 8%;">MON</th>
+                        <th style="width: 8%;">TUE</th>
+                        <th style="width: 8%;">WED</th>
+                        <th style="width: 8%;">THU</th>
+                        <th style="width: 8%;">FRI</th>
+                        <th style="width: 8%;">SAT</th>
+                        <th style="width: 8%;">SUN</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- Weekend Night -->
+                    {% for row in grid_data %}
                     <tr>
-                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 600; background: #fafafa; color: #1e293b;">Weekend Night</td>
-                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem;">{{ schedule_map.get('Weekend Night', 'N/A') }}</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                        <td style="border: 1px solid #cbd5e1; background: #8b5cf6; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #8b5cf6; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                        <td style="border: 1px solid #cbd5e1; background: #8b5cf6; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #8b5cf6; color: white; text-align: center; font-weight: 700;">ON</td>
+                        <td class="emp-col">{{ render_employee(row.emp_name) }}</td>
+                        <td>
+                            {% if row.is_manager %}
+                                <span style="background: #eef2ff; color: #4338ca; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: inline-block;">Manager</span>
+                            {% else %}
+                                <span style="background: #f1f5f9; color: #64748b; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: inline-block;">Employee</span>
+                            {% endif %}
+                        </td>
+                        <td style="font-weight: 600; color: #1e293b;">
+                            {% if row.assigned_shift == 'Not Assigned' %}
+                                <span style="color: #94a3b8; font-style: italic; font-size: 0.8rem;">Not Assigned</span>
+                            {% else %}
+                                <span style="font-weight: 700; color: #1e293b; font-size: 0.8rem;">{{ row.assigned_shift_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="status-on-cell">{{ render_day_status(row.days.MON) }}</td>
+                        <td class="status-on-cell">{{ render_day_status(row.days.TUE) }}</td>
+                        <td class="status-on-cell">{{ render_day_status(row.days.WED) }}</td>
+                        <td class="status-on-cell">{{ render_day_status(row.days.THU) }}</td>
+                        <td class="status-on-cell">{{ render_day_status(row.days.FRI) }}</td>
+                        <td class="status-on-cell">{{ render_day_status(row.days.SAT) }}</td>
+                        <td class="status-on-cell">{{ render_day_status(row.days.SUN) }}</td>
                     </tr>
-                    <!-- Weekend Morning -->
-                    <tr>
-                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 600; background: #fafafa; color: #1e293b;">Weekend Morning</td>
-                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem;">{{ schedule_map.get('Weekend Morning', 'N/A') }}</td>
-                        <td style="border: 1px solid #cbd5e1; background: #f97316; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #f97316; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                        <td style="border: 1px solid #cbd5e1; background: #f97316; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #f97316; color: white; text-align: center; font-weight: 700;">ON</td>
-                    </tr>
-                    <!-- Night -->
-                    <tr>
-                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 600; background: #fafafa; color: #1e293b;">Night</td>
-                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem;">{{ schedule_map.get('Night', 'N/A') }}</td>
-                        <td style="border: 1px solid #cbd5e1; background: #4f46e5; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #4f46e5; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #4f46e5; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #4f46e5; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #4f46e5; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                    </tr>
-                    <!-- Morning -->
-                    <tr>
-                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 600; background: #fafafa; color: #1e293b;">Morning</td>
-                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem;">{{ schedule_map.get('Morning', 'N/A') }}</td>
-                        <td style="border: 1px solid #cbd5e1; background: #0ea5e9; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #0ea5e9; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #0ea5e9; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #0ea5e9; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #0ea5e9; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                    </tr>
-                    <!-- Primary (P1) -->
-                    <tr>
-                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 600; background: #fafafa; color: #1e293b;">Primary (P1)</td>
-                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem;">{{ schedule_map.get('Primary (P1)', 'N/A') }}</td>
-                        <td style="border: 1px solid #cbd5e1; background: #10b981; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #10b981; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #10b981; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #10b981; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #10b981; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                    </tr>
-                    <!-- Primary (P2) -->
-                    <tr>
-                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 600; background: #fafafa; color: #1e293b;">Primary (P2)</td>
-                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem;">{{ schedule_map.get('Primary (P2)', 'N/A') }}</td>
-                        <td style="border: 1px solid #cbd5e1; background: #059669; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #059669; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #059669; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #059669; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #059669; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                    </tr>
-                    <!-- Dev Office -->
-                    <tr>
-                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 600; background: #fafafa; color: #1e293b;">Dev Office</td>
-                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem;">{{ schedule_map.get('Development Office', 'N/A') }}</td>
-                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                    </tr>
-                    <!-- Dev Office 2 -->
-                    <tr>
-                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 600; background: #fafafa; color: #1e293b;">Dev Office 2</td>
-                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem;">{{ schedule_map.get('Development office', 'N/A') }}</td>
-                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; background: #ec4899; color: white; text-align: center; font-weight: 700;">ON</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                    </tr>
+                    {% endfor %}
+                    
                     <!-- Meeting Lead -->
-                    <tr style="background: #f8fafc;">
-                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 700; color: #1e293b;">Meeting Lead</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                        <td colspan="3" style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #3b82f6; background: #eff6ff;">W1: {{ meeting_lead_week1 or 'N/A' }}</td>
-                        <td colspan="4" style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #3b82f6; background: #eff6ff;">W2: {{ meeting_lead_week2 or 'N/A' }}</td>
+                    <tr class="weekly-role-row">
+                        <td class="shift-col">
+                            <div class="shift-info">
+                                <i data-lucide="users" size="16" style="color: #2563eb;"></i>
+                                Meeting Lead
+                            </div>
+                        </td>
+                        <td colspan="2" class="status-on-cell">
+                            <span class="status-badge-on" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;">Monday</span>
+                        </td>
+                        <td colspan="3">
+                            <div class="weekly-role-badge-blue">
+                                <span class="weekly-role-label-blue">Week 1</span>
+                                <span class="weekly-role-name-blue">{{ (meeting_lead_week1 or 'N/A') | replace('_', ' ') | title }}</span>
+                            </div>
+                        </td>
+                        <td colspan="4">
+                            <div class="weekly-role-badge-blue">
+                                <span class="weekly-role-label-blue">Week 2</span>
+                                <span class="weekly-role-name-blue">{{ (meeting_lead_week2 or 'N/A') | replace('_', ' ') | title }}</span>
+                            </div>
+                        </td>
                     </tr>
                     <!-- Weekly Report -->
-                    <tr style="background: #f8fafc;">
-                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 700; color: #1e293b;">Weekly Report</td>
-                        <td style="border: 1px solid #cbd5e1; text-align: center; color: #cbd5e1;">-</td>
-                        <td colspan="3" style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #10b981; background: #ecfdf5;">W1: {{ weekly_report_week1 or 'N/A' }}</td>
-                        <td colspan="4" style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: center; font-weight: 700; color: #10b981; background: #ecfdf5;">W2: {{ weekly_report_week2 or 'N/A' }}</td>
+                    <tr class="weekly-role-row">
+                        <td class="shift-col">
+                            <div class="shift-info">
+                                <i data-lucide="clipboard-list" size="16" style="color: #059669;"></i>
+                                Weekly Report
+                            </div>
+                        </td>
+                        <td colspan="2" class="status-on-cell">
+                            <span class="status-badge-on" style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;">Tuesday</span>
+                        </td>
+                        <td colspan="3">
+                            <div class="weekly-role-badge-green">
+                                <span class="weekly-role-label-green">Week 1</span>
+                                <span class="weekly-role-name-green">{{ (weekly_report_week1 or 'N/A') | replace('_', ' ') | title }}</span>
+                            </div>
+                        </td>
+                        <td colspan="4">
+                            <div class="weekly-role-badge-green">
+                                <span class="weekly-role-label-green">Week 2</span>
+                                <span class="weekly-role-name-green">{{ (weekly_report_week2 or 'N/A') | replace('_', ' ') | title }}</span>
+                            </div>
+                        </td>
                     </tr>
                 </tbody>
             </table>

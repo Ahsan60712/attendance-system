@@ -79,12 +79,33 @@ def test_view_beyond_schedule():
         assert 'Off Day' in content
         print("✅ Beyond Schedule View loads and displays 'Off Day' successfully")
 
+def test_manager_dashboard():
+    with app.test_client() as client:
+        with client.session_transaction() as sess:
+            sess['user_type'] = 'manager'
+            sess['emp_name'] = 'Hafiz Zohaib'
+            sess['emp_id'] = 5
+            sess['emp_team'] = 'Overstock'
+            
+        response = client.get('/manager-dashboard')
+        assert response.status_code == 200
+        content = response.data.decode('utf-8')
+        print(f"Manager Dashboard Content Length: {len(content)}")
+        assert 'Beyond Schedule Grid' in content
+        assert 'Monday' in content
+        assert 'Tuesday' in content
+        print("✅ Manager dashboard loads and displays Beyond Schedule tab successfully")
+
 if __name__ == "__main__":
+    import sys
     try:
         test_admin_dashboard_date_filter()
         test_ceo_dashboard()
         test_export_beyond_schedule()
         test_view_beyond_schedule()
+        test_manager_dashboard()
         print("Tests Complete")
+        sys.exit(0)
     except Exception as e:
         print(f"Test Failed: {e}")
+        sys.exit(1)

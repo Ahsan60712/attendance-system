@@ -85,7 +85,8 @@
     }
     
     .grid-table th:first-child,
-    .grid-table th:nth-child(2) {
+    .grid-table th:nth-child(2),
+    .grid-table th:nth-child(3) {
         text-align: left;
     }
     
@@ -125,7 +126,7 @@
     
     /* Employee Column */
     .emp-col {
-        width: 22%;
+        width: 20%;
     }
     
     .emp-container {
@@ -327,6 +328,30 @@
     {% endif %}
 {% endmacro %}
 
+{% macro render_day_status(status_val) %}
+    {% if status_val == 'Off Day' %}
+        <span class="status-off-badge">Off Day</span>
+    {% elif status_val == 'Weekend Night' %}
+        <span class="status-badge-on status-badge-weekend-night">ON</span>
+    {% elif status_val == 'Weekend Morning' %}
+        <span class="status-badge-on status-badge-weekend-morning">ON</span>
+    {% elif status_val == 'Night' %}
+        <span class="status-badge-on status-badge-night">ON</span>
+    {% elif status_val == 'Morning' %}
+        <span class="status-badge-on status-badge-morning">ON</span>
+    {% elif status_val == 'Primary (P1)' %}
+        <span class="status-badge-on status-badge-primary-p1">ON</span>
+    {% elif status_val == 'Primary (P2)' %}
+        <span class="status-badge-on status-badge-primary-p2">ON</span>
+    {% elif status_val == 'Dev 1' or status_val == 'Dev Office' or status_val == 'Development Office' %}
+        <span class="status-badge-on status-badge-dev">ON</span>
+    {% elif status_val == 'Dev 2' or status_val == 'Dev Office 2' or status_val == 'Development office' %}
+        <span class="status-badge-on status-badge-dev">ON</span>
+    {% else %}
+        <span class="status-badge-on" style="background: #e2e8f0; color: #475569;">{{ status_val }}</span>
+    {% endif %}
+{% endmacro %}
+
 <div class="page-hero" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; border: none; margin: -1.5rem -2rem 2rem -2rem; padding: 2rem; border-radius: 16px;">
     <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem; font-weight: 700;">Beyond Schedule</h1>
     <p style="opacity: 0.9; font-size: 1.1rem;">
@@ -362,154 +387,46 @@
         <table class="grid-table">
             <thead>
                 <tr>
-                    <th style="width: 16%;">SHIFT</th>
-                    <th style="width: 22%;">EMPLOYEE NAME</th>
-                    <th style="width: 9%;">MON</th>
-                    <th style="width: 9%;">TUE</th>
-                    <th style="width: 9%;">WED</th>
-                    <th style="width: 9%;">THU</th>
-                    <th style="width: 9%;">FRI</th>
-                    <th style="width: 9%;">SAT</th>
-                    <th style="width: 9%;">SUN</th>
+                    <th style="width: 18%;">EMPLOYEE NAME</th>
+                    <th style="width: 10%;">ROLE</th>
+                    <th style="width: 14%;">ASSIGNED SHIFT</th>
+                    <th style="width: 8%;">MON</th>
+                    <th style="width: 8%;">TUE</th>
+                    <th style="width: 8%;">WED</th>
+                    <th style="width: 8%;">THU</th>
+                    <th style="width: 8%;">FRI</th>
+                    <th style="width: 8%;">SAT</th>
+                    <th style="width: 8%;">SUN</th>
                 </tr>
             </thead>
             <tbody>
-                <!-- Weekend Night -->
+                {% for row in grid_data %}
                 <tr>
-                    <td class="shift-col">
-                        <div class="shift-info">
-                            <i data-lucide="moon-star" size="16" style="color: #7c3aed;"></i>
-                            Weekend Night
-                        </div>
+                    <td class="emp-col">{{ render_employee(row.emp_name) }}</td>
+                    <td>
+                        {% if row.is_manager %}
+                            <span style="background: #eef2ff; color: #4338ca; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: inline-block;">Manager</span>
+                        {% else %}
+                            <span style="background: #f1f5f9; color: #64748b; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: inline-block;">Employee</span>
+                        {% endif %}
                     </td>
-                    <td class="emp-col">{{ render_employee(schedule_map.get('Weekend Night', 'N/A')) }}</td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-weekend-night">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-weekend-night">ON</span></td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-weekend-night">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-weekend-night">ON</span></td>
-                </tr>
-                <!-- Weekend Morning -->
-                <tr>
-                    <td class="shift-col">
-                        <div class="shift-info">
-                            <i data-lucide="sun-dim" size="16" style="color: #ea580c;"></i>
-                            Weekend Morning
-                        </div>
+                    <td style="font-weight: 600; color: #1e293b;">
+                        {% if row.assigned_shift == 'Not Assigned' %}
+                            <span style="color: #94a3b8; font-style: italic; font-size: 0.8rem;">Not Assigned</span>
+                        {% else %}
+                            <span style="font-weight: 700; color: #1e293b; font-size: 0.8rem;">{{ row.assigned_shift_display }}</span>
+                        {% endif %}
                     </td>
-                    <td class="emp-col">{{ render_employee(schedule_map.get('Weekend Morning', 'N/A')) }}</td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-weekend-morning">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-weekend-morning">ON</span></td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-weekend-morning">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-weekend-morning">ON</span></td>
+                    <td class="status-on-cell">{{ render_day_status(row.days.MON) }}</td>
+                    <td class="status-on-cell">{{ render_day_status(row.days.TUE) }}</td>
+                    <td class="status-on-cell">{{ render_day_status(row.days.WED) }}</td>
+                    <td class="status-on-cell">{{ render_day_status(row.days.THU) }}</td>
+                    <td class="status-on-cell">{{ render_day_status(row.days.FRI) }}</td>
+                    <td class="status-on-cell">{{ render_day_status(row.days.SAT) }}</td>
+                    <td class="status-on-cell">{{ render_day_status(row.days.SUN) }}</td>
                 </tr>
-                <!-- Night -->
-                <tr>
-                    <td class="shift-col">
-                        <div class="shift-info">
-                            <i data-lucide="moon" size="16" style="color: #4f46e5;"></i>
-                            Night
-                        </div>
-                    </td>
-                    <td class="emp-col">{{ render_employee(schedule_map.get('Night', 'N/A')) }}</td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-night">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-night">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-night">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-night">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-night">ON</span></td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
-                </tr>
-                <!-- Morning -->
-                <tr>
-                    <td class="shift-col">
-                        <div class="shift-info">
-                            <i data-lucide="sun" size="16" style="color: #0284c7;"></i>
-                            Morning
-                        </div>
-                    </td>
-                    <td class="emp-col">{{ render_employee(schedule_map.get('Morning', 'N/A')) }}</td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-morning">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-morning">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-morning">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-morning">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-morning">ON</span></td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
-                </tr>
-                <!-- Primary (P1) -->
-                <tr>
-                    <td class="shift-col">
-                        <div class="shift-info">
-                            <i data-lucide="shield-check" size="16" style="color: #059669;"></i>
-                            Primary (P1)
-                        </div>
-                    </td>
-                    <td class="emp-col">{{ render_employee(schedule_map.get('Primary (P1)', 'N/A')) }}</td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-primary-p1">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-primary-p1">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-primary-p1">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-primary-p1">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-primary-p1">ON</span></td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
-                </tr>
-                <!-- Primary (P2) -->
-                <tr>
-                    <td class="shift-col">
-                        <div class="shift-info">
-                            <i data-lucide="shield-check" size="16" style="color: #16a34a;"></i>
-                            Primary (P2)
-                        </div>
-                    </td>
-                    <td class="emp-col">{{ render_employee(schedule_map.get('Primary (P2)', 'N/A')) }}</td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-primary-p2">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-primary-p2">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-primary-p2">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-primary-p2">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-primary-p2">ON</span></td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
-                </tr>
-                <!-- Dev Office -->
-                <tr>
-                    <td class="shift-col">
-                        <div class="shift-info">
-                            <i data-lucide="code" size="16" style="color: #db2777;"></i>
-                            Dev Office
-                        </div>
-                    </td>
-                    <td class="emp-col">{{ render_employee(schedule_map.get('Development Office', 'N/A')) }}</td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-dev">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-dev">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-dev">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-dev">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-dev">ON</span></td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
-                </tr>
-                <!-- Dev Office 2 -->
-                <tr>
-                    <td class="shift-col">
-                        <div class="shift-info">
-                            <i data-lucide="terminal" size="16" style="color: #db2777;"></i>
-                            Dev Office 2
-                        </div>
-                    </td>
-                    <td class="emp-col">{{ render_employee(schedule_map.get('Development office', 'N/A')) }}</td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-dev">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-dev">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-dev">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-dev">ON</span></td>
-                    <td class="status-on-cell"><span class="status-badge-on status-badge-dev">ON</span></td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
-                </tr>
+                {% endfor %}
+                
                 <!-- Meeting Lead -->
                 <tr class="weekly-role-row">
                     <td class="shift-col">
@@ -518,7 +435,9 @@
                             Meeting Lead
                         </div>
                     </td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
+                    <td colspan="2" class="status-on-cell">
+                        <span class="status-badge-on" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;">Monday</span>
+                    </td>
                     <td colspan="3">
                         <div class="weekly-role-badge-blue">
                             <span class="weekly-role-label-blue">Week 1</span>
@@ -540,7 +459,9 @@
                             Weekly Report
                         </div>
                     </td>
-                    <td class="status-off-cell"><span class="status-off-badge">Off Day</span></td>
+                    <td colspan="2" class="status-on-cell">
+                        <span class="status-badge-on" style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;">Tuesday</span>
+                    </td>
                     <td colspan="3">
                         <div class="weekly-role-badge-green">
                             <span class="weekly-role-label-green">Week 1</span>
