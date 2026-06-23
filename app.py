@@ -1525,21 +1525,24 @@ def export_beyond_schedule():
         ws.cell(row=row_idx, column=1).fill = fill_gray_shift
         ws.cell(row=row_idx, column=1).border = thin_border
         
-        ws.cell(row=row_idx, column=2, value=rdata["employee"]).font = font_body
+        clean_emp = str(rdata["employee"]).replace('_', ' ').title()
+        ws.cell(row=row_idx, column=2, value=clean_emp).font = font_body
         ws.cell(row=row_idx, column=2).alignment = align_left
         ws.cell(row=row_idx, column=2).border = thin_border
         
         fill_on = PatternFill(start_color=rdata["on_fill"], end_color=rdata["on_fill"], fill_type="solid")
         for d_idx, day_val in enumerate(rdata["days"]):
             cell_col = 3 + d_idx
-            cell = ws.cell(row=row_idx, column=cell_col, value=day_val)
+            display_val = "Off Day" if day_val == "-" else day_val
+            cell = ws.cell(row=row_idx, column=cell_col, value=display_val)
             cell.alignment = align_center
             cell.border = thin_border
             if day_val == "ON":
                 cell.fill = fill_on
                 cell.font = font_on
             else:
-                cell.font = font_dash
+                cell.fill = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+                cell.font = Font(name="Segoe UI", size=9, color="94A3B8", italic=True)
         row_idx += 1
 
     # Meeting Lead
@@ -1548,17 +1551,19 @@ def export_beyond_schedule():
     ws.cell(row=row_idx, column=1).fill = fill_gray_shift
     ws.cell(row=row_idx, column=1).border = thin_border
     
-    ws.cell(row=row_idx, column=2, value="-").font = font_dash
+    ws.cell(row=row_idx, column=2, value="Off Day").font = font_dash
     ws.cell(row=row_idx, column=2).alignment = align_center
     ws.cell(row=row_idx, column=2).border = thin_border
     
     ws.merge_cells(start_row=row_idx, start_column=3, end_row=row_idx, end_column=5)
-    cell_w1 = ws.cell(row=row_idx, column=3, value=f"W1: {meeting_lead_week1}")
+    clean_ml1 = str(meeting_lead_week1).replace('_', ' ').title()
+    cell_w1 = ws.cell(row=row_idx, column=3, value=f"W1: {clean_ml1}")
     cell_w1.font = Font(name="Segoe UI", size=10, bold=True, color="1E3A8A")
     cell_w1.alignment = align_center
     
     ws.merge_cells(start_row=row_idx, start_column=6, end_row=row_idx, end_column=9)
-    cell_w2 = ws.cell(row=row_idx, column=6, value=f"W2: {meeting_lead_week2}")
+    clean_ml2 = str(meeting_lead_week2).replace('_', ' ').title()
+    cell_w2 = ws.cell(row=row_idx, column=6, value=f"W2: {clean_ml2}")
     cell_w2.font = Font(name="Segoe UI", size=10, bold=True, color="1E3A8A")
     cell_w2.alignment = align_center
     
@@ -1573,17 +1578,19 @@ def export_beyond_schedule():
     ws.cell(row=row_idx, column=1).fill = fill_gray_shift
     ws.cell(row=row_idx, column=1).border = thin_border
     
-    ws.cell(row=row_idx, column=2, value="-").font = font_dash
+    ws.cell(row=row_idx, column=2, value="Off Day").font = font_dash
     ws.cell(row=row_idx, column=2).alignment = align_center
     ws.cell(row=row_idx, column=2).border = thin_border
     
     ws.merge_cells(start_row=row_idx, start_column=3, end_row=row_idx, end_column=5)
-    cell_w1_r = ws.cell(row=row_idx, column=3, value=f"W1: {weekly_report_week1}")
+    clean_wr1 = str(weekly_report_week1).replace('_', ' ').title()
+    cell_w1_r = ws.cell(row=row_idx, column=3, value=f"W1: {clean_wr1}")
     cell_w1_r.font = Font(name="Segoe UI", size=10, bold=True, color="065F46")
     cell_w1_r.alignment = align_center
     
     ws.merge_cells(start_row=row_idx, start_column=6, end_row=row_idx, end_column=9)
-    cell_w2_r = ws.cell(row=row_idx, column=6, value=f"W2: {weekly_report_week2}")
+    clean_wr2 = str(weekly_report_week2).replace('_', ' ').title()
+    cell_w2_r = ws.cell(row=row_idx, column=6, value=f"W2: {clean_wr2}")
     cell_w2_r.font = Font(name="Segoe UI", size=10, bold=True, color="065F46")
     cell_w2_r.alignment = align_center
     

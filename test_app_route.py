@@ -64,11 +64,27 @@ def test_export_beyond_schedule():
         assert response.mimetype == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         print("✅ Beyond Schedule Export to Excel route works successfully")
 
+def test_view_beyond_schedule():
+    with app.test_client() as client:
+        with client.session_transaction() as sess:
+            sess['user_type'] = 'admin'
+            sess['emp_name'] = 'Admin User'
+            sess['emp_id'] = 999
+        
+        response = client.get('/view-beyond-schedule')
+        assert response.status_code == 200
+        content = response.data.decode('utf-8')
+        print(f"Beyond Schedule Grid View Content Length: {len(content)}")
+        assert 'Beyond Schedule Grid' in content
+        assert 'Off Day' in content
+        print("✅ Beyond Schedule View loads and displays 'Off Day' successfully")
+
 if __name__ == "__main__":
     try:
         test_admin_dashboard_date_filter()
         test_ceo_dashboard()
         test_export_beyond_schedule()
+        test_view_beyond_schedule()
         print("Tests Complete")
     except Exception as e:
         print(f"Test Failed: {e}")
