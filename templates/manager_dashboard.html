@@ -337,6 +337,7 @@
                         <th>Type</th>
                         <th>Date</th>
                         <th>Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -364,6 +365,17 @@
                             <span style="background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
                                 <div style="width: 6px; height: 6px; border-radius: 50%; background: #166534;"></div>Approved
                             </span>
+                        </td>
+                        <td>
+                            <form action="{{ url_for('cancel_request') }}" method="POST" style="margin:0;" onsubmit="return confirm('Are you sure you want to delete/cancel this approved request? This will adjust the employee\'s leave balances.');">
+                                <input type="hidden" name="emp_id" value="{{ req.emp_id }}">
+                                <input type="hidden" name="date" value="{{ req.date }}">
+                                <input type="hidden" name="type" value="{{ req.type }}">
+                                <input type="hidden" name="timestamp" value="{{ req.timestamp }}">
+                                <button type="submit" class="btn" style="background:#fee2e2; color:#ef4444; border:1px solid #fecdd3; padding:0.4rem 0.75rem; border-radius:6px; font-size:0.8rem; font-weight:700; display:inline-flex; align-items:center; gap:0.25rem; cursor:pointer;" onmouseover="this.style.background='#fecdd3';" onmouseout="this.style.background='#fee2e2';">
+                                    <i data-lucide="trash-2" size="14"></i> Delete
+                                </button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}
