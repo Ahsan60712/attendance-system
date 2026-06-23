@@ -1614,13 +1614,13 @@ def export_beyond_schedule():
     align_left = Alignment(horizontal="left", vertical="center")
     
     # Headers
-    headers = ["EMPLOYEE NAME", "ROLE", "ASSIGNED SHIFT", "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
+    headers = ["EMPLOYEE NAME", "ASSIGNED SHIFT", "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
     ws.append(headers)
-    for col_idx in range(1, 11):
+    for col_idx in range(1, 10):
         cell = ws.cell(row=1, column=col_idx)
         cell.font = font_header
         cell.fill = fill_header
-        cell.alignment = align_center if col_idx > 3 else align_left
+        cell.alignment = align_center if col_idx > 2 else align_left
         cell.border = thin_border
         
     font_body = Font(name="Segoe UI", size=10, bold=False, color="000000")
@@ -1632,7 +1632,6 @@ def export_beyond_schedule():
     for emp in overstock_employees:
         emp_id_str = str(emp.get('emp_id'))
         emp_name = emp.get('emp_name')
-        is_manager = emp.get('is_manager', False)
         
         assigned_shift = emp_to_shift.get(emp_id_str)
         assigned_shift_disp = SHIFT_DISPLAY.get(assigned_shift, 'Not Assigned') if assigned_shift else 'Not Assigned'
@@ -1642,21 +1641,16 @@ def export_beyond_schedule():
         ws.cell(row=row_idx, column=1).alignment = align_left
         ws.cell(row=row_idx, column=1).border = thin_border
         
-        role_val = "Manager" if is_manager else "Employee"
-        ws.cell(row=row_idx, column=2, value=role_val).font = font_body
+        ws.cell(row=row_idx, column=2, value=assigned_shift_disp).font = font_body
         ws.cell(row=row_idx, column=2).alignment = align_left
         ws.cell(row=row_idx, column=2).border = thin_border
-        
-        ws.cell(row=row_idx, column=3, value=assigned_shift_disp).font = font_body
-        ws.cell(row=row_idx, column=3).alignment = align_left
-        ws.cell(row=row_idx, column=3).border = thin_border
         
         for d_idx, day_name in enumerate(["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]):
             day_val = 'Off Day'
             if assigned_shift and assigned_shift in SHIFT_SCHEDULES:
                 day_val = SHIFT_SCHEDULES[assigned_shift].get(day_name, 'Off Day')
                 
-            cell_col = 4 + d_idx
+            cell_col = 3 + d_idx
             display_val = "Off Day" if day_val == "Off Day" else "ON"
             cell = ws.cell(row=row_idx, column=cell_col, value=display_val)
             cell.alignment = align_center
@@ -1685,28 +1679,25 @@ def export_beyond_schedule():
     ws.cell(row=row_idx, column=1).fill = fill_gray_shift
     ws.cell(row=row_idx, column=1).border = thin_border
     
-    ws.merge_cells(start_row=row_idx, start_column=2, end_row=row_idx, end_column=3)
     cell_day1 = ws.cell(row=row_idx, column=2, value="Monday")
     cell_day1.font = Font(name="Segoe UI", size=10, bold=True, color="1E3A8A")
     cell_day1.alignment = align_center
     cell_day1.fill = PatternFill(start_color="EFF6FF", end_color="EFF6FF", fill_type="solid")
-    ws.cell(row=row_idx, column=2).border = thin_border
-    ws.cell(row=row_idx, column=3).border = thin_border
-    ws.cell(row=row_idx, column=3).fill = PatternFill(start_color="EFF6FF", end_color="EFF6FF", fill_type="solid")
+    cell_day1.border = thin_border
     
-    ws.merge_cells(start_row=row_idx, start_column=4, end_row=row_idx, end_column=6)
+    ws.merge_cells(start_row=row_idx, start_column=3, end_row=row_idx, end_column=5)
     clean_ml1 = str(meeting_lead_week1).replace('_', ' ').title()
-    cell_w1 = ws.cell(row=row_idx, column=4, value=f"W1: {clean_ml1}")
+    cell_w1 = ws.cell(row=row_idx, column=3, value=f"W1: {clean_ml1}")
     cell_w1.font = Font(name="Segoe UI", size=10, bold=True, color="1E3A8A")
     cell_w1.alignment = align_center
     
-    ws.merge_cells(start_row=row_idx, start_column=7, end_row=row_idx, end_column=10)
+    ws.merge_cells(start_row=row_idx, start_column=6, end_row=row_idx, end_column=9)
     clean_ml2 = str(meeting_lead_week2).replace('_', ' ').title()
-    cell_w2 = ws.cell(row=row_idx, column=7, value=f"W2: {clean_ml2}")
+    cell_w2 = ws.cell(row=row_idx, column=6, value=f"W2: {clean_ml2}")
     cell_w2.font = Font(name="Segoe UI", size=10, bold=True, color="1E3A8A")
     cell_w2.alignment = align_center
     
-    for col in range(4, 11):
+    for col in range(3, 10):
         ws.cell(row=row_idx, column=col).border = thin_border
         ws.cell(row=row_idx, column=col).fill = PatternFill(start_color="EFF6FF", end_color="EFF6FF", fill_type="solid")
     row_idx += 1
@@ -1717,34 +1708,31 @@ def export_beyond_schedule():
     ws.cell(row=row_idx, column=1).fill = fill_gray_shift
     ws.cell(row=row_idx, column=1).border = thin_border
     
-    ws.merge_cells(start_row=row_idx, start_column=2, end_row=row_idx, end_column=3)
     cell_day2 = ws.cell(row=row_idx, column=2, value="Tuesday")
     cell_day2.font = Font(name="Segoe UI", size=10, bold=True, color="065F46")
     cell_day2.alignment = align_center
     cell_day2.fill = PatternFill(start_color="ECFDF5", end_color="ECFDF5", fill_type="solid")
-    ws.cell(row=row_idx, column=2).border = thin_border
-    ws.cell(row=row_idx, column=3).border = thin_border
-    ws.cell(row=row_idx, column=3).fill = PatternFill(start_color="ECFDF5", end_color="ECFDF5", fill_type="solid")
+    cell_day2.border = thin_border
     
-    ws.merge_cells(start_row=row_idx, start_column=4, end_row=row_idx, end_column=6)
+    ws.merge_cells(start_row=row_idx, start_column=3, end_row=row_idx, end_column=5)
     clean_wr1 = str(weekly_report_week1).replace('_', ' ').title()
-    cell_w1_r = ws.cell(row=row_idx, column=4, value=f"W1: {clean_wr1}")
+    cell_w1_r = ws.cell(row=row_idx, column=3, value=f"W1: {clean_wr1}")
     cell_w1_r.font = Font(name="Segoe UI", size=10, bold=True, color="065F46")
     cell_w1_r.alignment = align_center
     
-    ws.merge_cells(start_row=row_idx, start_column=7, end_row=row_idx, end_column=10)
+    ws.merge_cells(start_row=row_idx, start_column=6, end_row=row_idx, end_column=9)
     clean_wr2 = str(weekly_report_week2).replace('_', ' ').title()
-    cell_w2_r = ws.cell(row=row_idx, column=7, value=f"W2: {clean_wr2}")
+    cell_w2_r = ws.cell(row=row_idx, column=6, value=f"W2: {clean_wr2}")
     cell_w2_r.font = Font(name="Segoe UI", size=10, bold=True, color="065F46")
     cell_w2_r.alignment = align_center
     
-    for col in range(4, 11):
+    for col in range(3, 10):
         ws.cell(row=row_idx, column=col).border = thin_border
         ws.cell(row=row_idx, column=col).fill = PatternFill(start_color="ECFDF5", end_color="ECFDF5", fill_type="solid")
 
     for col in ws.columns:
         col_letter = get_column_letter(col[0].column)
-        if col_letter in ['A', 'B', 'C']:
+        if col_letter in ['A', 'B']:
             max_len = 0
             for cell in col:
                 if cell.row < 15:

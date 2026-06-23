@@ -387,9 +387,8 @@
         <table class="grid-table">
             <thead>
                 <tr>
-                    <th style="width: 18%;">EMPLOYEE NAME</th>
-                    <th style="width: 10%;">ROLE</th>
-                    <th style="width: 14%;">ASSIGNED SHIFT</th>
+                    <th style="width: 22%;">EMPLOYEE NAME</th>
+                    <th style="width: 18%;">ASSIGNED SHIFT</th>
                     <th style="width: 8%;">MON</th>
                     <th style="width: 8%;">TUE</th>
                     <th style="width: 8%;">WED</th>
@@ -403,13 +402,6 @@
                 {% for row in grid_data %}
                 <tr>
                     <td class="emp-col">{{ render_employee(row.emp_name) }}</td>
-                    <td>
-                        {% if row.is_manager %}
-                            <span style="background: #eef2ff; color: #4338ca; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: inline-block;">Manager</span>
-                        {% else %}
-                            <span style="background: #f1f5f9; color: #64748b; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: inline-block;">Employee</span>
-                        {% endif %}
-                    </td>
                     <td style="font-weight: 600; color: #1e293b;">
                         {% if row.assigned_shift == 'Not Assigned' %}
                             <span style="color: #94a3b8; font-style: italic; font-size: 0.8rem;">Not Assigned</span>
@@ -435,7 +427,7 @@
                             Meeting Lead
                         </div>
                     </td>
-                    <td colspan="2" class="status-on-cell">
+                    <td class="status-on-cell">
                         <span class="status-badge-on" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;">Monday</span>
                     </td>
                     <td colspan="3">
@@ -459,7 +451,7 @@
                             Weekly Report
                         </div>
                     </td>
-                    <td colspan="2" class="status-on-cell">
+                    <td class="status-on-cell">
                         <span class="status-badge-on" style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;">Tuesday</span>
                     </td>
                     <td colspan="3">
