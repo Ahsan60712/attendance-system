@@ -85,7 +85,15 @@ class WFHLeaveManager:
 
     def authenticate_user(self, emp_name, password=None, role='employee'):
         try:
-            user = self._execute_query("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE LOWER(EMP_NAME) = LOWER(%s)", (emp_name,), fetchone=True)
+            cleaned_name = emp_name.strip() if emp_name else ""
+            # Replace underscores with spaces to normalize comparison
+            normalized_name = cleaned_name.replace('_', ' ')
+            
+            user = self._execute_query(
+                "SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE LOWER(REPLACE(EMP_NAME, '_', ' ')) = LOWER(%s)",
+                (normalized_name,),
+                fetchone=True
+            )
             if not user: return None
 
             emp_data = {
@@ -98,7 +106,7 @@ class WFHLeaveManager:
                 'password': user.get('PASSWORD')
             }
             
-            if password and str(emp_data['password']) != str(password):
+            if password and str(emp_data['password']).strip() != str(password).strip():
                 return None
             # Admin login accepts both IS_ADMIN users (Sajeel) and IS_CEO users (Najm)
             if role == 'admin' and not emp_data['is_admin'] and not emp_data['is_ceo']:
@@ -121,13 +129,13 @@ class WFHLeaveManager:
         if not user:
             raise Exception("User not found")
 
-        stored_password = str(user.get('PASSWORD') or '')
-        if stored_password != str(current_password):
+        stored_password = str(user.get('PASSWORD') or '').strip()
+        if stored_password != str(current_password).strip():
             raise Exception("Current password is incorrect")
 
         updated = self._execute_query(
             "UPDATE ADLABS.AHSAN.EMPLOYEES SET PASSWORD = %s WHERE EMP_ID = %s",
-            (new_password, emp_id),
+            (new_password.strip(), emp_id),
             commit=True
         )
         if not updated:
