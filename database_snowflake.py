@@ -24,12 +24,11 @@ class SnowflakeDatabase:
         # Reuse existing connection if it's still alive
         if self._conn is not None:
             try:
-                # Test if connection is still alive
-                self._conn.cursor().execute("SELECT 1")
-                return self._conn
+                if not getattr(self._conn, 'is_closed', False):
+                    return self._conn
             except:
-                # Connection is dead, create new one
-                self._conn = None
+                pass
+            self._conn = None
         
         try:
             self._conn = snowflake.connector.connect(
@@ -54,9 +53,11 @@ class SnowflakeDatabase:
             cur = conn.cursor(snowflake.connector.DictCursor)
             cur.execute("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_ID = %s", (emp_id,))
             result = cur.fetchone()
+            cur.close()
             return result
-        finally:
-            conn.close()
+        except Exception as e:
+            logger.error(f"Error getting employee: {e}")
+            return None
 
     def get_team_manager(self, team_name):
         """Find the manager for a specific team"""
@@ -65,9 +66,12 @@ class SnowflakeDatabase:
         try:
             cur = conn.cursor(snowflake.connector.DictCursor)
             cur.execute("SELECT * FROM ADLABS.AHSAN.EMPLOYEES WHERE EMP_TEAM = %s AND IS_MANAGER = TRUE LIMIT 1", (team_name,))
-            return cur.fetchone()
-        finally:
-            conn.close()
+            result = cur.fetchone()
+            cur.close()
+            return result
+        except Exception as e:
+            logger.error(f"Error getting team manager: {e}")
+            return None
 
     def get_pending_requests(self, manager_team=None):
         """Fetch pending requests (filtered by team if manager)"""
@@ -93,9 +97,12 @@ class SnowflakeDatabase:
                 ORDER BY r.REQUEST_DATE DESC
                 """
                 cur.execute(sql)
-            return cur.fetchall()
-        finally:
-            conn.close()
+            results = cur.fetchall()
+            cur.close()
+            return results
+        except Exception as e:
+            logger.error(f"Error getting pending requests: {e}")
+            return []
 
     def mark_request(self, emp_id, req_date, req_type, reason, status='Pending', approved_by=None):
         """Create a new attendance request"""
@@ -110,9 +117,11 @@ class SnowflakeDatabase:
             """
             cur.execute(sql, (emp_id, req_date, req_type, reason, status, approved_by))
             conn.commit()
+            cur.close()
             return True
-        finally:
-            conn.close()
+        except Exception as e:
+            logger.error(f"Error marking request: {e}")
+            return False
 
     def update_request_status(self, request_id, status, manager_name):
         """Approve or Reject a request"""
@@ -123,9 +132,11 @@ class SnowflakeDatabase:
             sql = "UPDATE ADLABS.AHSAN.ATTENDANCE_REQUESTS SET STATUS = %s, APPROVED_BY = %s WHERE REQUEST_ID = %s"
             cur.execute(sql, (status, manager_name, request_id))
             conn.commit()
+            cur.close()
             return True
-        finally:
-            conn.close()
+        except Exception as e:
+            logger.error(f"Error updating request status: {e}")
+            return False
 
     def update_employee_counters(self, emp_id, request_type):
         """Increment WFH count or decrement leaves in Snowflake"""
@@ -140,9 +151,11 @@ class SnowflakeDatabase:
             elif request_type == 'Half Day':
                 cur.execute("UPDATE ADLABS.AHSAN.EMPLOYEES SET REMAINING_LEAVES = REMAINING_LEAVES - 0.5, LEAVES_THIS_YEAR = LEAVES_THIS_YEAR + 0.5 WHERE EMP_ID = %s", (emp_id,))
             conn.commit()
+            cur.close()
             return True
-        finally:
-            conn.close()
+        except Exception as e:
+            logger.error(f"Error updating employee counters: {e}")
+            return False
 
     def log_approval_action(self, emp_id, emp_name, request_type, request_date, status, manager_name):
         """Log approval actions for auditing"""
@@ -156,6 +169,8 @@ class SnowflakeDatabase:
             """
             cur.execute(sql, (emp_id, emp_name, request_type, request_date, status, manager_name))
             conn.commit()
+            cur.close()
             return True
-        finally:
-            conn.close()
+        except Exception as e:
+            logger.error(f"Error logging approval action: {e}")
+            return False

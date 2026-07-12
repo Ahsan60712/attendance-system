@@ -255,6 +255,7 @@ def employee_login():
             if user:
                 session.pop('_flashes', None)
                 session['logged_in'] = True
+                flash('Login successful', 'success')
 
                 if user.get('is_manager', 0) == 1:
                     session['user_type'] = 'manager'
@@ -269,7 +270,7 @@ def employee_login():
                     session['emp_team'] = user.get('emp_team', '')
                     return redirect(url_for('employee_dashboard'))
             else:
-                flash('Invalid credentials', 'error')
+                flash('Wrong credentials', 'error')
         except Exception as e:
             flash(f'Login failed: {str(e)}', 'error')
     
@@ -550,9 +551,10 @@ def manager_login():
                 session['emp_id'] = user['emp_id']
                 session['emp_name'] = user['emp_name']
                 session['emp_team'] = user['emp_team']
+                flash('Login successful', 'success')
                 return redirect(url_for('manager_dashboard'))
             else:
-                flash('Invalid manager credentials', 'error')
+                flash('Wrong credentials', 'error')
         except Exception as e:
             flash(f'Login failed: {str(e)}', 'error')
     
@@ -904,6 +906,7 @@ def admin_login():
                 session['logged_in'] = True
                 session['emp_id'] = user['emp_id']
                 session['emp_name'] = user['emp_name']
+                flash('Login successful', 'success')
                 # CEO users (IS_CEO flag) get their own portal
                 if user.get('is_ceo'):
                     session['user_type'] = 'ceo'
@@ -912,7 +915,7 @@ def admin_login():
                     session['user_type'] = 'admin'
                     return redirect(url_for('admin_dashboard'))
             else:
-                flash('Invalid credentials. Please check your username and password.', 'error')
+                flash('Wrong credentials', 'error')
         except Exception as e:
             flash(f'Login failed: {str(e)}', 'error')
     
