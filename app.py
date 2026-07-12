@@ -1158,6 +1158,9 @@ def add_employee_route():
                 contract_end_date=contract_end_date,
                 total_leaves=total_leaves
             )
+            flash(f"Employee '{emp_name}' added successfully!", 'success')
+            if session.get('user_type') == 'ceo':
+                return redirect(url_for('ceo_dashboard'))
             return redirect(url_for('admin_dashboard'))
             
         except Exception as e:
@@ -1250,8 +1253,19 @@ def delete_employee_route(emp_id):
         return redirect(url_for('admin_login'))
         
     try:
+        # Get employee name before deletion for a helpful flash message
+        employees = manager.get_employees()
+        emp_info = next((e for e in employees if str(e.get('emp_id')) == str(emp_id)), None)
+        emp_name = emp_info.get('emp_name', 'Employee') if emp_info else 'Employee'
+
         manager.delete_employee(emp_id)
-        # Redirect to the appropriate dashboard depending on who deleted
+        flash(f"Employee '{emp_name}' removed successfully!", 'success')
+        
+        # Redirection logic back to the previous page or dashboard
+        referrer = request.referrer
+        if referrer and 'view-employee' not in referrer:
+            return redirect(referrer)
+            
         if session.get('user_type') == 'ceo':
             return redirect(url_for('ceo_dashboard'))
         return redirect(url_for('admin_dashboard'))
