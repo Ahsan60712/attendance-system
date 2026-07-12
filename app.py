@@ -38,19 +38,8 @@ def _attach_request_leave_balance(req, balance_cache):
     req['total_allotted'] = bal.get('total_available', bal.get('total_leaves', 14))
 
 def _enrich_employees_leave_balances(employees):
-    """Refresh Remaining_Leaves on employee dicts from approved attendance requests in DB."""
-    balance_cache = {}
-    for emp in employees:
-        emp_id = emp.get('emp_id')
-        if not emp_id:
-            continue
-        bal = manager.get_leave_balance_cached(emp_id, balance_cache)
-        if bal:
-            emp['Remaining_Leaves'] = bal.get('remaining_leaves', emp.get('Remaining_Leaves', 0))
-            emp['Leaves_This_Year'] = bal.get('leaves_taken_this_year', emp.get('Leaves_This_Year', 0))
-            emp['WFH_count'] = bal.get('wfh_count', emp.get('WFH_count', 0))
-            emp['Half_Day'] = bal.get('half_days_taken', emp.get('Half_Day', 0))
-            emp['Total_leaves'] = bal.get('total_leaves', emp.get('Total_leaves', 14))
+    """Balances are already populated during get_employees() mapping. No-op to save 20+ database queries."""
+    pass
 
 def _sync_all_balances_on_startup():
     try:
