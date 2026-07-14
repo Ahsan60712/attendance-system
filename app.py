@@ -242,22 +242,19 @@ def employee_login():
         try:
             user = manager.authenticate_user(emp_name, password)
             if user:
+                if user.get('is_manager', 0) == 1:
+                    flash('Access denied. Team Leads must log in through the Manager Portal.', 'error')
+                    return redirect(url_for('employee_login'))
+
                 session.pop('_flashes', None)
                 session['logged_in'] = True
                 flash('Login successful', 'success')
 
-                if user.get('is_manager', 0) == 1:
-                    session['user_type'] = 'manager'
-                    session['emp_id'] = user['emp_id']
-                    session['emp_name'] = user['emp_name']
-                    session['emp_team'] = user.get('emp_team', '')
-                    return redirect(url_for('manager_dashboard'))
-                else:
-                    session['user_type'] = 'employee'
-                    session['emp_id'] = user['emp_id']
-                    session['emp_name'] = user['emp_name']
-                    session['emp_team'] = user.get('emp_team', '')
-                    return redirect(url_for('employee_dashboard'))
+                session['user_type'] = 'employee'
+                session['emp_id'] = user['emp_id']
+                session['emp_name'] = user['emp_name']
+                session['emp_team'] = user.get('emp_team', '')
+                return redirect(url_for('employee_dashboard'))
             else:
                 flash('Wrong credentials', 'error')
         except Exception as e:
