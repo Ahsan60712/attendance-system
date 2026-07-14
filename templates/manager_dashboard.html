@@ -480,6 +480,12 @@
     <button onclick="showTab('apply-tab')" class="tab-btn" id="btn-apply">
         <i data-lucide="plus-circle" size="18"></i> Personal Apply
     </button>
+    <button onclick="showTab('history-tab')" class="tab-btn" id="btn-history">
+        <i data-lucide="history" size="18"></i> My Leave History
+    </button>
+    <button onclick="showTab('team-balances-tab')" class="tab-btn" id="btn-team-balances">
+        <i data-lucide="users" size="18"></i> Team Leave Balances
+    </button>
 </div>
 
 <!-- TAB 1: TEAM REQUESTS -->
@@ -1232,6 +1238,143 @@
     </div>
 </div>
 
+<!-- TAB: MY LEAVE HISTORY -->
+<div id="history-tab" class="tab-content">
+    <div class="card-modern">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+            <div style="background: #f1f5f9; color: #475569; padding: 0.5rem; border-radius: 10px;">
+                <i data-lucide="history" size="20"></i>
+            </div>
+            <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin: 0;">My Leave History</h3>
+        </div>
+        
+        <div class="table-wrapper" style="overflow-x: auto; border-radius: 12px; border: 1px solid #f1f5f9;">
+            <table class="table-modern">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in my_records %}
+                    <tr>
+                        <td style="font-weight: 500;">{{ record.date }}</td>
+                        <td>
+                            {% if record.type == 'WFH' %}
+                            <span style="background: #eff6ff; color: #3b82f6; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                <i data-lucide="home" size="12" style="vertical-align: middle; margin-right: 4px;"></i>WFH
+                            </span>
+                            {% elif record.type == 'Leave' %}
+                            <span style="background: #fff1f2; color: #f43f5e; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                <i data-lucide="plane" size="12" style="vertical-align: middle; margin-right: 4px;"></i>Full Leave
+                            </span>
+                            {% else %}
+                            <span style="background: #fffbeb; color: #f59e0b; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                <i data-lucide="clock" size="12" style="vertical-align: middle; margin-right: 4px;"></i>Half Day
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if record.status == 'Approved' %}
+                                <span style="background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                    <div style="width: 6px; height: 6px; border-radius: 50%; background: #166534;"></div>{{ record.status }}
+                                </span>
+                            {% elif record.status == 'Rejected' %}
+                                <span style="background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                    <div style="width: 6px; height: 6px; border-radius: 50%; background: #991b1b;"></div>{{ record.status }}
+                                </span>
+                            {% elif record.status == 'Cancelled' %}
+                                <span style="background: #f1f5f9; color: #64748b; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                    <div style="width: 6px; height: 6px; border-radius: 50%; background: #64748b;"></div>{{ record.status }}
+                                </span>
+                            {% else %}
+                                <span style="background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                    <div style="width: 6px; height: 6px; border-radius: 50%; background: #d97706;" class="pulse"></div>{{ record.status }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td style="color: #64748b; font-size: 0.85rem;">{{ record.reason }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">
+                            <i data-lucide="inbox" size="32" style="margin-bottom: 1rem; opacity: 0.5; display: block; margin-left: auto; margin-right: auto;"></i>
+                            No recent personal requests found
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- TAB: TEAM LEAVE BALANCES -->
+<div id="team-balances-tab" class="tab-content">
+    <div class="card-modern">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+            <div style="background: #e0f2fe; color: #0369a1; padding: 0.5rem; border-radius: 10px;">
+                <i data-lucide="users" size="20"></i>
+            </div>
+            <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin: 0;">Team Leave Balances</h3>
+        </div>
+        
+        <div class="table-wrapper" style="overflow-x: auto; border-radius: 12px; border: 1px solid #f1f5f9;">
+            <table class="table-modern">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Team</th>
+                        <th>Total Entitlement</th>
+                        <th>Used Leaves</th>
+                        <th>Remaining Balance</th>
+                        <th>WFH Count</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in team_members_balances %}
+                    {% if not member.is_ceo %}
+                    <tr>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div class="emp-avatar">{{ (member.emp_name | replace('_', ' '))[:2] | upper }}</div>
+                                <span style="font-weight: 700; color: #1e293b;">{{ member.emp_name | replace('_', ' ') }}</span>
+                            </div>
+                        </td>
+                        <td><span style="background: #f1f5f9; color: #64748b; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">{{ member.emp_team }}</span></td>
+                        <td style="font-weight: 600; color: #475569;">{{ member.Total_leaves | format_number }} {% if member.Leaves_Carried_Forward > 0 %}<span style="font-size: 0.75rem; color: #8b5cf6;">(+{{ member.Leaves_Carried_Forward | format_number }} CF)</span>{% endif %}</td>
+                        <td style="font-weight: 600; color: #ef4444;">{{ member.Leaves_This_Year | format_number }}</td>
+                        <td>
+                            {% if member.Remaining_Leaves > 0 %}
+                            <span style="background: #dcfce7; color: #15803d; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700;">
+                                {{ member.Remaining_Leaves | format_number }} left
+                            </span>
+                            {% else %}
+                            <span style="background: #fee2e2; color: #b91c1c; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700;">
+                                0 left
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td style="font-weight: 600; color: #3b82f6;">{{ member.WFH_count | int }}</td>
+                    </tr>
+                    {% endif %}
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">
+                            <i data-lucide="users" size="32" style="margin-bottom: 1rem; opacity: 0.5; display: block; margin-left: auto; margin-right: auto;"></i>
+                            No team members found
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <style>
     .radio-label { flex: 1; min-width: 120px; cursor: pointer; }
     .radio-label input { display: none; }
@@ -1284,6 +1427,10 @@
             document.getElementById('btn-beyond-schedule').classList.add('active-tab');
         } else if(tabId === 'mark-team-tab') {
             document.getElementById('btn-mark-team').classList.add('active-tab');
+        } else if(tabId === 'history-tab') {
+            document.getElementById('btn-history').classList.add('active-tab');
+        } else if(tabId === 'team-balances-tab') {
+            document.getElementById('btn-team-balances').classList.add('active-tab');
         } else {
             document.getElementById('btn-apply').classList.add('active-tab');
         }

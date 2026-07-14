@@ -588,9 +588,12 @@ def manager_dashboard():
             req_emp_data = next((e for e in employees if str(e.get('emp_id')) == str(req_emp_id)), {})
             req_emp_team = (req_emp_data.get('emp_team') or '').strip().lower()
             
-            target_team = 'poppi' if is_sajeel else manager_team
+            if is_sajeel:
+                is_target_team = req_emp_team in ['poppi', 'ovg']
+            else:
+                is_target_team = (req_emp_team == manager_team)
             
-            if req_emp_team == target_team:
+            if is_target_team:
                 _attach_request_leave_balance(req, leave_balance_cache)
                 pending_requests.append(req)
                 
@@ -604,7 +607,12 @@ def manager_dashboard():
             req_emp_data = next((e for e in employees if str(e.get('emp_id')) == str(req_emp_id)), {})
             req_emp_team = (req_emp_data.get('emp_team') or '').strip().lower()
             
-            if is_sajeel or req_emp_team == manager_team:
+            if is_sajeel:
+                is_target_team = req_emp_team in ['poppi', 'ovg']
+            else:
+                is_target_team = (req_emp_team == manager_team)
+            
+            if is_target_team:
                 team_approved.append(req)
 
         approved_requests = []
@@ -629,12 +637,15 @@ def manager_dashboard():
             leave_balance = {}
         
         overstock_members = manager.get_overstock_team_members()
-        target_team = 'poppi' if is_sajeel else manager_team
-        team_members = [e for e in employees if (e.get('emp_team') or '').strip().lower() == target_team]
         
-        # Sajeel's team (Poppi) should only show Najm and Sajeel in the list
-        if target_team == 'poppi':
-            team_members = [e for e in team_members if any(name in e.get('emp_name', '').lower() for name in ['sajeel', 'najm'])]
+        if is_sajeel:
+            team_members = [e for e in employees if (e.get('emp_team') or '').strip().lower() in ['poppi', 'ovg']]
+            team_members_balances = [e for e in employees if (e.get('emp_team') or '').strip().lower() in ['poppi', 'ovg']]
+        else:
+            team_members = [e for e in employees if (e.get('emp_team') or '').strip().lower() == manager_team]
+            team_members_balances = [e for e in employees if (e.get('emp_team') or '').strip().lower() == manager_team]
+            
+        team_members_balances.sort(key=lambda e: e.get('emp_name', '').lower())
         
         schedules = manager.get_shift_schedules()
         if schedules:
@@ -644,7 +655,7 @@ def manager_dashboard():
                 schedules = [s for s in schedules if s.get('valid_from') == latest_date]
         
         emp_dict = {str(e.get('emp_id')): e.get('emp_name') for e in manager.get_employees()}
-            # Invert schedules to find who is assigned to what main shift
+        # Invert schedules to find who is assigned to what main shift
         emp_to_shift = {}
         meeting_lead_week1 = 'Not Assigned'
         meeting_lead_week2 = 'Not Assigned'
@@ -765,7 +776,8 @@ def manager_dashboard():
                                meeting_lead_week2=meeting_lead_week2,
                                weekly_report_week1=weekly_report_week1,
                                weekly_report_week2=weekly_report_week2,
-                               team_members=team_members)
+                               team_members=team_members,
+                               team_members_balances=team_members_balances)
     except Exception as e:
         return f"<h2>⚠️ Dashboard Crash!</h2><p>Error Type: {type(e).__name__}</p><p>Message: {str(e)}</p>"
 
