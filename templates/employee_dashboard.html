@@ -221,6 +221,20 @@
                     </div>
                 </div>
 
+                {% if emp_data.emp_team|lower == 'overstock' %}
+                <!-- Weekend Inclusion Checkboxes (Overstock Only) -->
+                <div style="margin-bottom: 2rem; display: flex; gap: 2rem; background: #f8fafc; padding: 1rem 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; color: #475569; cursor: pointer;">
+                        <input type="checkbox" name="include_saturday" style="width: 18px; height: 18px; cursor: pointer;">
+                        Include Saturday
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; color: #475569; cursor: pointer;">
+                        <input type="checkbox" name="include_sunday" style="width: 18px; height: 18px; cursor: pointer;">
+                        Include Sunday
+                    </label>
+                </div>
+                {% endif %}
+
                 <!-- Reason -->
                 <div style="margin-bottom: 2rem;">
                     <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.9rem; color: #475569;">Reason for Application</label>

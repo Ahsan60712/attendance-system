@@ -397,11 +397,29 @@ def manager_mark_attendance():
         else:
             end_date = start_date
         
+        target_emp_team = (target_emp.get('emp_team') or '').strip().lower()
+        is_overstock = (target_emp_team == 'overstock')
+        
+        include_sat = request.form.get('include_saturday') == 'on'
+        include_sun = request.form.get('include_sunday') == 'on'
+        
         dates_to_mark = []
         current = start_date
         while current <= end_date:
-            dates_to_mark.append(current)
+            weekday = current.weekday()
+            if weekday == 5:  # Saturday
+                if is_overstock and include_sat:
+                    dates_to_mark.append(current)
+            elif weekday == 6:  # Sunday
+                if is_overstock and include_sun:
+                    dates_to_mark.append(current)
+            else:
+                dates_to_mark.append(current)
             current += timedelta(days=1)
+            
+        if not dates_to_mark:
+            flash('No valid leave days to mark (weekends are excluded).', 'warning')
+            return redirect(url_for('manager_dashboard'))
         
         manager_name = session.get('emp_name')
         
@@ -469,11 +487,29 @@ def mark_request():
         else:
             end_date = start_date
 
+        emp_team = (session.get('emp_team') or '').strip().lower()
+        is_overstock = (emp_team == 'overstock')
+        
+        include_sat = request.form.get('include_saturday') == 'on'
+        include_sun = request.form.get('include_sunday') == 'on'
+
         dates_to_mark = []
         current = start_date
         while current <= end_date:
-            dates_to_mark.append(current)
+            weekday = current.weekday()
+            if weekday == 5:  # Saturday
+                if is_overstock and include_sat:
+                    dates_to_mark.append(current)
+            elif weekday == 6:  # Sunday
+                if is_overstock and include_sun:
+                    dates_to_mark.append(current)
+            else:
+                dates_to_mark.append(current)
             current += timedelta(days=1)
+            
+        if not dates_to_mark:
+            flash('No valid leave days to apply (weekends are excluded).', 'warning')
+            return redirect(url_for(redirect_target))
         
         for d in dates_to_mark:
             manager.mark_wfh_leave(
