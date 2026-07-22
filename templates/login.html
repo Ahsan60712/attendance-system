@@ -19,8 +19,12 @@
 
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" class="form-input" placeholder="Enter password"
-                    required>
+                <div style="position: relative; display: flex; align-items: center;">
+                    <input type="password" id="password" name="password" class="form-input" placeholder="Enter password" required style="padding-right: 2.5rem; width: 100%; box-sizing: border-box;">
+                    <button type="button" id="togglePassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; color: #64748b; padding: 0; display: flex; align-items: center; justify-content: center; outline: none;">
+                        <i data-lucide="eye" size="18"></i>
+                    </button>
+                </div>
             </div>
 
             <button type="submit" class="btn btn-primary btn-block">
@@ -33,4 +37,29 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+
+        if (togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                
+                // Toggle the icon
+                const icon = this.querySelector('i');
+                if (icon) {
+                    if (type === 'password') {
+                        icon.setAttribute('data-lucide', 'eye');
+                    } else {
+                        icon.setAttribute('data-lucide', 'eye-off');
+                    }
+                    lucide.createIcons(); // Re-render Lucide icons
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

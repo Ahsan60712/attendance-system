@@ -38,12 +38,40 @@
             </div>
             <div class="form-group">
                 <label>Password</label>
-                <input type="password" name="password" placeholder="••••••••" required>
+                <div style="position: relative; display: flex; align-items: center;">
+                    <input type="password" id="password" name="password" placeholder="••••••••" required style="padding-right: 2.5rem; width: 100%; box-sizing: border-box;">
+                    <button type="button" id="togglePassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; color: #64748b; padding: 0; display: flex; align-items: center; justify-content: center; outline: none;">
+                        <i data-lucide="eye" size="18"></i>
+                    </button>
+                </div>
             </div>
             <button type="submit" class="btn">Login as Manager</button>
         </form>
         <a href="/" style="display: block; margin-top: 1.5rem; font-size: 0.85rem; color: #065f46; text-decoration: none;">Back to Selection</a>
     </div>
-    <script>lucide.createIcons();</script>
+    <script>
+        lucide.createIcons();
+
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+
+        if (togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                
+                // Toggle the icon
+                const icon = this.querySelector('i');
+                if (icon) {
+                    if (type === 'password') {
+                        icon.setAttribute('data-lucide', 'eye');
+                    } else {
+                        icon.setAttribute('data-lucide', 'eye-off');
+                    }
+                    lucide.createIcons(); // Re-render Lucide icons
+                }
+            });
+        }
+    </script>
 </body>
 </html>
