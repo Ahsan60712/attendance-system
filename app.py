@@ -467,14 +467,11 @@ def mark_request():
         from datetime import timezone
         today = (datetime.now(timezone.utc) + timedelta(hours=5)).date()
         
-        max_days_back = 2 if user_type == 'employee' else 0
+        max_days_back = 7
         min_allowed_date = today - timedelta(days=max_days_back)
         
         if start_date < min_allowed_date:
-            if user_type == 'employee':
-                flash(f'Error: You cannot apply for dates more than 2 days back. Today is {today.strftime("%d %b %Y")}.', 'error')
-            else:
-                flash(f'Error: Invalid date selected.', 'error')
+            flash(f'Error: You cannot apply for dates more than 7 days back. Today is {today.strftime("%d %b %Y")}.', 'error')
             return redirect(url_for(redirect_target))
             
         if end_date_str and len(end_date_str.strip()) > 5:

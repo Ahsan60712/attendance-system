@@ -210,14 +210,14 @@
                 <div class="grid-2col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; background: linear-gradient(to right, #faf5ff, #f3e8ff); padding: 1.5rem; border-radius: 16px; border: 1px solid #e9d5ff;">
                     <div>
                         <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.9rem; color: #6b21a8;">Start Date</label>
-                        <input type="date" name="date" value="{{ today }}" min="{{ today }}" required class="custom-input" style="border-color: #d8b4fe; background: white;">
+                        <input type="date" name="date" value="{{ today }}" required class="custom-input" style="border-color: #d8b4fe; background: white;">
                     </div>
                     <div>
                         <label style="display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.9rem; color: #6b21a8;">
                             <span>End Date</span>
                             <span style="font-weight: 600; font-size: 0.75rem; color: #9333ea; background: #e9d5ff; padding: 2px 8px; border-radius: 12px;">Optional</span>
                         </label>
-                        <input type="date" name="end_date" value="{{ today }}" min="{{ today }}" class="custom-input" style="border-color: #d8b4fe; background: white;">
+                        <input type="date" name="end_date" value="{{ today }}" class="custom-input" style="border-color: #d8b4fe; background: white;">
                     </div>
                 </div>
 
@@ -323,4 +323,23 @@
     }
     .pulse { animation: pulse-dot 2s infinite; }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const todayStr = "{{ today }}";
+        const today = new Date(todayStr + 'T00:00:00');
+        const minDate = new Date(today);
+        minDate.setDate(today.getDate() - 7);
+        
+        const yyyy = minDate.getFullYear();
+        const mm = String(minDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(minDate.getDate()).padStart(2, '0');
+        const minStr = `${yyyy}-${mm}-${dd}`;
+        
+        const dateInput = document.querySelector('input[name="date"]');
+        const endDateInput = document.querySelector('input[name="end_date"]');
+        if (dateInput) dateInput.setAttribute('min', minStr);
+        if (endDateInput) endDateInput.setAttribute('min', minStr);
+    });
+</script>
 {% endblock %}
