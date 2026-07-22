@@ -885,9 +885,23 @@ def cancel_request():
     req_date = request.form.get('date')
     timestamp = request.form.get('timestamp')
     
-    if session.get('user_type') == 'employee' and str(emp_id) != str(session.get('emp_id')):
-        flash('You are not authorized to cancel this request.', 'danger')
-        return redirect(request.referrer or url_for('employee_dashboard'))
+    user_type = session.get('user_type')
+    if user_type == 'employee':
+        if str(emp_id) != str(session.get('emp_id')):
+            flash('You are not authorized to cancel this request.', 'danger')
+            return redirect(request.referrer or url_for('employee_dashboard'))
+        
+        # Block employee from deleting approved requests
+        req = manager._execute_query(
+            """SELECT STATUS FROM ADLABS.AHSAN.ATTENDANCE_REQUESTS 
+               WHERE EMP_ID = %s AND CAST(REQUEST_DATE AS DATE) = %s LIMIT 1""",
+            (emp_id, req_date), fetchone=True
+        )
+        if req:
+            status_val = str(req.get('STATUS') or req.get('status') or '').strip().upper()
+            if status_val == 'APPROVED':
+                flash('You cannot cancel/delete an approved request. Please contact your manager.', 'danger')
+                return redirect(request.referrer or url_for('employee_dashboard'))
         
     try:
         manager.cancel_request(
