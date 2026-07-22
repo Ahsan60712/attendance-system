@@ -263,6 +263,7 @@
                             <th>Date</th>
                             <th>Type</th>
                             <th>Status</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -299,10 +300,25 @@
                                     </span>
                                 {% endif %}
                             </td>
+                            <td>
+                                {% if record.status in ['Approved', 'Pending'] %}
+                                <form action="{{ url_for('cancel_request') }}" method="POST" style="margin:0;" onsubmit="return confirm('Are you sure you want to delete/cancel this request?');">
+                                    <input type="hidden" name="emp_id" value="{{ session.get('emp_id') }}">
+                                    <input type="hidden" name="date" value="{{ record.raw_date }}">
+                                    <input type="hidden" name="type" value="{{ record.type }}">
+                                    <input type="hidden" name="timestamp" value="{{ record.timestamp }}">
+                                    <button type="submit" class="btn" style="background:#fee2e2; color:#ef4444; border:1px solid #fecdd3; padding:0.25rem 0.5rem; border-radius:6px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:0.25rem; cursor:pointer;" onmouseover="this.style.background='#fecdd3';" onmouseout="this.style.background='#fee2e2';">
+                                        <i data-lucide="trash-2" size="12"></i> Delete
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span style="color: #94a3b8;">-</span>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="3" style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">
+                            <td colspan="4" style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">
                                 <i data-lucide="inbox" size="32" style="margin-bottom: 1rem; opacity: 0.5; display: block; margin-left: auto; margin-right: auto;"></i>
                                 No recent requests found
                             </td>
