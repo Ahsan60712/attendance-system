@@ -558,6 +558,7 @@
                         <th>Team</th>
                         <th>Balance</th>
                         <th>Type</th>
+                        <th>Reason</th>
                         <th>Date</th>
                         <th style="text-align: center;">Action</th>
                     </tr>
@@ -587,6 +588,7 @@
                             </span>
                             {% endif %}
                         </td>
+                        <td style="color: #64748b; font-size: 0.85rem;">{{ req.reason }}</td>
                         <td style="font-weight: 500;">{{ req.display_date }}</td>
                         <td style="text-align: center;">
                             <div style="display: flex; gap: 0.5rem; justify-content: center;">
@@ -643,6 +645,7 @@
                         <th>Employee</th>
                         <th>Team</th>
                         <th>Type</th>
+                        <th>Reason</th>
                         <th>Date</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -668,6 +671,7 @@
                             </span>
                             {% endif %}
                         </td>
+                        <td style="color: #64748b; font-size: 0.85rem;">{{ req.reason }}</td>
                         <td style="font-weight: 500;">{{ req.display_date }}</td>
                         <td>
                             <span style="background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">

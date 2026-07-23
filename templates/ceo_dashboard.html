@@ -226,6 +226,7 @@
                     <th>Employee</th>
                     <th>Team</th>
                     <th>Type</th>
+                    <th>Reason</th>
                     <th>Date</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -237,6 +238,7 @@
                     <td style="font-weight: 700; padding: 1rem;">{{ req.emp_name | replace('_', ' ') }}</td>
                     <td style="padding: 1rem;"><span class="badge" style="background:#f1f5f9;">{{ req.team }}</span></td>
                     <td style="padding: 1rem;">{{ req.type }}</td>
+                    <td style="padding: 1rem; color: #64748b; font-size: 0.85rem;">{{ req.reason }}</td>
                     <td style="padding: 1rem;">{{ req.display_date }}</td>
                     <td style="padding: 1rem;">
                         {% if req.status == 'Approved' %}

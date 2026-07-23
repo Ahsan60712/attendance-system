@@ -263,6 +263,7 @@
                             <th>Date</th>
                             <th>Type</th>
                             <th>Status</th>
+                            <th>Reason</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -300,6 +301,7 @@
                                     </span>
                                 {% endif %}
                             </td>
+                            <td style="color: #64748b; font-size: 0.85rem;">{{ record.reason }}</td>
                             <td>
                                 {% if record.status == 'Pending' %}
                                 <form action="{{ url_for('cancel_request') }}" method="POST" style="margin:0;" onsubmit="return confirm('Are you sure you want to delete/cancel this request?');">
@@ -318,7 +320,7 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="4" style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">
+                            <td colspan="5" style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">
                                 <i data-lucide="inbox" size="32" style="margin-bottom: 1rem; opacity: 0.5; display: block; margin-left: auto; margin-right: auto;"></i>
                                 No recent requests found
                             </td>
